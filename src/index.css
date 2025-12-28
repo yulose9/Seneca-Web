@@ -1,0 +1,1143 @@
+@import "tailwindcss";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/inter/800.css";
+
+/* ============================================
+   SENECA - iOS 18 Human Interface Guidelines
+   Inspired Design System
+   ============================================ */
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@theme {
+  /* iOS 18 System Colors */
+  --color-background: #F2F2F7;
+  --color-background-secondary: #FFFFFF;
+  --color-background-tertiary: #F5F5FA;
+  --color-background-elevated: #FFFFFF;
+
+  /* Text Colors */
+  --color-label: #000000;
+  --color-label-secondary: #3C3C43;
+  --color-label-tertiary: #48484A;
+  --color-label-quaternary: #636366;
+
+  /* iOS 18 System Colors */
+  --color-system-blue: #007AFF;
+  --color-system-green: #34C759;
+  --color-system-indigo: #5856D6;
+  --color-system-orange: #FF9500;
+  --color-system-pink: #FF2D55;
+  --color-system-purple: #AF52DE;
+  --color-system-red: #FF3B30;
+  --color-system-teal: #5AC8FA;
+  --color-system-yellow: #FFCC00;
+  --color-system-mint: #00C7BE;
+  --color-system-cyan: #32ADE6;
+
+  /* Seneca Brand */
+  --color-primary: #007AFF;
+  --color-accent: #5856D6;
+
+  /* Fill Colors */
+  --color-fill-primary: rgba(120, 120, 128, 0.2);
+  --color-fill-secondary: rgba(120, 120, 128, 0.16);
+  --color-fill-tertiary: rgba(120, 120, 128, 0.12);
+  --color-fill-quaternary: rgba(120, 120, 128, 0.08);
+
+  /* Separator */
+  --color-separator: rgba(60, 60, 67, 0.18);
+  --color-separator-opaque: #C6C6C8;
+
+  /* Glass */
+  --color-glass-bg: rgba(255, 255, 255, 0.72);
+  --color-glass-border: rgba(255, 255, 255, 0.3);
+
+  /* System Font Stack */
+  --font-sans: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+:root {
+  /* Base Variables */
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Tab Bar Variables - iOS 18 Floating Style */
+  --tab-height: 84px;
+  --tab-item-width: 68px;
+  --tab-gap: 6px;
+  --tab-radius: 42px;
+  --tab-padding: 6px;
+
+  /* Animation Timings */
+  --spring-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --spring-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* Base Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-label);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* ============================================
+   Liquid Glass Navigation
+   ============================================ */
+
+:root {
+  /* Liquid Variables */
+  --liquid-glass: #bbbbbc;
+  --liquid-light: #ffffff;
+  --liquid-dark: #000000;
+  --liquid-action: #007AFF;
+  --liquid-reflex-dark: 1;
+  --liquid-reflex-light: 1;
+  --liquid-saturation: 150%;
+}
+
+.liquid-nav {
+  position: fixed;
+  bottom: calc(24px + var(--safe-area-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+
+  display: flex;
+  align-items: center;
+  /* gap: 4px; Mobile optimization: reduced gap slightly for 5 items */
+  gap: 4px;
+
+  height: 80px;
+  padding: 8px 10px;
+  border-radius: 99em;
+
+  /* Glass Base */
+  background-color: color-mix(in srgb, var(--liquid-glass) 12%, transparent);
+  backdrop-filter: blur(16px) saturate(var(--liquid-saturation));
+  -webkit-backdrop-filter: blur(16px) saturate(var(--liquid-saturation));
+
+  /* Complex Outer/Inner Shadows from Request */
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 10%), transparent),
+    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 90%), transparent),
+    inset -2px -2px 0px -2px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 80%), transparent),
+    inset -3px -8px 1px -6px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 60%), transparent),
+    inset -0.3px -1px 4px 0px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 12%), transparent),
+    inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%), transparent),
+    inset 0px 3px 4px -2px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%), transparent),
+    inset 2px -6.5px 1px -4px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%), transparent),
+    0px 1px 5px 0px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%), transparent),
+    0px 6px 16px 0px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%), transparent);
+
+  transition: all 0.4s cubic-bezier(1, 0.0, 0.4, 1);
+}
+
+.liquid-nav-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  width: 68px;
+  /* Increased width */
+  height: 100%;
+
+  border-radius: 99em;
+  cursor: pointer;
+  z-index: 2;
+  /* Above the active pill */
+
+  color: #666;
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.15s ease-out;
+
+  /* Disable tap highlight */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.liquid-nav-item:hover:not(.active) {
+  color: color-mix(in srgb, var(--liquid-action) 70%, #666);
+}
+
+.liquid-nav-item.active {
+  color: var(--liquid-action);
+}
+
+/* The "Liquid" Active Background */
+.liquid-active-tab {
+  position: absolute;
+  /* Positioning is now handled in JS for the single pill */
+
+  border-radius: 99em;
+  background-color: color-mix(in srgb, var(--liquid-glass) 36%, transparent);
+  z-index: 1;
+  /* Behind items */
+
+  /* GPU acceleration for smooth animations */
+  will-change: transform, width;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  /* Specific Active Shadows from Request */
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 10%), transparent),
+    inset 2px 1px 0px -1px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 90%), transparent),
+    inset -1.5px -1px 0px -1px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 80%), transparent),
+    inset -2px -6px 1px -5px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 60%), transparent),
+    inset -1px 2px 3px -1px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%), transparent),
+    inset 0px -4px 1px -2px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%), transparent),
+    0px 3px 6px 0px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%), transparent);
+}
+
+.liquid-icon {
+  width: 26px;
+  height: 26px;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    color 0.25s ease;
+}
+
+.liquid-nav-item.active .liquid-icon {
+  transform: translateY(-2px) scale(1.1);
+}
+
+.liquid-label {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+  opacity: 0.8;
+  transition: opacity 0.2s ease, font-weight 0.2s ease;
+}
+
+.liquid-nav-item.active .liquid-label {
+  opacity: 1;
+  font-weight: 700;
+}
+
+/* ============================================
+   iOS 18 Material Card
+   ============================================ */
+.ios-card {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 16px;
+  padding: 16px;
+
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border-radius: 16px;
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
+
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+
+  transition: all 0.25s var(--spring-smooth);
+}
+
+.ios-card:hover {
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.ios-card.interactive {
+  cursor: pointer;
+}
+
+.ios-card.interactive:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+/* Grouped Card Style (like Settings) */
+.ios-card-grouped {
+  background: #FFFFFF;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.ios-card-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  min-height: 44px;
+  background: #FFFFFF;
+  transition: background 0.15s ease;
+}
+
+.ios-card-row:not(:last-child) {
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
+}
+
+.ios-card-row:active {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* ============================================
+   iOS 18 Inset Grouped List
+   ============================================ */
+.ios-list-section {
+  margin-bottom: 32px;
+}
+
+.ios-list-header {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-label-secondary);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  padding: 0 16px 8px;
+}
+
+.ios-list-footer {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-label-tertiary);
+  padding: 8px 16px 0;
+  line-height: 1.4;
+}
+
+.ios-inset-grouped {
+  background: #FFFFFF;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0 16px;
+  box-shadow: none;
+}
+
+.ios-list-row {
+  display: flex;
+  align-items: center;
+  padding: 11px 16px;
+  min-height: 44px;
+  background: #FFFFFF;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ios-list-row:active {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.ios-list-row:not(:last-child) {
+  margin-left: 16px;
+  padding-left: 0;
+  border-bottom: 0.33px solid rgba(60, 60, 67, 0.18);
+}
+
+.ios-list-row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ios-list-row-title {
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--color-label);
+  line-height: 1.3;
+}
+
+.ios-list-row-subtitle {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--color-label-tertiary);
+  margin-top: 2px;
+}
+
+.ios-list-accessory {
+  color: var(--color-label-quaternary);
+  font-size: 17px;
+}
+
+/* ============================================
+   iOS 18 Navigation Bar
+   ============================================ */
+.ios-nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 48px 16px 8px;
+  background: var(--color-background);
+  transition: all 0.25s ease;
+}
+
+.ios-nav-bar.scrolled {
+  background: rgba(242, 242, 247, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.33px solid rgba(60, 60, 67, 0.18);
+}
+
+.ios-large-title {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.37px;
+  line-height: 1.2;
+  color: var(--color-label);
+}
+
+.ios-nav-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-label-secondary);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+/* ============================================
+   iOS 18 Buttons
+   ============================================ */
+.ios-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s var(--spring-smooth);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.ios-button:active {
+  transform: scale(0.97);
+  opacity: 0.8;
+}
+
+.ios-button-filled {
+  background: var(--color-system-blue);
+  color: #FFFFFF;
+}
+
+.ios-button-tinted {
+  background: rgba(0, 122, 255, 0.15);
+  color: var(--color-system-blue);
+}
+
+.ios-button-gray {
+  background: var(--color-fill-tertiary);
+  color: var(--color-label);
+}
+
+.ios-button-plain {
+  background: transparent;
+  color: var(--color-system-blue);
+  padding: 8px 12px;
+}
+
+/* ============================================
+   iOS 18 Toggle/Checkbox
+   ============================================ */
+.ios-checkbox {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--color-separator-opaque);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s var(--spring-bounce);
+  flex-shrink: 0;
+}
+
+.ios-checkbox.checked {
+  background: var(--color-system-blue);
+  border-color: var(--color-system-blue);
+  animation: checkBounce 0.3s var(--spring-bounce);
+}
+
+@keyframes checkBounce {
+  0% {
+    transform: scale(0.8);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.ios-checkbox-icon {
+  width: 14px;
+  height: 14px;
+  color: #FFFFFF;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s var(--spring-bounce);
+}
+
+.ios-checkbox.checked .ios-checkbox-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ============================================
+   iOS 18 Progress Ring
+   ============================================ */
+.ios-progress-ring {
+  transform: rotate(-90deg);
+}
+
+.ios-progress-ring-bg {
+  fill: none;
+  stroke: var(--color-fill-tertiary);
+}
+
+.ios-progress-ring-fill {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s var(--ease-out-expo);
+}
+
+/* ============================================
+   iOS 18 Segmented Control
+   ============================================ */
+.ios-segmented {
+  display: inline-flex;
+  background: var(--color-fill-tertiary);
+  border-radius: 9px;
+  padding: 2px;
+  gap: 0;
+}
+
+.ios-segment {
+  position: relative;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-label);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.ios-segment.active {
+  background: #FFFFFF;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.12),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================
+   iOS 18 Sheet/Modal
+   ============================================ */
+.ios-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 200;
+}
+
+.ios-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 201;
+  background: #FFFFFF;
+  border-radius: 14px 14px 0 0;
+  max-height: 90vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-shadow: 0 -4px 40px rgba(0, 0, 0, 0.15);
+}
+
+.ios-sheet-handle {
+  width: 36px;
+  height: 5px;
+  background: rgba(60, 60, 67, 0.3);
+  border-radius: 2.5px;
+  margin: 8px auto 0;
+}
+
+.ios-sheet-content {
+  padding: 20px 20px calc(20px + var(--safe-area-bottom));
+}
+
+/* ============================================
+   iOS 18 Pill/Tag
+   ============================================ */
+.ios-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 100px;
+  gap: 4px;
+}
+
+.ios-pill-blue {
+  background: rgba(0, 122, 255, 0.12);
+  color: var(--color-system-blue);
+}
+
+.ios-pill-green {
+  background: rgba(52, 199, 89, 0.12);
+  color: var(--color-system-green);
+}
+
+.ios-pill-orange {
+  background: rgba(255, 149, 0, 0.12);
+  color: var(--color-system-orange);
+}
+
+.ios-pill-red {
+  background: rgba(255, 59, 48, 0.12);
+  color: var(--color-system-red);
+}
+
+.ios-pill-gray {
+  background: var(--color-fill-tertiary);
+  color: var(--color-label-secondary);
+}
+
+/* ============================================
+   iOS 18 Search Bar
+   ============================================ */
+.ios-search-bar {
+  display: flex;
+  align-items: center;
+  background: var(--color-fill-tertiary);
+  border-radius: 12px;
+  padding: 10px 12px;
+  gap: 8px;
+}
+
+.ios-search-bar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 17px;
+  color: var(--color-label);
+  outline: none;
+}
+
+.ios-search-bar input::placeholder {
+  color: var(--color-label-quaternary);
+}
+
+.ios-search-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-label-quaternary);
+}
+
+/* ============================================
+   iOS 18 Badge
+   ============================================ */
+.ios-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: var(--color-system-red);
+  border-radius: 9px;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+.safe-padding-bottom {
+  padding-bottom: calc(100px + var(--safe-area-bottom));
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-system-blue), var(--color-system-indigo));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animation Utilities */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s var(--ease-out-expo) forwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s var(--spring-bounce) forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Focus Styles */
+:focus-visible {
+  outline: 2px solid var(--color-system-blue);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 122, 255, 0.25);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ============================================
+   TipTap Rich Text Editor Styles
+   ============================================ */
+.rich-text-editor {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(60, 60, 67, 0.12);
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.rich-text-editor:focus-within {
+  border-color: var(--color-system-blue);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+/* Editor Content Styling */
+.rich-text-editor .ProseMirror {
+  min-height: 120px;
+  padding: 16px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-label);
+  outline: none;
+}
+
+.rich-text-editor .ProseMirror:focus {
+  outline: none;
+}
+
+/* Placeholder styling */
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgba(60, 60, 67, 0.3);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Typography */
+.rich-text-editor .ProseMirror h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 20px 0 12px;
+  color: var(--color-label);
+}
+
+.rich-text-editor .ProseMirror h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 16px 0 10px;
+  color: var(--color-label);
+}
+
+.rich-text-editor .ProseMirror p {
+  margin: 0 0 12px;
+}
+
+.rich-text-editor .ProseMirror strong {
+  font-weight: 700;
+}
+
+.rich-text-editor .ProseMirror em {
+  font-style: italic;
+}
+
+.rich-text-editor .ProseMirror u {
+  text-decoration: underline;
+}
+
+/* Lists */
+.rich-text-editor .ProseMirror ul,
+.rich-text-editor .ProseMirror ol {
+  padding-left: 24px;
+  margin: 12px 0;
+}
+
+.rich-text-editor .ProseMirror li {
+  margin: 4px 0;
+}
+
+.rich-text-editor .ProseMirror ul {
+  list-style-type: disc;
+}
+
+.rich-text-editor .ProseMirror ol {
+  list-style-type: decimal;
+}
+
+/* Blockquote */
+.rich-text-editor .ProseMirror blockquote {
+  border-left: 4px solid var(--color-system-blue);
+  padding-left: 16px;
+  margin: 16px 0;
+  color: rgba(60, 60, 67, 0.8);
+  font-style: italic;
+}
+
+/* Code */
+.rich-text-editor .ProseMirror code {
+  background: rgba(120, 120, 128, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, monospace;
+  font-size: 14px;
+}
+
+.rich-text-editor .ProseMirror pre {
+  background: rgba(120, 120, 128, 0.08);
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.rich-text-editor .ProseMirror pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Task Lists */
+.rich-text-editor .ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li>label {
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li>label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #007AFF;
+  cursor: pointer;
+}
+
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li>div {
+  flex: 1;
+}
+
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li[data-checked="true"]>div {
+  text-decoration: line-through;
+  color: rgba(60, 60, 67, 0.5);
+}
+
+/* Horizontal Rule */
+.rich-text-editor .ProseMirror hr {
+  border: none;
+  border-top: 2px solid rgba(60, 60, 67, 0.12);
+  margin: 24px 0;
+}
+
+/* Text Alignment */
+.rich-text-editor .ProseMirror [style*="text-align: left"] {
+  text-align: left;
+}
+
+.rich-text-editor .ProseMirror [style*="text-align: center"] {
+  text-align: center;
+}
+
+.rich-text-editor .ProseMirror [style*="text-align: right"] {
+  text-align: right;
+}
+
+.rich-text-editor .ProseMirror [style*="text-align: justify"] {
+  text-align: justify;
+}
+
+/* Subscript & Superscript */
+.rich-text-editor .ProseMirror sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+.rich-text-editor .ProseMirror sup {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+/* Placeholder */
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  color: rgba(60, 60, 67, 0.3);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Images */
+.rich-text-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+/* YouTube Embeds */
+.rich-text-editor .ProseMirror div[data-youtube-video] {
+  margin: 16px 0;
+}
+
+.rich-text-editor .ProseMirror div[data-youtube-video] iframe {
+  border-radius: 12px;
+  width: 100%;
+  aspect-ratio: 16/9;
+}
+
+/* ============================================
+   Slash Command Dropdown Menu
+   ============================================ */
+.dropdown-menu {
+  background: #FFFFFF;
+  border: 1px solid rgba(60, 60, 67, 0.12);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  padding: 8px;
+  max-height: none;
+  min-width: 280px;
+  z-index: 999999;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #000000;
+  background-color: transparent;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:hover.is-selected {
+  background-color: rgba(0, 122, 255, 0.08);
+}
+
+.dropdown-item.is-selected {
+  background-color: rgba(0, 122, 255, 0.12);
+}
+
+.dropdown-item.is-selected .dropdown-item-title {
+  color: #007AFF;
+}
+
+.dropdown-item.no-result {
+  color: rgba(60, 60, 67, 0.6);
+  cursor: default;
+  justify-content: center;
+}
+
+.dropdown-item.no-result:hover {
+  background-color: transparent;
+}
+
+.dropdown-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(120, 120, 128, 0.08);
+  border-radius: 8px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.dropdown-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dropdown-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+  line-height: 1.3;
+}
+
+.dropdown-item-description {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(60, 60, 67, 0.6);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================
+   Bubble Menu (Text Selection Toolbar)
+   ============================================ */
+.bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  background: #FFFFFF;
+  border: 1px solid rgba(60, 60, 67, 0.12);
+  border-radius: 10px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.bubble-menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #000000;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bubble-menu-button:hover {
+  background: rgba(120, 120, 128, 0.08);
+}
+
+.bubble-menu-button.is-active {
+  background: rgba(0, 122, 255, 0.15);
+  color: #007AFF;
+}
+
+.bubble-menu-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(60, 60, 67, 0.12);
+  margin: 0 4px;
+}
