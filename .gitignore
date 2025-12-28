@@ -30,3 +30,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ChatGPT exports
+ChatGPT-*.json
+
+
+
