@@ -233,3 +233,114 @@ export const getSmartWeatherSummary = async () => {
 
     return finalResult;
 };
+
+const CACHE_KEY_DETAIL_PREFIX = 'weather_detail_cache_v3_'; // Version 3
+const CACHE_DURATION_DETAIL = 2 * 60 * 60 * 1000; // 2 hours
+
+export const getDetailedLocationSummary = async (locationName, locationData) => {
+    if (!locationData) return null;
+
+    // 0. Check Cache
+    const cacheKey = `${CACHE_KEY_DETAIL_PREFIX}${locationName}`;
+    try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            const age = Date.now() - parsed.timestamp;
+            if (age < CACHE_DURATION_DETAIL) {
+                console.log(`Using cached summary for ${locationName}`);
+                return parsed.data;
+            }
+        }
+    } catch (e) {
+        console.error("Detail cache read error:", e);
+    }
+
+    // 1. Prepare Data
+    const minimalData = {
+        current: locationData.current,
+        forecast: locationData.hourlyForecast?.slice(0, 5).map(h => ({
+            time: new Date(h.time).getHours() + ':00',
+            temp: h.temp,
+            rain: h.rainProb + '%',
+            cond: h.condition
+        }))
+    };
+
+    const promptText = `
+        Current Time: ${new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}.
+        Location: ${locationName}
+        Official API Data: ${JSON.stringify(minimalData)}
+
+        Task: You are a smart weather assistant. 
+        1. Search current weather for ${locationName}, Philippines to verify the API data.
+        2. Combine specific API details (rain %, temp) with your search insights.
+        3. Give 1 sentence of PRACTICAL ADVICE (wear/bring).
+        
+        Style: Casual, witty, helpful.
+        Emoji: Required.
+        
+        Examples:
+        - "Cloudy with a chance of meatballs—jk, but do bring a brolly! ☔"
+        - "It's 34°C! Wear breathable fabrics and stay hydrated. 🥤"
+        - "Clear skies tonight, perfect for a run. 🏃"
+    `;
+
+    try {
+        const ai = new GoogleGenAI({
+            apiKey: import.meta.env.VITE_GEMINI_API_KEY,
+        });
+
+        // Attempt 1: Gemini 2.0 Flash (Bleeding Edge) with Search
+        console.log(`Asking Gemini 2.0 for ${locationName}...`);
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.0-flash-exp',
+            contents: [{ role: 'user', parts: [{ text: promptText }] }],
+            config: {
+                tools: [{ googleSearch: {} }], // Enable Search Grounding
+                temperature: 0.9,
+            }
+        });
+
+        const text = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+        if (text) {
+            localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: text }));
+            return text;
+        }
+
+    } catch (error) {
+        console.warn("Gemini 2.0 Summary Failed, falling back to 1.5:", error);
+
+        // Attempt 2: Gemini 1.5 Flash (Reliable)
+        try {
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+            const response = await ai.models.generateContent({
+                model: 'gemini-1.5-flash',
+                contents: [{ role: 'user', parts: [{ text: promptText }] }],
+                config: { temperature: 0.7 }
+            });
+            const text = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            if (text) {
+                localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: text }));
+                return text;
+            }
+        } catch (fbError) {
+            console.error("Gemini 1.5 Fallback Failed:", fbError);
+        }
+    }
+
+    // Smart Fallback (Offline/Error) - Improved Logic
+    const temp = locationData.current?.temp || 25;
+    const cond = locationData.current?.condition?.toLowerCase() || '';
+    const rainForecast = locationData.hourlyForecast?.some(h => h.rainProb > 30);
+    const rainNow = locationData.current?.precip > 0 || cond.includes('rain') || cond.includes('drizzle');
+
+    if (rainNow || rainForecast) return "Rain detected or expected provided by OpenMeteo. Bring an umbrella! ☔";
+    if (temp > 31) return `It's ${Math.round(temp)}°C outside. Wear cool clothes and sunscreen! ☀️`;
+    if (cond.includes('cloud') || cond.includes('overcast')) return "It's a bit cloudy, but should remain dry. ☁️";
+    if (temp < 24) return "Cooler weather today. A light jacket might be nice. 🧥";
+
+    return "Skies look clear. Enjoy your day! 🌤️";
+};
+

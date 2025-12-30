@@ -21,33 +21,33 @@
 
 @theme {
   /* iOS 18 System Colors */
-  --color-background: #F2F2F7;
-  --color-background-secondary: #FFFFFF;
-  --color-background-tertiary: #F5F5FA;
-  --color-background-elevated: #FFFFFF;
+  --color-background: #f2f2f7;
+  --color-background-secondary: #ffffff;
+  --color-background-tertiary: #f5f5fa;
+  --color-background-elevated: #ffffff;
 
   /* Text Colors */
   --color-label: #000000;
-  --color-label-secondary: #3C3C43;
-  --color-label-tertiary: #48484A;
+  --color-label-secondary: #3c3c43;
+  --color-label-tertiary: #48484a;
   --color-label-quaternary: #636366;
 
   /* iOS 18 System Colors */
-  --color-system-blue: #007AFF;
-  --color-system-green: #34C759;
-  --color-system-indigo: #5856D6;
-  --color-system-orange: #FF9500;
-  --color-system-pink: #FF2D55;
-  --color-system-purple: #AF52DE;
-  --color-system-red: #FF3B30;
-  --color-system-teal: #5AC8FA;
-  --color-system-yellow: #FFCC00;
-  --color-system-mint: #00C7BE;
-  --color-system-cyan: #32ADE6;
+  --color-system-blue: #007aff;
+  --color-system-green: #34c759;
+  --color-system-indigo: #5856d6;
+  --color-system-orange: #ff9500;
+  --color-system-pink: #ff2d55;
+  --color-system-purple: #af52de;
+  --color-system-red: #ff3b30;
+  --color-system-teal: #5ac8fa;
+  --color-system-yellow: #ffcc00;
+  --color-system-mint: #00c7be;
+  --color-system-cyan: #32ade6;
 
   /* Seneca Brand */
-  --color-primary: #007AFF;
-  --color-accent: #5856D6;
+  --color-primary: #007aff;
+  --color-accent: #5856d6;
 
   /* Fill Colors */
   --color-fill-primary: rgba(120, 120, 128, 0.2);
@@ -57,14 +57,16 @@
 
   /* Separator */
   --color-separator: rgba(60, 60, 67, 0.18);
-  --color-separator-opaque: #C6C6C8;
+  --color-separator-opaque: #c6c6c8;
 
   /* Glass */
   --color-glass-bg: rgba(255, 255, 255, 0.72);
   --color-glass-border: rgba(255, 255, 255, 0.3);
 
   /* System Font Stack */
-  --font-sans: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "SF Pro Display", "SF Pro Text", -apple-system,
+    BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
 }
 
 :root {
@@ -116,7 +118,7 @@ body {
   --liquid-glass: #bbbbbc;
   --liquid-light: #ffffff;
   --liquid-dark: #000000;
-  --liquid-action: #007AFF;
+  --liquid-action: #007aff;
   --liquid-reflex-dark: 1;
   --liquid-reflex-light: 1;
   --liquid-saturation: 150%;
@@ -144,19 +146,52 @@ body {
   -webkit-backdrop-filter: blur(16px) saturate(var(--liquid-saturation));
 
   /* Complex Outer/Inner Shadows from Request */
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 10%), transparent),
-    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 90%), transparent),
-    inset -2px -2px 0px -2px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 80%), transparent),
-    inset -3px -8px 1px -6px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 60%), transparent),
-    inset -0.3px -1px 4px 0px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 12%), transparent),
-    inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%), transparent),
-    inset 0px 3px 4px -2px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%), transparent),
-    inset 2px -6.5px 1px -4px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%), transparent),
-    0px 1px 5px 0px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%), transparent),
-    0px 6px 16px 0px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%), transparent);
+  box-shadow: inset 0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--liquid-light) calc(var(--liquid-reflex-light) * 10%),
+        transparent
+      ),
+    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--liquid-light)
+          calc(var(--liquid-reflex-light) * 90%), transparent),
+    inset -2px -2px 0px -2px color-mix(in srgb, var(--liquid-light)
+          calc(var(--liquid-reflex-light) * 80%), transparent),
+    inset -3px -8px 1px -6px color-mix(in srgb, var(--liquid-light)
+          calc(var(--liquid-reflex-light) * 60%), transparent),
+    inset -0.3px -1px 4px 0px
+      color-mix(
+        in srgb,
+        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 12%),
+        transparent
+      ),
+    inset -1.5px 2.5px 0px -2px
+      color-mix(
+        in srgb,
+        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
+        transparent
+      ),
+    inset 0px 3px 4px -2px color-mix(in srgb, var(--liquid-dark)
+          calc(var(--liquid-reflex-dark) * 20%), transparent),
+    inset 2px -6.5px 1px -4px
+      color-mix(
+        in srgb,
+        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
+        transparent
+      ),
+    0px 1px 5px 0px
+      color-mix(
+        in srgb,
+        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
+        transparent
+      ),
+    0px 6px 16px 0px
+      color-mix(
+        in srgb,
+        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%),
+        transparent
+      );
 
-  transition: all 0.4s cubic-bezier(1, 0.0, 0.4, 1);
+  transition: all 0.4s cubic-bezier(1, 0, 0.4, 1);
 }
 
 .liquid-nav-item {
@@ -176,8 +211,7 @@ body {
   /* Above the active pill */
 
   color: #666;
-  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.15s ease-out;
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease-out;
 
   /* Disable tap highlight */
   -webkit-tap-highlight-color: transparent;
@@ -208,14 +242,36 @@ body {
   -webkit-backface-visibility: hidden;
 
   /* Specific Active Shadows from Request */
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 10%), transparent),
-    inset 2px 1px 0px -1px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 90%), transparent),
-    inset -1.5px -1px 0px -1px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 80%), transparent),
-    inset -2px -6px 1px -5px color-mix(in srgb, var(--liquid-light) calc(var(--liquid-reflex-light) * 60%), transparent),
-    inset -1px 2px 3px -1px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%), transparent),
-    inset 0px -4px 1px -2px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%), transparent),
-    0px 3px 6px 0px color-mix(in srgb, var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%), transparent);
+  box-shadow: inset 0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--liquid-light) calc(var(--liquid-reflex-light) * 10%),
+        transparent
+      ),
+    inset 2px 1px 0px -1px color-mix(in srgb, var(--liquid-light)
+          calc(var(--liquid-reflex-light) * 90%), transparent),
+    inset -1.5px -1px 0px -1px color-mix(in srgb, var(--liquid-light)
+          calc(var(--liquid-reflex-light) * 80%), transparent),
+    inset -2px -6px 1px -5px color-mix(in srgb, var(--liquid-light)
+          calc(var(--liquid-reflex-light) * 60%), transparent),
+    inset -1px 2px 3px -1px
+      color-mix(
+        in srgb,
+        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
+        transparent
+      ),
+    inset 0px -4px 1px -2px
+      color-mix(
+        in srgb,
+        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
+        transparent
+      ),
+    0px 3px 6px 0px
+      color-mix(
+        in srgb,
+        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%),
+        transparent
+      );
 }
 
 .liquid-icon {
@@ -258,17 +314,13 @@ body {
   border-radius: 16px;
   border: 0.5px solid rgba(0, 0, 0, 0.04);
 
-  box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
 
   transition: all 0.25s var(--spring-smooth);
 }
 
 .ios-card:hover {
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.1),
-    0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .ios-card.interactive {
@@ -282,7 +334,7 @@ body {
 
 /* Grouped Card Style (like Settings) */
 .ios-card-grouped {
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -295,7 +347,7 @@ body {
   align-items: center;
   padding: 12px 16px;
   min-height: 44px;
-  background: #FFFFFF;
+  background: #ffffff;
   transition: background 0.15s ease;
 }
 
@@ -332,7 +384,7 @@ body {
 }
 
 .ios-inset-grouped {
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 12px;
   overflow: hidden;
   margin: 0 16px;
@@ -344,7 +396,7 @@ body {
   align-items: center;
   padding: 11px 16px;
   min-height: 44px;
-  background: #FFFFFF;
+  background: #ffffff;
   gap: 12px;
   cursor: pointer;
   transition: background 0.1s ease;
@@ -446,7 +498,7 @@ body {
 
 .ios-button-filled {
   background: var(--color-system-blue);
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 .ios-button-tinted {
@@ -506,7 +558,7 @@ body {
 .ios-checkbox-icon {
   width: 14px;
   height: 14px;
-  color: #FFFFFF;
+  color: #ffffff;
   opacity: 0;
   transform: scale(0);
   transition: all 0.2s var(--spring-bounce);
@@ -559,10 +611,8 @@ body {
 }
 
 .ios-segment.active {
-  background: #FFFFFF;
-  box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.12),
-    0 1px 3px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* ============================================
@@ -583,7 +633,7 @@ body {
   left: 0;
   right: 0;
   z-index: 201;
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 14px 14px 0 0;
   max-height: 90vh;
   overflow-y: auto;
@@ -684,7 +734,7 @@ body {
   padding: 0 5px;
   font-size: 12px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: #ffffff;
   background: var(--color-system-red);
   border-radius: 9px;
 }
@@ -697,7 +747,11 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--color-system-blue), var(--color-system-indigo));
+  background: linear-gradient(
+    135deg,
+    var(--color-system-blue),
+    var(--color-system-indigo)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -822,6 +876,14 @@ body {
 }
 
 /* Typography */
+.rich-text-editor .ProseMirror h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 28px 0 16px;
+  color: var(--color-label);
+  line-height: 1.2;
+}
+
 .rich-text-editor .ProseMirror h2 {
   font-size: 24px;
   font-weight: 700;
@@ -871,35 +933,45 @@ body {
   list-style-type: decimal;
 }
 
-/* Blockquote */
+/* Blockquote - Notion style */
 .rich-text-editor .ProseMirror blockquote {
-  border-left: 4px solid var(--color-system-blue);
+  border-left: 3px solid rgba(60, 60, 67, 0.3);
   padding-left: 16px;
   margin: 16px 0;
   color: rgba(60, 60, 67, 0.8);
-  font-style: italic;
+  font-style: normal;
 }
 
-/* Code */
+.rich-text-editor .ProseMirror blockquote p {
+  margin: 0;
+}
+
+/* Code - Inline */
 .rich-text-editor .ProseMirror code {
-  background: rgba(120, 120, 128, 0.08);
+  background: rgba(135, 131, 120, 0.15);
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: "SF Mono", Monaco, monospace;
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
   font-size: 14px;
+  color: #eb5757;
 }
 
+/* Code Block - Notion style */
 .rich-text-editor .ProseMirror pre {
-  background: rgba(120, 120, 128, 0.08);
-  padding: 12px;
+  background: #1e1e1e;
+  padding: 20px;
   border-radius: 8px;
   overflow-x: auto;
-  margin: 12px 0;
+  margin: 16px 0;
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
 }
 
 .rich-text-editor .ProseMirror pre code {
   background: none;
   padding: 0;
+  color: #d4d4d4;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 /* Task Lists */
@@ -915,24 +987,33 @@ body {
   margin-bottom: 8px;
 }
 
-.rich-text-editor .ProseMirror ul[data-type="taskList"] li>label {
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li > label {
   flex-shrink: 0;
   user-select: none;
 }
 
-.rich-text-editor .ProseMirror ul[data-type="taskList"] li>label input[type="checkbox"] {
+.rich-text-editor
+  .ProseMirror
+  ul[data-type="taskList"]
+  li
+  > label
+  input[type="checkbox"] {
   width: 18px;
   height: 18px;
   margin-top: 2px;
-  accent-color: #007AFF;
+  accent-color: #007aff;
   cursor: pointer;
 }
 
-.rich-text-editor .ProseMirror ul[data-type="taskList"] li>div {
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li > div {
   flex: 1;
 }
 
-.rich-text-editor .ProseMirror ul[data-type="taskList"] li[data-checked="true"]>div {
+.rich-text-editor
+  .ProseMirror
+  ul[data-type="taskList"]
+  li[data-checked="true"]
+  > div {
   text-decoration: line-through;
   color: rgba(60, 60, 67, 0.5);
 }
@@ -1004,12 +1085,10 @@ body {
    Slash Command Dropdown Menu
    ============================================ */
 .dropdown-menu {
-  background: #FFFFFF;
+  background: #ffffff;
   border: 1px solid rgba(60, 60, 67, 0.12);
   border-radius: 12px;
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1047,7 +1126,7 @@ body {
 }
 
 .dropdown-item.is-selected .dropdown-item-title {
-  color: #007AFF;
+  color: #007aff;
 }
 
 .dropdown-item.no-result {
@@ -1097,6 +1176,181 @@ body {
 }
 
 /* ============================================
+   Notion-Style Slash Command Menu
+   ============================================ */
+.slash-command-menu {
+  background: #ffffff;
+  border: 1px solid rgba(60, 60, 67, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  min-width: 300px;
+  max-width: 340px;
+  overflow: hidden;
+  z-index: 999999;
+}
+
+.slash-command-content {
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 6px;
+  scroll-behavior: smooth;
+}
+
+.slash-command-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.slash-command-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.slash-command-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.slash-command-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.slash-command-group {
+  margin-bottom: 8px;
+}
+
+.slash-command-group:last-child {
+  margin-bottom: 0;
+}
+
+.slash-command-category {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(60, 60, 67, 0.5);
+  padding: 8px 10px 6px;
+  margin: 0;
+  user-select: none;
+}
+
+.slash-command-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.slash-command-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.slash-command-item.is-selected {
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.slash-command-item.is-selected .slash-command-item-title {
+  color: #007aff;
+}
+
+.slash-command-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.slash-command-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.slash-command-item:hover .slash-command-icon {
+  transform: scale(1.05);
+}
+
+.slash-command-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.slash-command-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slash-command-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  line-height: 1.3;
+}
+
+.slash-command-item-description {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(60, 60, 67, 0.6);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slash-command-shortcut {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(60, 60, 67, 0.4);
+  background: rgba(120, 120, 128, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.slash-command-empty {
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.slash-command-empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.slash-command-empty-title,
+.slash-command-empty-text {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.slash-command-empty-hint {
+  font-size: 12px;
+  color: rgba(60, 60, 67, 0.5);
+}
+
+/* ============================================
    Bubble Menu (Text Selection Toolbar)
    ============================================ */
 .bubble-menu {
@@ -1104,12 +1358,10 @@ body {
   align-items: center;
   gap: 2px;
   padding: 6px;
-  background: #FFFFFF;
+  background: #ffffff;
   border: 1px solid rgba(60, 60, 67, 0.12);
   border-radius: 10px;
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.12),
-    0 2px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .bubble-menu-button {
@@ -1132,7 +1384,7 @@ body {
 
 .bubble-menu-button.is-active {
   background: rgba(0, 122, 255, 0.15);
-  color: #007AFF;
+  color: #007aff;
 }
 
 .bubble-menu-divider {
@@ -1140,4 +1392,156 @@ body {
   height: 20px;
   background: rgba(60, 60, 67, 0.12);
   margin: 0 4px;
+}
+
+/* Bubble Menu Dropdowns */
+.bubble-menu-dropdown-wrapper {
+  position: relative;
+}
+
+.bubble-menu-dropdown-trigger {
+  width: auto;
+  padding: 0 8px;
+  gap: 4px;
+}
+
+.bubble-menu-dropdown-label {
+  font-size: 12px;
+  font-weight: 500;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bubble-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background: #ffffff;
+  border: 1px solid rgba(60, 60, 67, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  min-width: 160px;
+  padding: 6px;
+  z-index: 1000000;
+}
+
+.bubble-menu-dropdown-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(60, 60, 67, 0.5);
+  padding: 6px 8px 4px;
+}
+
+.bubble-menu-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.bubble-menu-dropdown-item:hover {
+  background: rgba(0, 122, 255, 0.08);
+}
+
+.bubble-menu-dropdown-item svg {
+  color: rgba(60, 60, 67, 0.6);
+}
+
+/* Color Picker in Bubble Menu */
+.bubble-menu-color-dropdown {
+  min-width: 180px;
+}
+
+.bubble-menu-color-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.bubble-menu-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.bubble-menu-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+/* ============================================
+   Floating Menu (+ Button on Empty Lines)
+   ============================================ */
+.floating-menu-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.floating-menu-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1.5px solid rgba(60, 60, 67, 0.2);
+  border-radius: 6px;
+  color: rgba(60, 60, 67, 0.4);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.floating-menu-trigger:hover {
+  background: rgba(0, 122, 255, 0.08);
+  border-color: rgba(0, 122, 255, 0.3);
+  color: #007aff;
+}
+
+.floating-menu-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid rgba(60, 60, 67, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.floating-menu-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: rgba(60, 60, 67, 0.7);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.floating-menu-action:hover {
+  background: rgba(0, 122, 255, 0.1);
+  color: #007aff;
 }
