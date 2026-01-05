@@ -302,15 +302,26 @@ export function ProtocolProvider({ children }) {
             });
           }
 
-          // MERGE custom tasks (Union by ID)
+          // MERGE custom tasks (Union by ID per phase)
           if (cloudProtocol.customTasks) {
             setCustomTasks(prev => {
-              const merged = [...prev];
-              cloudProtocol.customTasks.forEach(cloudTask => {
-                if (!merged.find(t => t.id === cloudTask.id)) {
-                  merged.push(cloudTask);
+              const merged = { ...prev }; // Spread object, not array
+
+              Object.entries(cloudProtocol.customTasks).forEach(([phaseKey, phaseTasks]) => {
+                if (!Array.isArray(phaseTasks)) return;
+
+                if (!merged[phaseKey]) {
+                  merged[phaseKey] = [];
                 }
+
+                const localTasks = merged[phaseKey];
+                phaseTasks.forEach(cloudTask => {
+                  if (!localTasks.find(t => t.id === cloudTask.id)) {
+                    localTasks.push(cloudTask);
+                  }
+                });
               });
+
               return merged;
             });
           }
