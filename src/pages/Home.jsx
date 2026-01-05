@@ -1,7 +1,9 @@
 import { motion, Reorder } from "framer-motion";
-import { Check, ChevronRight, GripVertical, Pencil, X } from "lucide-react";
+import { Check, ChevronRight, GripVertical, LogOut, Pencil, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../services/firebase";
 import ExportDataButton from "../components/ExportDataButton";
 import GsapText from "../components/GsapText";
 import PageTransition from "../components/PageTransition";
@@ -9,6 +11,7 @@ import SystemCard from "../components/SystemCard";
 import WeatherWidget from "../components/WeatherWidget";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
+import { getGlobalData, subscribeToGlobalData } from "../services/dataLogger";
 
 import HabitStreakGrid from "../components/HabitStreakGrid";
 
@@ -137,10 +140,55 @@ export default function Home() {
   const [cardOrder, setCardOrder] = useState(loadCardOrder);
   const greeting = getTimeBasedGreeting();
 
+  // 🌐 Wealth data from global sync
+  const [wealthData, setWealthData] = useState({
+    netWorth: 0,
+    priorityLiability: null, // The "Loan from Kuya" or whatever is marked as priority
+  });
+
   // Save card order to localStorage when it changes
   useEffect(() => {
     localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(cardOrder));
   }, [cardOrder]);
+
+  // 🔄 Fetch global wealth data on mount and subscribe to updates
+  useEffect(() => {
+    const fetchWealth = async () => {
+      try {
+        const cloudWealth = await getGlobalData("wealth");
+        if (cloudWealth) {
+          const totalAssets = cloudWealth.assets?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
+          const totalLiabs = cloudWealth.liabilities?.reduce((sum, l) => sum + (l.amount || 0), 0) || 0;
+          const priorityLiab = cloudWealth.liabilities?.find(l => l.isPriority) || null;
+
+          setWealthData({
+            netWorth: totalAssets - totalLiabs,
+            priorityLiability: priorityLiab,
+          });
+        }
+      } catch (error) {
+        console.error("[Home] Failed to fetch wealth data:", error);
+      }
+    };
+
+    fetchWealth();
+
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToGlobalData("wealth", (cloudWealth) => {
+      if (cloudWealth) {
+        const totalAssets = cloudWealth.assets?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
+        const totalLiabs = cloudWealth.liabilities?.reduce((sum, l) => sum + (l.amount || 0), 0) || 0;
+        const priorityLiab = cloudWealth.liabilities?.find(l => l.isPriority) || null;
+
+        setWealthData({
+          netWorth: totalAssets - totalLiabs,
+          priorityLiability: priorityLiab,
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -159,7 +207,7 @@ export default function Home() {
   } = useProtocol();
   const { activeStudyGoal, getStudiedToday, markStudiedToday, getStudyStreak } =
     useStudyGoal();
-  const netWorth = 55000;
+  const netWorth = wealthData.netWorth;
 
   const studiedToday = getStudiedToday();
   const studyStreak = getStudyStreak();
@@ -226,8 +274,8 @@ export default function Home() {
         className="px-5 space-y-3"
       >
         {cardOrder.map((cardId) => {
-          // Render card based on ID
-          const CardContent = () => {
+          // Render card content directly to avoid re-mounting component
+          const getCardContent = () => {
             switch (cardId) {
               case "focus":
                 return (
@@ -288,11 +336,10 @@ export default function Home() {
                                     e.stopPropagation();
                                     markStudiedToday(true, markLearnStuffDone);
                                   }}
-                                  className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
-                                    studiedToday === true
-                                      ? "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
-                                      : "bg-[#34C759]/10 text-[#34C759]"
-                                  }`}
+                                  className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${studiedToday === true
+                                    ? "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
+                                    : "bg-[#34C759]/10 text-[#34C759]"
+                                    }`}
                                 >
                                   <Check size={18} strokeWidth={3} />
                                   Yes
@@ -303,11 +350,10 @@ export default function Home() {
                                     e.stopPropagation();
                                     markStudiedToday(false);
                                   }}
-                                  className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
-                                    studiedToday === false
-                                      ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
-                                      : "bg-[#FF3B30]/10 text-[#FF3B30]"
-                                  }`}
+                                  className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${studiedToday === false
+                                    ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
+                                    : "bg-[#FF3B30]/10 text-[#FF3B30]"
+                                    }`}
                                 >
                                   <X size={18} strokeWidth={3} />
                                   No
@@ -426,16 +472,16 @@ export default function Home() {
                         </div>
                         <div>
                           <p className="text-[17px] font-semibold text-black">
-                            Loan from Kuya
+                            {wealthData.priorityLiability?.name || "Loan from Kuya"}
                           </p>
                           <p className="text-[13px] text-[rgba(60,60,67,0.6)]">
-                            Personal Loan
+                            {wealthData.priorityLiability?.platform || "Personal Loan"}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-baseline justify-between">
                         <span className="text-[28px] font-bold text-[#FF3B30] tracking-tight">
-                          ₱16,000
+                          ₱{(wealthData.priorityLiability?.amount || 0).toLocaleString()}
                         </span>
                         <span className="text-[13px] font-medium text-[rgba(60,60,67,0.6)]">
                           Outstanding
@@ -493,9 +539,8 @@ export default function Home() {
               key={cardId}
               value={cardId}
               dragListener={isEditMode}
-              className={`relative ${
-                isEditMode ? "cursor-grab active:cursor-grabbing" : ""
-              }`}
+              className={`relative ${isEditMode ? "cursor-grab active:cursor-grabbing" : ""
+                }`}
             >
               {/* Drag Handle Overlay in Edit Mode */}
               {isEditMode && (
@@ -515,12 +560,29 @@ export default function Home() {
 
               {/* Card with left padding in edit mode */}
               <div className={isEditMode ? "pl-12" : ""}>
-                <CardContent />
+                {getCardContent()}
               </div>
             </Reorder.Item>
           );
         })}
       </Reorder.Group>
+
+      {/* Logout Button */}
+      <div className="px-5 mt-6 mb-8">
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={async () => {
+            if (confirm("Are you sure you want to log out?")) {
+              await signOut(auth);
+              navigate("/login");
+            }
+          }}
+          className="w-full py-4 rounded-xl flex items-center justify-center gap-2 text-[17px] font-medium text-[#FF3B30] bg-white border border-[rgba(60,60,67,0.12)] active:bg-[rgba(0,0,0,0.05)] transition-colors"
+        >
+          <LogOut size={18} />
+          Log Out
+        </motion.button>
+      </div>
 
       {/* Export Data Button (floating) */}
       <ExportDataButton />

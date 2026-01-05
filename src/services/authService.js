@@ -19,7 +19,9 @@ const ALLOWED_EMAIL = import.meta.env.VITE_ALLOWED_EMAIL;
 export const authService = {
     // Get current user (simple wrapper)
     get currentUser() {
-        return auth?.currentUser || { uid: "local_user", email: ALLOWED_EMAIL || "local@user.com" };
+        // STRICT MODE: No local fallback anymore. 
+        // If not logged in via Firebase, you are locked out.
+        return auth?.currentUser;
     },
 
     /**

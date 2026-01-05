@@ -1,5 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { updateTodayLog } from "../services/dataLogger";
+import React, { createContext, useState, useEffect, useContext, useRef } from "react";
+import {
+  updateTodayLog,
+  subscribeToTodayLog,
+  getLogForDate,
+  updateGlobalData,
+  subscribeToGlobalData,
+  getGlobalData,
+} from "../services/dataLogger";
 
 /**
  * Personal Goals Context
@@ -7,7 +14,7 @@ import { updateTodayLog } from "../services/dataLogger";
  * Manages personal habit/goal tracking separate from the Protocol system
  * Examples: No Porn, Exercise, Weight tracking
  *
- * Now with localStorage persistence and dataLogger sync!
+ * Now with Firestore persistence and sync!
  */
 
 const PersonalGoalsContext = createContext(null);
@@ -66,6 +73,13 @@ const loadHistory = () => {
 };
 
 export function PersonalGoalsProvider({ children }) {
+  // Interaction timestamp to prevent "Cloud Echo" overwrites
+  const lastLocalInteraction = useRef(0);
+
+  // 🛡️ MOUNT PROTECTION: Prevents new devices from overwriting cloud data
+  const mountTimestamp = useRef(Date.now());
+  const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds
+
   // Goals definitions - persisted
   const [goals, setGoals] = useState(loadGoals);
 
@@ -82,20 +96,111 @@ export function PersonalGoalsProvider({ children }) {
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(goalHistory));
   }, [goalHistory]);
 
-  // Sync to dataLogger whenever data changes
+  // 🔄 INITIAL CLOUD FETCH on mount - Get global PersonalGoals data
   useEffect(() => {
-    updateTodayLog("growth", {
-      personal_goals: {
-        noPorn: goalHistory.noPorn || {},
-        exercise: goalHistory.exercise || {},
-      },
-      current_weight: goals.exercise?.currentWeight || null,
-      goal_weight: goals.exercise?.goalWeight || 90,
-      // Calculate streaks for each goal
-      noPorn_streak: getGoalStreakInternal("noPorn", goalHistory),
-      exercise_streak: getGoalStreakInternal("exercise", goalHistory),
-    });
+    const fetchGlobalPersonalGoals = async () => {
+      try {
+        const cloudData = await getGlobalData("personalGoals");
+        if (cloudData) {
+          console.log("[PersonalGoals] ✓ Loaded global data from Firestore");
+
+          if (cloudData.goals) {
+            setGoals(prev => ({ ...prev, ...cloudData.goals }));
+          }
+
+          if (cloudData.goalHistory) {
+            setGoalHistory(prev => {
+              const merged = { ...prev };
+              // Deep merge: goalKey -> dateKey -> value
+              Object.entries(cloudData.goalHistory).forEach(([goalKey, dates]) => {
+                if (!merged[goalKey]) merged[goalKey] = {};
+                Object.assign(merged[goalKey], dates);
+              });
+              return merged;
+            });
+          }
+        }
+      } catch (error) {
+        console.error("[PersonalGoals] Failed to fetch global data:", error);
+      }
+    };
+
+    fetchGlobalPersonalGoals();
+  }, []); // Run once on mount
+
+  // 🌐 Sync PersonalGoals to GLOBAL storage (persists across days)
+  useEffect(() => {
+    // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
+    const timeSinceMount = Date.now() - mountTimestamp.current;
+    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
+      console.log("[PersonalGoals] Mount protection active, skipping Firestore WRITE");
+      return;
+    }
+
+    // Only sync after user has actually interacted
+    if (lastLocalInteraction.current === 0) {
+      console.log("[PersonalGoals] No user interaction yet, skipping Firestore WRITE");
+      return;
+    }
+
+    const syncTimer = setTimeout(() => {
+      console.log("[PersonalGoals] Syncing to GLOBAL Firestore...");
+
+      // 🌐 GLOBAL DATA: Save to global_data/personalGoals (persists across days!)
+      updateGlobalData("personalGoals", {
+        goals: goals,
+        goalHistory: goalHistory,
+      });
+
+      // Daily log: Just summary for analytics
+      updateTodayLog("growth", {
+        current_weight: goals.exercise?.currentWeight || null,
+        goal_weight: goals.exercise?.goalWeight || 90,
+        noPorn_streak: getGoalStreakInternal("noPorn", goalHistory),
+        exercise_streak: getGoalStreakInternal("exercise", goalHistory),
+      });
+    }, 800); // 800ms debounce
+
+    return () => clearTimeout(syncTimer);
   }, [goals, goalHistory]);
+
+  // 🔄 INITIAL CLOUD FETCH on mount
+  // 🚀 REAL-TIME CLOUD SYNC for global PersonalGoals data
+  useEffect(() => {
+    const unsubscribe = subscribeToGlobalData("personalGoals", (cloudData) => {
+      // 🛡️ MOUNT PROTECTION: Skip cloud updates for first 3 seconds after page load
+      const timeSinceMount = Date.now() - mountTimestamp.current;
+      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
+        console.log("[PersonalGoals] Mount protection active, skipping cloud sync");
+        return;
+      }
+
+      // Throttle: Ignore cloud updates if user just interacted locally (<2s)
+      if (Date.now() - lastLocalInteraction.current < 2000) return;
+
+      if (!cloudData) return;
+
+      console.log("[PersonalGoals] Received global data from cloud");
+
+      // 1. Sync Goals
+      if (cloudData.goals) {
+        setGoals(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(cloudData.goals)) return prev;
+          return { ...prev, ...cloudData.goals };
+        });
+      }
+
+      // 2. Sync Goal History
+      if (cloudData.goalHistory) {
+        setGoalHistory(prev => {
+          const merged = { ...prev, ...cloudData.goalHistory };
+          if (JSON.stringify(merged) === JSON.stringify(prev)) return prev;
+          return merged;
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Internal streak calculation (doesn't use state)
   const getGoalStreakInternal = (goalId, history) => {
@@ -124,6 +229,7 @@ export function PersonalGoalsProvider({ children }) {
 
   // Toggle a goal for a specific date
   const toggleGoalDate = (goalId, dateStr) => {
+    lastLocalInteraction.current = Date.now();
     setGoalHistory((prev) => {
       const goalData = prev[goalId] || {};
       const currentVal = goalData[dateStr];
@@ -164,6 +270,7 @@ export function PersonalGoalsProvider({ children }) {
 
   // Update weight for exercise goal
   const updateWeight = (newWeight) => {
+    lastLocalInteraction.current = Date.now();
     setGoals((prev) => ({
       ...prev,
       exercise: {
@@ -175,6 +282,7 @@ export function PersonalGoalsProvider({ children }) {
 
   // Add a new personal goal
   const addGoal = (emoji, title, color = "#8B5CF6") => {
+    lastLocalInteraction.current = Date.now();
     const id = `goal-${Date.now()}`;
     const newGoal = {
       id,
@@ -195,6 +303,7 @@ export function PersonalGoalsProvider({ children }) {
 
   // Delete a personal goal
   const deleteGoal = (goalId) => {
+    lastLocalInteraction.current = Date.now();
     // Don't allow deleting default goals
     if (goalId === "noPorn" || goalId === "exercise") {
       return false;

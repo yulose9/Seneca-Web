@@ -176,11 +176,13 @@ export default function RichTextEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        // The Commands extension provides its own slash command functionality
+        // So we don't need to worry about it in StarterKit
       }),
-      Underline,
+      Underline, // StarterKit doesn't include underline by default
       Typography,
       Image.configure({ inline: true }),
-      Link.configure({ openOnClick: false }),
+      Link.configure({ openOnClick: false }), // Using enhanced Link
       Youtube.configure({ controls: true }),
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
@@ -193,7 +195,7 @@ export default function RichTextEditor({
       Placeholder.configure({
         placeholder: placeholder || "Type / for commands...",
       }),
-      Commands.configure({ suggestion }),
+      Commands.configure({ suggestion }), // Custom slash command extension
     ],
     content,
     editorProps: {

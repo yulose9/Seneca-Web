@@ -71,6 +71,46 @@ const getRelativeTime = (dateStr) => {
   return "Over a year ago";
 };
 
+// Convert 12-hour format (e.g., "2:25 AM") to 24-hour format (e.g., "02:25")
+const to24Hour = (time12h) => {
+  if (!time12h) return "";
+  // If already in 24-hour format (no AM/PM), return as is
+  if (!time12h.includes("AM") && !time12h.includes("PM")) return time12h;
+
+  try {
+    const [time, modifier] = time12h.split(" ");
+    let [hours, minutes] = time.split(":");
+
+    if (hours === "12") {
+      hours = "00";
+    }
+
+    if (modifier === "PM") {
+      hours = parseInt(hours, 10) + 12;
+    }
+
+    return `${String(hours).padStart(2, "0")}:${minutes}`;
+  } catch {
+    return "";
+  }
+};
+
+// Convert 24-hour format (e.g., "14:25") to 12-hour format (e.g., "2:25 PM")
+const to12Hour = (time24h) => {
+  if (!time24h) return "";
+
+  try {
+    const [hours, minutes] = time24h.split(":");
+    const hour = parseInt(hours, 10);
+    const modifier = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 || 12;
+
+    return `${hour12}:${minutes} ${modifier}`;
+  } catch {
+    return "";
+  }
+};
+
 const HistoryViewer = ({ history, onRestore, onClose }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -159,10 +199,10 @@ export default function JournalDetailSheet({
     if (entry) {
       setTitle(entry.title || "");
       setDate(entry.isoDate || new Date().toISOString().split("T")[0]);
-      setTime(entry.time || "");
+      setTime(to24Hour(entry.time) || ""); // Convert 12-hour to 24-hour for input
       // Content can be JSON object or legacy HTML string
       setContent(entry.content || null);
-      setMood(entry.mood || "😊");
+      setMood(entry.mood || "");
       setHistory(entry.history || []);
       setJustRefined(false);
     }
@@ -241,7 +281,7 @@ export default function JournalDetailSheet({
       title,
       date: displayDate,
       isoDate: date,
-      time,
+      time: to12Hour(time), // Convert back to 12-hour format for storage
       content,
       mood,
       preview,

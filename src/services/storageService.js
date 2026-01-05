@@ -1,38 +1,29 @@
 import imageCompression from 'browser-image-compression';
+import { storage, auth } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 /**
  * Storage Service
  * 
- * Abstraction layer for file storage.
- * 
- * MODE: LOCAL (Adapter)
- * This currently simulates a cloud upload by returning a Base64 string.
- * This allows the UI components to be "Cloud Ready" (expecting async URL return)
- * while we still use local storage.
- * 
- * TO MIGRATE TO CLOUD:
- * 1. Import 'storage' from './firebase'
- * 2. Update 'uploadImage' to use 'ref', 'uploadBytes', and 'getDownloadURL' from 'firebase/storage'
+ * Handles file uploads to Firebase Cloud Storage.
+ * Includes client-side compression to save bandwidth and storage costs.
  */
-
-// Helper to convert file to Base64 (Local Mode only)
-const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = (error) => reject(error);
-    });
-};
 
 export const storageService = {
     /**
-     * Uploads an image file.
+     * Uploads an image file to Firebase Storage.
      * @param {File} file - The file object to upload
-     * @param {string} path - The target path (e.g., 'users/123/images/photo.jpg') - IDLE in Local Mode
-     * @returns {Promise<string>} - Resolves with the public URL (or Base64 in local mode)
+     * @param {string} folder - The target folder (e.g., 'journal_images')
+     * @returns {Promise<string>} - Resolves with the public Download URL
      */
-    async uploadImage(file, path) {
+    async uploadImage(file, folder = 'uploads') {
+        if (!auth.currentUser) {
+            console.error("Storage Error: User not logged in");
+            // For safety during initial migration, we could return base64 if no user
+            // But strict mode is better.
+            throw new Error("Must be logged in to upload files.");
+        }
+
         console.log(`[Storage] Processing: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
 
         // 1. COMPRESS (Client-Side Optimization)
@@ -44,17 +35,34 @@ export const storageService = {
         };
 
         try {
-            const compressedFile = await imageCompression(file, options);
-            console.log(`[Storage] Compressed to: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+            let fileToUpload = file;
+            try {
+                fileToUpload = await imageCompression(file, options);
+                console.log(`[Storage] Compressed to: ${(fileToUpload.size / 1024 / 1024).toFixed(2)} MB`);
+            } catch (cError) {
+                console.warn("Compression failed, uploading original:", cError);
+            }
 
-            // 2. UPLOAD (Simulated)
-            // In Cloud Mode, we would do: await uploadBytes(ref(storage, path), compressedFile);
+            // 2. UPLOAD to Firebase Storage
+            const timestamp = Date.now();
+            // Sanitize filename
+            const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+            const storagePath = `users/${auth.currentUser.uid}/${folder}/${timestamp}_${cleanName}`;
 
-            // Return Base64 as the "URL"
-            return await fileToBase64(compressedFile);
+            const storageRef = ref(storage, storagePath);
+
+            console.log(`[Storage] Uploading to: ${storagePath}`);
+            const snapshot = await uploadBytes(storageRef, fileToUpload);
+
+            // 3. GET URL
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            console.log(`[Storage] Upload success! URL: ${downloadURL}`);
+
+            return downloadURL;
+
         } catch (error) {
-            console.error("Compression failed, keeping original", error);
-            return await fileToBase64(file);
+            console.error("Upload failed:", error);
+            throw error;
         }
     }
 };

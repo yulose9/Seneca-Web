@@ -25,13 +25,22 @@ import AccountDetailSheet from "../components/AccountDetailSheet";
 import AddTransactionSheet from "../components/AddTransactionSheet";
 import PageTransition from "../components/PageTransition";
 import TransactionDetailSheet from "../components/TransactionDetailSheet";
-import { updateTodayLog } from "../services/dataLogger";
+import {
+  updateTodayLog,
+  subscribeToTodayLog,
+  updateGlobalData,
+  subscribeToGlobalData,
+  getGlobalData,
+  saveGlobalDataLocal,
+  loadGlobalDataLocal
+} from "../services/dataLogger";
 
 // LocalStorage keys for Wealth data
 const WEALTH_STORAGE_KEYS = {
   ASSETS: "wealth_assets",
   LIABILITIES: "wealth_liabilities",
   TRANSACTIONS: "wealth_transactions",
+  SEARCH_HISTORY: "wealth_search_history",
 };
 
 // Default data
@@ -172,12 +181,22 @@ const loadTransactions = () => {
   }
 };
 
+const loadSearchHistory = () => {
+  try {
+    const saved = localStorage.getItem(WEALTH_STORAGE_KEYS.SEARCH_HISTORY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
 // Rolling Number Component
 const RollingNumber = ({ value, prefix = "", className }) => {
   const ref = useRef(null);
   const motionValue = useMotionValue(value);
 
   useEffect(() => {
+    if (value === undefined || value === null) return;
     const controls = animate(motionValue, value, {
       duration: 0.8,
       ease: [0.32, 0.72, 0, 1], // Custom efficient ease
@@ -192,10 +211,12 @@ const RollingNumber = ({ value, prefix = "", className }) => {
     return () => controls.stop();
   }, [value, motionValue, prefix]);
 
+  if (value === undefined || value === null) return <span>{prefix}0</span>;
+
   return (
     <span ref={ref} className={className}>
       {prefix}
-      {value.toLocaleString()}
+      {(value || 0).toLocaleString()}
     </span>
   );
 };
@@ -378,7 +399,7 @@ const SwipeableRow = ({
   );
 };
 
-// Asset Row (Phantom-style)
+// AssetRow (Phantom-style)
 const AssetRow = (props) => (
   <SwipeableRow {...props} item={props} onSwipeDelete={props.onDelete}>
     <div className="flex items-center p-4 cursor-pointer">
@@ -395,7 +416,7 @@ const AssetRow = (props) => (
       </div>
       <div className="text-right">
         <p className="text-[16px] font-bold text-black">
-          ₱{props.value.toLocaleString()}
+          ₱{(props.amount || 0).toLocaleString()}
         </p>
         {props.change !== undefined && (
           <p
@@ -405,7 +426,7 @@ const AssetRow = (props) => (
             )}
           >
             {props.isPositive ? "+" : "-"}₱
-            {Math.abs(props.change).toLocaleString()}
+            {Math.abs(props.change || 0).toLocaleString()}
           </p>
         )}
       </div>
@@ -413,18 +434,16 @@ const AssetRow = (props) => (
   </SwipeableRow>
 );
 
-// Liability Row
+// LiabilityRow
 const LiabilityRow = (props) => (
   <SwipeableRow {...props} item={props} onSwipeDelete={props.onDelete}>
     <div
-      className={`flex items-center p-4 cursor-pointer ${
-        props.isPriority ? "bg-[#FF3B30]/5" : ""
-      }`}
+      className={`flex items-center p-4 cursor-pointer ${props.isPriority ? "bg-[#FF3B30]/5" : ""
+        }`}
     >
       <div
-        className={`w-11 h-11 rounded-full flex items-center justify-center text-xl mr-3 shrink-0 ${
-          props.isPriority ? "bg-[#FF3B30]/20" : "bg-[#FF3B30]/10"
-        }`}
+        className={`w-11 h-11 rounded-full flex items-center justify-center text-xl mr-3 shrink-0 ${props.isPriority ? "bg-[#FF3B30]/20" : "bg-[#FF3B30]/10"
+          }`}
       >
         {props.icon}
       </div>
@@ -442,7 +461,7 @@ const LiabilityRow = (props) => (
         </p>
       </div>
       <p className="text-[16px] font-bold text-[#FF3B30]">
-        -₱{props.amount.toLocaleString()}
+        -₱{(props.amount || 0).toLocaleString()}
       </p>
     </div>
   </SwipeableRow>
@@ -597,7 +616,7 @@ const TransactionRow = ({
               item.type === "deposit" ? "text-black" : "text-[#FF3B30]"
             )}
           >
-            {item.type === "withdrawal" && "-"}₱{item.amount.toLocaleString()}
+            {item.type === "withdrawal" && "-"}₱{(item.amount || 0).toLocaleString()}
           </p>
         </div>
       </motion.div>
@@ -659,6 +678,13 @@ const CategoryDropdown = ({
 );
 
 export default function Wealth() {
+  // Interaction timestamp to prevent "Cloud Echo" overwrites
+  const lastLocalInteraction = useRef(0);
+
+  // 🛡️ MOUNT PROTECTION: Prevents new devices from overwriting cloud data
+  const mountTimestamp = useRef(Date.now());
+  const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds
+
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get("category") || "All Assets";
 
@@ -708,6 +734,7 @@ export default function Wealth() {
   const [assets, setAssets] = useState(loadAssets);
   const [liabilities, setLiabilities] = useState(loadLiabilities);
   const [transactions, setTransactions] = useState(loadTransactions);
+  const [searchHistory, setSearchHistory] = useState(loadSearchHistory); // New State
 
   // Persist to localStorage whenever data changes
   useEffect(() => {
@@ -728,52 +755,246 @@ export default function Wealth() {
     );
   }, [transactions]);
 
-  // Sync to dataLogger whenever financial data changes
   useEffect(() => {
-    const totalAssets = assets.reduce((sum, a) => sum + (a.amount || 0), 0);
-    const totalLiabilities = liabilities.reduce(
-      (sum, l) => sum + (l.amount || 0),
-      0
+    localStorage.setItem(
+      WEALTH_STORAGE_KEYS.SEARCH_HISTORY,
+      JSON.stringify(searchHistory)
     );
-    const netWorth = totalAssets - totalLiabilities;
+  }, [searchHistory]);
 
-    // Get today's transactions
-    const today = new Date().toISOString().split("T")[0];
-    const todayTransactions = transactions.filter(
-      (t) => t.date && t.date.split("T")[0] === today
-    );
+  // 🔄 INITIAL CLOUD FETCH on mount - Get global wealth data
+  useEffect(() => {
+    const fetchGlobalWealth = async () => {
+      try {
+        const cloudWealth = await getGlobalData("wealth");
+        if (cloudWealth) {
+          console.log("[Wealth] ✓ Loaded global data from Firestore");
 
-    // Calculate spending by category
-    const spendingByCategory = transactions
-      .filter((t) => t.type === "withdrawal")
-      .reduce((acc, t) => {
-        const cat = t.category || "Other";
-        acc[cat] = (acc[cat] || 0) + t.amount;
-        return acc;
-      }, {});
+          // Restore assets
+          if (Array.isArray(cloudWealth.assets) && cloudWealth.assets.length > 0) {
+            setAssets(cloudWealth.assets);
+          }
 
-    updateTodayLog("wealth", {
-      assets: assets.map((a) => ({
-        id: a.id,
-        name: a.name,
-        platform: a.platform,
-        amount: a.amount,
-        category: a.category,
-      })),
-      liabilities: liabilities.map((l) => ({
-        id: l.id,
-        name: l.name,
-        platform: l.platform,
-        amount: l.amount,
-        isPriority: l.isPriority,
-      })),
-      transactions: todayTransactions,
-      net_worth: netWorth,
-      total_assets: totalAssets,
-      total_liabilities: totalLiabilities,
-      spending_by_category: spendingByCategory,
+          // Restore liabilities
+          if (Array.isArray(cloudWealth.liabilities) && cloudWealth.liabilities.length > 0) {
+            setLiabilities(cloudWealth.liabilities);
+          }
+
+          // Restore transactions
+          if (Array.isArray(cloudWealth.transactions) && cloudWealth.transactions.length > 0) {
+            setTransactions(cloudWealth.transactions);
+          }
+
+          // Restore search history
+          if (Array.isArray(cloudWealth.search_history)) {
+            setSearchHistory(cloudWealth.search_history);
+          }
+        }
+      } catch (error) {
+        console.error("[Wealth] Failed to fetch global data:", error);
+      }
+    };
+
+    fetchGlobalWealth();
+  }, []); // Run once on mount
+
+  // 🌐 Sync WEALTH DATA to GLOBAL storage (persists across days)
+  useEffect(() => {
+    // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
+    const timeSinceMount = Date.now() - mountTimestamp.current;
+    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
+      console.log("[Wealth] Mount protection active, skipping Firestore WRITE");
+      return;
+    }
+
+    // Only sync after user has actually interacted
+    if (lastLocalInteraction.current === 0) {
+      console.log("[Wealth] No user interaction yet, skipping Firestore WRITE");
+      return;
+    }
+
+    const syncTimer = setTimeout(() => {
+      console.log("[Wealth] Syncing to GLOBAL Firestore (persists across days)...");
+      const totalAssets = assets.reduce((sum, a) => sum + (a.amount || 0), 0);
+      const totalLiabilities = liabilities.reduce(
+        (sum, l) => sum + (l.amount || 0),
+        0
+      );
+      const netWorth = totalAssets - totalLiabilities;
+
+      // Calculate spending by category
+      const spendingByCategory = transactions
+        .filter((t) => t.type === "withdrawal")
+        .reduce((acc, t) => {
+          const cat = t.category || "Other";
+          acc[cat] = (acc[cat] || 0) + t.amount;
+          return acc;
+        }, {});
+
+      // 🌐 GLOBAL DATA: Save to global_data/wealth (persists across days!)
+      updateGlobalData("wealth", {
+        assets: assets.map((a) => ({
+          ...a,
+          amount: a.amount,
+        })),
+        liabilities: liabilities.map((l) => ({
+          id: l.id,
+          name: l.name,
+          platform: l.platform,
+          amount: l.amount,
+          isPriority: l.isPriority,
+        })),
+        transactions: transactions, // ALL transactions
+        search_history: searchHistory,
+        net_worth: netWorth,
+        total_assets: totalAssets,
+        total_liabilities: totalLiabilities,
+        spending_by_category: spendingByCategory,
+      });
+
+      // Also save to localStorage for offline access
+      saveGlobalDataLocal("wealth", {
+        assets,
+        liabilities,
+        transactions,
+        searchHistory,
+      });
+
+      // Daily log: Just summary for analytics
+      const today = new Date().toISOString().split("T")[0];
+      const todayTransactions = transactions.filter(
+        (t) => t.date && t.date.split("T")[0] === today
+      );
+      updateTodayLog("wealth", {
+        net_worth: netWorth,
+        total_assets: totalAssets,
+        total_liabilities: totalLiabilities,
+        transactions_today: todayTransactions.length,
+        spending_by_category: spendingByCategory,
+      });
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(syncTimer);
+  }, [assets, liabilities, transactions, searchHistory]);
+
+  // 🚀 REAL-TIME CLOUD SYNC (Incoming) - Listen to GLOBAL wealth data
+  useEffect(() => {
+    const unsubscribe = subscribeToGlobalData("wealth", (cloudWealth) => {
+      // 🛡️ MOUNT PROTECTION: Skip cloud updates for first 3 seconds after page load
+      const timeSinceMount = Date.now() - mountTimestamp.current;
+      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
+        console.log("[Wealth] Mount protection active, skipping cloud sync");
+        return;
+      }
+
+      // Throttle: Ignore cloud updates if user just interacted locally (<2s)
+      if (Date.now() - lastLocalInteraction.current < 2000) return;
+
+      if (!cloudWealth) return;
+
+      console.log("[Wealth] Received global data from cloud");
+
+      const { assets: cloudAssets, liabilities: cloudLiabilities, transactions: cloudTransactions, search_history: cloudSearchHistory } = cloudWealth;
+
+      // 1. Transactions - Union by ID
+      if (Array.isArray(cloudTransactions)) {
+        setTransactions((prev) => {
+          const cloud = cloudTransactions;
+          const merged = [...cloud];
+
+          prev.forEach((localItem) => {
+            if (!merged.find((c) => c.id === localItem.id)) {
+              merged.push(localItem);
+            }
+          });
+
+          merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+          if (JSON.stringify(merged) === JSON.stringify(prev)) return prev;
+          return merged;
+        });
+      }
+
+      // 2. Assets - Update existing, Add new from cloud, Keep local-only
+      if (Array.isArray(cloudAssets)) {
+        setAssets((prev) => {
+          const cloud = cloudAssets;
+          const merged = [...prev];
+          let hasChanges = false;
+
+          cloud.forEach((cloudItem) => {
+            const index = merged.findIndex((p) => p.id === cloudItem.id);
+            if (index !== -1) {
+              if (JSON.stringify(merged[index]) !== JSON.stringify(cloudItem)) {
+                merged[index] = cloudItem;
+                hasChanges = true;
+              }
+            } else {
+              merged.push(cloudItem);
+              hasChanges = true;
+            }
+          });
+
+          if (!hasChanges && prev.length === merged.length) return prev;
+          return merged;
+        });
+      }
+
+      // 3. Liabilities
+      if (Array.isArray(cloudLiabilities)) {
+        setLiabilities((prev) => {
+          const cloud = cloudLiabilities;
+          const merged = [...prev];
+          let hasChanges = false;
+
+          cloud.forEach((cloudItem) => {
+            const index = merged.findIndex((p) => p.id === cloudItem.id);
+            if (index !== -1) {
+              if (JSON.stringify(merged[index]) !== JSON.stringify(cloudItem)) {
+                merged[index] = cloudItem;
+                hasChanges = true;
+              }
+            } else {
+              merged.push(cloudItem);
+              hasChanges = true;
+            }
+          });
+
+          if (!hasChanges && prev.length === merged.length) return prev;
+          return merged;
+        });
+      }
+
+      // 4. Search History
+      if (Array.isArray(cloudSearchHistory)) {
+        setSearchHistory(prev => {
+          const cloud = cloudSearchHistory;
+          const newHistory = [...prev];
+          let hasChanges = false;
+
+          cloud.forEach(item => {
+            if (!newHistory.includes(item)) {
+              newHistory.push(item);
+              hasChanges = true;
+            }
+          });
+
+          if (!hasChanges) return prev;
+          return newHistory.slice(0, 10);
+        });
+      }
     });
-  }, [assets, liabilities, transactions]);
+
+    return () => unsubscribe();
+  }, [assets, liabilities, transactions, searchHistory]); // Dependencies for comparison
+
+  const handleSaveSearch = () => {
+    if (searchQuery.trim().length > 0) {
+      setSearchHistory(prev => {
+        const newHistory = [searchQuery, ...prev.filter(s => s !== searchQuery)].slice(0, 10); // Keep last 10 unique
+        return newHistory;
+      });
+    }
+  };
 
   const handleDeleteAsset = (asset) => {
     // Step 1: Initial Warning
@@ -791,6 +1012,7 @@ export default function Wealth() {
           message: `This action cannot be undone. ${asset.name} will be permanently removed.`,
           confirmText: "Delete Asset",
           onConfirm: () => {
+            lastLocalInteraction.current = Date.now(); // Mark interaction time
             setAssets((prev) => prev.filter((a) => a.id !== asset.id));
             setConfirmDialog({ isOpen: false, type: null, itemId: null });
           },
@@ -805,6 +1027,7 @@ export default function Wealth() {
       title: `Delete ${liability.name}?`,
       message: "This will remove this liability record.",
       onConfirm: () => {
+        lastLocalInteraction.current = Date.now(); // Mark interaction time
         setLiabilities((prev) => prev.filter((l) => l.id !== liability.id));
         setConfirmDialog({ isOpen: false, type: null, itemId: null });
       },
@@ -962,6 +1185,8 @@ export default function Wealth() {
       setConfirmDialog({ isOpen: true, type: "bulk", itemId: null });
   };
   const handleConfirmDelete = () => {
+    lastLocalInteraction.current = Date.now(); // Mark interaction time
+
     if (confirmDialog.type === "single")
       setTransactions((prev) =>
         prev.filter((t) => t.id !== confirmDialog.itemId)
@@ -985,6 +1210,8 @@ export default function Wealth() {
   };
 
   const handleUpdateBalance = (account, newBalance) => {
+    lastLocalInteraction.current = Date.now(); // Mark interaction time
+
     const diff = newBalance - account.amount;
     if (diff === 0) return;
 
@@ -1013,8 +1240,8 @@ export default function Wealth() {
           ? "withdrawal"
           : "deposit" // Debt up = withdrawal from net worth, Debt down = deposit to net worth
         : isPositive
-        ? "deposit"
-        : "withdrawal";
+          ? "deposit"
+          : "withdrawal";
 
     const transaction = {
       id: Date.now(),
@@ -1032,6 +1259,7 @@ export default function Wealth() {
   };
 
   const handleAddTransaction = (transaction) => {
+    lastLocalInteraction.current = Date.now(); // Mark interaction time
     setTransactions((prev) => [transaction, ...prev]);
     console.log("New transaction added:", transaction);
   };
@@ -1087,8 +1315,8 @@ export default function Wealth() {
     selectedCategory === "All Assets"
       ? assets
       : selectedCategory === "Liabilities"
-      ? []
-      : assets.filter((a) => a.category === selectedCategory);
+        ? []
+        : assets.filter((a) => a.category === selectedCategory);
 
   const filteredLiabilities =
     selectedCategory === "All Assets" || selectedCategory === "Liabilities"
@@ -1099,8 +1327,8 @@ export default function Wealth() {
     selectedCategory === "Liabilities"
       ? totalLiabilities
       : selectedCategory === "All Assets"
-      ? netWorth
-      : filteredAssets.reduce((sum, a) => sum + a.amount, 0);
+        ? netWorth
+        : filteredAssets.reduce((sum, a) => sum + a.amount, 0);
 
   return (
     <PageTransition className="min-h-screen bg-[#F2F2F7] pb-32">
@@ -1164,6 +1392,7 @@ export default function Wealth() {
                     placeholder="Search date, place, amount..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveSearch()}
                     className="w-full bg-white/10 text-white placeholder-white/50 rounded-xl pl-10 pr-10 py-2.5 outline-none focus:bg-white/20 transition-colors"
                   />
                   {searchQuery && (
@@ -1354,9 +1583,9 @@ export default function Wealth() {
                       <div className="text-right">
                         <p className="text-[24px] font-bold text-white">
                           ₱
-                          {liabilities
+                          {(liabilities
                             .find((l) => l.isPriority)
-                            ?.amount.toLocaleString()}
+                            ?.amount || 0).toLocaleString()}
                         </p>
                         <p className="text-[12px] text-white/70">Outstanding</p>
                       </div>
@@ -1518,12 +1747,33 @@ export default function Wealth() {
           animate={{ opacity: 1 }}
           className="px-5 pt-4 pb-32"
         >
+          {/* Recent Searches History */}
+          {!searchQuery && searchHistory.length > 0 && (
+            <div className="mb-6">
+              <p className="text-[11px] font-bold text-[rgba(60,60,67,0.4)] uppercase tracking-wider mb-3 px-1">
+                Recent Searches
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {searchHistory.map((term, i) => (
+                  <motion.button
+                    key={i}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSearchQuery(term)}
+                    className="px-3 py-1.5 bg-white border border-black/[0.06] rounded-full text-[14px] text-black/80 font-medium shadow-sm"
+                  >
+                    {term}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.6)] mb-4 uppercase tracking-wide">
             {searchResults.length > 0
               ? `${searchResults.length} Results`
               : searchQuery || activeFilter !== "All"
-              ? "No Matches"
-              : "Search Transactions"}
+                ? "No Matches"
+                : "Search Transactions"}
           </p>
 
           <motion.div layout className="space-y-2">
@@ -1546,7 +1796,7 @@ export default function Wealth() {
                     item={transaction}
                     isSelecting={false}
                     isSelected={false}
-                    onSelect={() => {}}
+                    onSelect={() => { }}
                     onDelete={handleDeleteSingle}
                     onClick={() => setViewTransaction(transaction)}
                   />
@@ -1606,6 +1856,7 @@ export default function Wealth() {
         investmentAccounts={assets.filter((a) => a.category === "Investments")}
         liabilities={liabilities}
         onAdd={(transaction) => {
+          lastLocalInteraction.current = Date.now(); // Mark interaction time
           setTransactions((prev) => [transaction, ...prev]);
         }}
       />

@@ -4,8 +4,16 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useRef,
 } from "react";
-import { updateTodayLog } from "../services/dataLogger";
+import {
+  updateTodayLog,
+  subscribeToTodayLog,
+  getLogForDate,
+  updateGlobalData,
+  subscribeToGlobalData,
+  getGlobalData,
+} from "../services/dataLogger";
 
 // LocalStorage keys
 const STORAGE_KEYS = {
@@ -43,6 +51,13 @@ const loadStudyHistory = () => {
 };
 
 export function StudyGoalProvider({ children }) {
+  // Interaction timestamp to prevent "Cloud Echo" overwrites
+  const lastLocalInteraction = useRef(0);
+
+  // 🛡️ MOUNT PROTECTION: Prevents new devices from overwriting cloud data
+  const mountTimestamp = useRef(Date.now());
+  const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds
+
   // Active study goal (selected certificate) - persisted
   const [activeStudyGoal, setActiveStudyGoal] = useState(loadActiveGoal);
 
@@ -64,15 +79,106 @@ export function StudyGoalProvider({ children }) {
     );
   }, [studyHistory]);
 
-  // Sync to dataLogger whenever data changes
+  // 🔄 INITIAL CLOUD FETCH on mount - Get global StudyGoal data
   useEffect(() => {
-    const today = formatLocalDate(new Date());
-    updateTodayLog("growth", {
-      active_study_goal: activeStudyGoal,
-      study_history: studyHistory,
-      study_streak: calculateStreak(studyHistory),
-    });
+    const fetchGlobalStudyGoal = async () => {
+      try {
+        const cloudData = await getGlobalData("studyGoal");
+        if (cloudData) {
+          console.log("[StudyGoal] ✓ Loaded global data from Firestore");
+
+          if (cloudData.activeStudyGoal) {
+            setActiveStudyGoal(cloudData.activeStudyGoal);
+          }
+
+          if (cloudData.studyHistory && Object.keys(cloudData.studyHistory).length > 0) {
+            setStudyHistory(prev => {
+              const merged = { ...prev };
+              Object.assign(merged, cloudData.studyHistory);
+              return merged;
+            });
+          }
+        }
+      } catch (error) {
+        console.error("[StudyGoal] Failed to fetch global data:", error);
+      }
+    };
+
+    fetchGlobalStudyGoal();
+  }, []); // Run once on mount
+
+  // 🌐 Sync StudyGoal to GLOBAL storage (persists across days)
+  useEffect(() => {
+    // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
+    const timeSinceMount = Date.now() - mountTimestamp.current;
+    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
+      console.log("[StudyGoal] Mount protection active, skipping Firestore WRITE");
+      return;
+    }
+
+    // Only sync after user has actually interacted
+    if (lastLocalInteraction.current === 0) {
+      console.log("[StudyGoal] No user interaction yet, skipping Firestore WRITE");
+      return;
+    }
+
+    const syncTimer = setTimeout(() => {
+      const today = formatLocalDate(new Date());
+      console.log("[StudyGoal] Syncing to GLOBAL Firestore...");
+
+      // 🌐 GLOBAL DATA: Save to global_data/studyGoal (persists across days!)
+      updateGlobalData("studyGoal", {
+        activeStudyGoal: activeStudyGoal,
+        studyHistory: studyHistory,
+      });
+
+      // Daily log: Just summary for analytics
+      updateTodayLog("growth", {
+        active_study_goal: activeStudyGoal,
+        study_streak: calculateStreak(studyHistory),
+      });
+    }, 800); // 800ms debounce
+
+    return () => clearTimeout(syncTimer);
   }, [activeStudyGoal, studyHistory]);
+
+  // 🚀 REAL-TIME CLOUD SYNC for global StudyGoal data
+  useEffect(() => {
+    const unsubscribe = subscribeToGlobalData("studyGoal", (cloudData) => {
+      // 🛡️ MOUNT PROTECTION: Skip cloud updates for first 3 seconds after page load
+      const timeSinceMount = Date.now() - mountTimestamp.current;
+      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
+        console.log("[StudyGoal] Mount protection active, skipping cloud sync");
+        return;
+      }
+
+      // Throttle: Ignore cloud updates if user just interacted locally (< 2s)
+      if (Date.now() - lastLocalInteraction.current < 2000) return;
+
+      if (!cloudData) return;
+
+      console.log("[StudyGoal] Received global data from cloud");
+
+      // 1. Sync Active Goal
+      if (cloudData.activeStudyGoal) {
+        setActiveStudyGoal(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(cloudData.activeStudyGoal)) return prev;
+          return cloudData.activeStudyGoal;
+        });
+      }
+
+      // 2. Sync Study History
+      if (cloudData.studyHistory) {
+        setStudyHistory(prev => {
+          const merged = { ...prev, ...cloudData.studyHistory };
+          if (JSON.stringify(merged) === JSON.stringify(prev)) return prev;
+          return merged;
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Calculate streak helper
   const calculateStreak = (history) => {
@@ -99,16 +205,19 @@ export function StudyGoalProvider({ children }) {
 
   // Set a certificate as the active study goal
   const setStudyGoal = useCallback((certificate) => {
+    lastLocalInteraction.current = Date.now();
     setActiveStudyGoal(certificate);
   }, []);
 
   // Clear the active study goal
   const clearStudyGoal = useCallback(() => {
+    lastLocalInteraction.current = Date.now();
     setActiveStudyGoal(null);
   }, []);
 
   // Toggle study status for a date (cycle: undefined -> true -> false -> undefined)
   const toggleStudyDate = useCallback((dateStr) => {
+    lastLocalInteraction.current = Date.now();
     setStudyHistory((prev) => {
       const currentVal = prev[dateStr];
       let newVal;
@@ -133,6 +242,7 @@ export function StudyGoalProvider({ children }) {
   // Quick answer: Did you study today? (Yes/No buttons)
   // onStudied is an optional callback called when didStudy is true
   const markStudiedToday = useCallback((didStudy, onStudied) => {
+    lastLocalInteraction.current = Date.now();
     const today = formatLocalDate(new Date());
     setStudyHistory((prev) => ({
       ...prev,

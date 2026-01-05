@@ -6,7 +6,15 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import JournalDetailSheet from "../components/JournalDetailSheet";
 import PageTransition from "../components/PageTransition";
 import RichTextEditor from "../components/RichTextEditor";
-import { updateTodayLog } from "../services/dataLogger";
+import {
+  updateTodayLog,
+  subscribeToTodayLog,
+  updateGlobalData,
+  subscribeToGlobalData,
+  getGlobalData,
+  saveGlobalDataLocal,
+  loadGlobalDataLocal
+} from "../services/dataLogger";
 
 // Confirmation Dialog Component
 const ConfirmDialog = ({
@@ -218,7 +226,7 @@ const EntryRow = ({
               {item.time}
             </span>
           </div>
-          
+
           {/* Preview text with better styling */}
           <p className="text-[14px] text-[rgba(60,60,67,0.6)] leading-relaxed line-clamp-2">
             {item.preview}
@@ -252,6 +260,13 @@ const getRandomMood = () =>
   RANDOM_MOODS[Math.floor(Math.random() * RANDOM_MOODS.length)];
 
 export default function Journal() {
+  // Interaction timestamp to prevent "Cloud Echo" overwrites
+  const lastLocalInteraction = useRef(0);
+
+  // 🛡️ MOUNT PROTECTION: Prevents new devices from overwriting cloud data
+  const mountTimestamp = useRef(Date.now());
+  const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds
+
   const [entry, setEntry] = useState(null);
   const [title, setTitle] = useState("");
   const [mood, setMood] = useState(getRandomMood());
@@ -291,49 +306,158 @@ export default function Journal() {
     localStorage.setItem("journal-draft-mood", mood);
   }, [title, mood]);
 
-  // Save Persistent Entires
+  // Save Persistent Entries to localStorage
   useEffect(() => {
     localStorage.setItem("journal_entries", JSON.stringify(entries));
   }, [entries]);
 
-  // Sync to dataLogger whenever entries change
+  // 🔄 INITIAL CLOUD FETCH on mount - Get ALL journal entries from global data
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    const todayEntries = entries.filter((e) => e.isoDate === today);
+    const fetchGlobalJournal = async () => {
+      try {
+        const cloudJournal = await getGlobalData("journal");
+        if (cloudJournal?.entries && Array.isArray(cloudJournal.entries)) {
+          console.log("[Journal] ✓ Loaded global entries from Firestore:", cloudJournal.entries.length, "entries");
 
-    // Get the most recent mood from today's entries
-    const latestMood = todayEntries.length > 0 ? todayEntries[0].mood : null;
+          // Merge cloud entries with local entries (cloud wins for duplicates)
+          setEntries(prev => {
+            // Start with cloud entries
+            const merged = [...cloudJournal.entries];
 
-    // Extract highlights (entries with positive moods)
-    const positiveEmojis = ["😊", "🌟", "🔥", "💡", "☀️", "🎯", "🌱"];
-    const highlights = todayEntries
-      .filter((e) => positiveEmojis.includes(e.mood))
-      .map((e) => e.title);
+            // Add any local entries that don't exist in cloud
+            prev.forEach(localEntry => {
+              if (!merged.find(c => c.id === localEntry.id)) {
+                merged.push(localEntry);
+              }
+            });
 
-    // Extract challenges (entries with contemplative moods)
-    const challengeEmojis = ["💭", "🌙", "🌊"];
-    const challenges = todayEntries
-      .filter((e) => challengeEmojis.includes(e.mood))
-      .map((e) => e.title);
+            // Sort by date/id descending (newest first)
+            merged.sort((a, b) => b.id - a.id);
 
-    updateTodayLog("journal", {
-      entries: todayEntries.map((e) => ({
-        id: e.id,
-        title: e.title,
-        mood: e.mood,
-        time: e.time,
-        preview: e.preview,
-        // Don't include full content to save space, can be loaded on demand
-      })),
-      mood: latestMood,
-      highlights,
-      challenges,
-      total_entries_today: todayEntries.length,
-      total_entries_all_time: entries.length,
-    });
+            console.log("[Journal] Merged entries:", merged.length);
+            return merged;
+          });
+        }
+      } catch (error) {
+        console.error("[Journal] Failed to fetch global data:", error);
+      }
+    };
+
+    fetchGlobalJournal();
+  }, []); // Run once on mount
+
+  // 🌐 Sync ALL JOURNAL ENTRIES to GLOBAL storage (persists across days)
+  useEffect(() => {
+    // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
+    const timeSinceMount = Date.now() - mountTimestamp.current;
+    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
+      console.log("[Journal] Mount protection active, skipping Firestore WRITE");
+      return;
+    }
+
+    // Only sync after user has actually interacted
+    if (lastLocalInteraction.current === 0) {
+      console.log("[Journal] No user interaction yet, skipping Firestore WRITE");
+      return;
+    }
+
+    const syncTimer = setTimeout(() => {
+      console.log("[Journal] Syncing to GLOBAL Firestore (all entries)...");
+      const today = new Date().toISOString().split("T")[0];
+      const todayEntries = entries.filter((e) => e.isoDate === today);
+
+      // Get the most recent mood from today's entries
+      const latestMood = todayEntries.length > 0 ? todayEntries[0].mood : null;
+
+      // Extract highlights (entries with positive moods)
+      const positiveEmojis = ["😊", "🌟", "🔥", "💡", "☀️", "🎯", "🌱"];
+      const highlights = todayEntries
+        .filter((e) => positiveEmojis.includes(e.mood))
+        .map((e) => e.title);
+
+      // Extract challenges (entries with contemplative moods)
+      const challengeEmojis = ["💭", "🌙", "🌊"];
+      const challenges = todayEntries
+        .filter((e) => challengeEmojis.includes(e.mood))
+        .map((e) => e.title);
+
+      // 🌐 GLOBAL DATA: Save ALL entries to global_data/journal (persists across days!)
+      updateGlobalData("journal", {
+        entries: entries.map((e) => ({
+          id: e.id,
+          title: e.title,
+          mood: e.mood,
+          time: e.time,
+          preview: e.preview,
+          content: e.content,
+          isoDate: e.isoDate,
+          date: e.date,
+        })),
+        total_entries: entries.length,
+      });
+
+      // Save to localStorage for offline access
+      saveGlobalDataLocal("journal", { entries });
+
+      // Daily log: Just today's summary for analytics
+      updateTodayLog("journal", {
+        entries_today: todayEntries.length,
+        mood: latestMood,
+        highlights,
+        challenges,
+        total_entries_all_time: entries.length,
+      });
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(syncTimer);
   }, [entries]);
 
+  // 🚀 REAL-TIME CLOUD SYNC (Incoming) - Listen to GLOBAL journal data
+  useEffect(() => {
+    const unsubscribe = subscribeToGlobalData("journal", (cloudJournal) => {
+      // 🛡️ MOUNT PROTECTION: Skip cloud updates for first 3 seconds after page load
+      const timeSinceMount = Date.now() - mountTimestamp.current;
+      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
+        console.log("[Journal] Mount protection active, skipping cloud sync");
+        return;
+      }
+
+      // Throttle: Ignore cloud updates if user just interacted locally (< 2s)
+      if (Date.now() - lastLocalInteraction.current < 2000) return;
+
+      if (!cloudJournal?.entries) return;
+
+      console.log("[Journal] Received global entries from cloud");
+
+      const cloudEntries = cloudJournal.entries;
+
+      if (Array.isArray(cloudEntries)) {
+        setEntries((prevEntries) => {
+          // Merge Strategy: Union by ID
+          // Prefer Cloud version if it exists (to get remote updates)
+          // Keep Local version if it doesn't exist in Cloud (to preserve unsynced new entries)
+          const merged = [...cloudEntries];
+
+          prevEntries.forEach((localEntry) => {
+            if (!merged.find((c) => c.id === localEntry.id)) {
+              merged.push(localEntry);
+            }
+          });
+
+          // Sort by date/id descending (newest first)
+          merged.sort((a, b) => b.id - a.id);
+
+          if (JSON.stringify(merged) === JSON.stringify(prevEntries)) return prevEntries;
+          return merged;
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handleUpdateEntry = useCallback((updatedEntry) => {
+    lastLocalInteraction.current = Date.now(); // Mark interaction time
+
     setEntries((prev) =>
       prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
     );
@@ -399,6 +523,7 @@ export default function Journal() {
     // Artificial delay for UX
     await new Promise((resolve) => setTimeout(resolve, 600));
 
+    lastLocalInteraction.current = Date.now(); // Mark interaction time
     setEntries((prev) => [newEntry, ...prev]);
 
     // Clear logic
@@ -406,7 +531,7 @@ export default function Journal() {
       localStorage.removeItem("journal-draft");
       localStorage.removeItem("journal-draft-title");
       localStorage.removeItem("journal-draft-mood");
-    } catch (e) {}
+    } catch (e) { }
 
     setEntry(null);
     setTitle("");
@@ -428,6 +553,8 @@ export default function Journal() {
       setConfirmDialog({ isOpen: true, type: "bulk", itemId: null });
   };
   const handleConfirmDelete = () => {
+    lastLocalInteraction.current = Date.now(); // Mark interaction time
+
     if (confirmDialog.type === "single")
       setEntries((prev) => prev.filter((e) => e.id !== confirmDialog.itemId));
     else {

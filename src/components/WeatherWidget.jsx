@@ -59,11 +59,11 @@ export default function WeatherWidget() {
                 className="flex items-center gap-2 bg-white/60 backdrop-blur-md border border-black/5 px-3 py-1.5 rounded-full shadow-sm"
             >
                 <span className="text-xl">
-                    {weather?.raw[0]?.current?.temp > 30 ? '☀️' : weather?.raw[0]?.current?.precip > 0 ? '🌧️' : '⛅'}
+                    {(weather?.homeTemp ?? 25) > 30 ? '☀️' : (weather?.raw?.[0]?.current?.precip ?? 0) > 0 ? '🌧️' : '⛅'}
                 </span>
                 <div className="flex flex-col items-start leading-none">
                     <span className="text-[13px] font-bold text-black">
-                        {Math.round(weather?.homeTemp)}°C
+                        {typeof weather?.homeTemp === 'number' ? `${Math.round(weather.homeTemp)}°C` : '--'}
                     </span>
                     <span className="text-[10px] text-black/60 font-medium truncate max-w-[100px]">
                         {weather?.summary?.pill || 'Loading...'}
@@ -126,7 +126,7 @@ export default function WeatherWidget() {
                                                     </span>
                                                 )}
                                                 <span className="text-sm font-bold text-black">
-                                                    {Math.round(loc.current?.temp)}°
+                                                    {loc.current?.temp !== undefined ? Math.round(loc.current.temp) : '--'}°
                                                 </span>
                                             </div>
                                         </div>

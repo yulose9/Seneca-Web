@@ -11,13 +11,15 @@ export default function AnimatedRoutes() {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Home />} />
         <Route path="/protocol" element={<Protocol />} />
         <Route path="/growth" element={<Growth />} />
         <Route path="/wealth" element={<Wealth />} />
         <Route path="/journal" element={<Journal />} />
+        {/* Redirect any unknown paths (like /login) to Home */}
+        <Route path="*" element={<Home />} />
       </Routes>
     </AnimatePresence>
   );

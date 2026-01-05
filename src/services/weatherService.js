@@ -34,204 +34,215 @@ const getWeatherCondition = (code) => {
     return codes[code] || 'Unknown';
 };
 
-const CACHE_KEY = 'weather_smart_cache_v3'; // Updated cache key
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+const RAW_CACHE_KEY = 'weather_raw_v4';
+const RAW_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
+const AI_SUMMARY_CACHE_KEY = 'weather_ai_summary_docs_v4';
+const AI_CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 
 export const getSmartWeatherSummary = async () => {
-    // 0. Check Cache
+    let rawWeatherData = null;
+    let homeTemp = null;
+
+    // 1. Try to get RAW weather data (Cheap/Free)
     try {
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            const age = Date.now() - parsed.timestamp;
-            if (age < CACHE_DURATION) {
-                console.log("Using cached weather data (Gemini 3)");
-                return parsed.data;
+        const cachedRaw = localStorage.getItem(RAW_CACHE_KEY);
+        if (cachedRaw) {
+            const parsed = JSON.parse(cachedRaw);
+            if (Date.now() - parsed.timestamp < RAW_CACHE_DURATION) {
+                rawWeatherData = parsed.data;
+                // console.log("Using cached RAW weather");
             }
         }
-    } catch (e) {
-        console.error("Cache read error:", e);
-    }
+    } catch (e) { console.error("Raw cache error", e); }
 
-    // 1. Fetch raw data (OpenMeteo)
-    let weatherData = [];
-    try {
-        const weatherPromises = LOCATIONS.map(async (loc) => {
-            const data = await fetchRawWeather(loc.lat, loc.lng);
-
-            // Extract relevant future data for Gemini
-            const next24Hours = data?.hourly?.temperature_2m?.slice(0, 24).map((temp, i) => ({
-                time: data.hourly.time[i],
-                temp: temp,
-                rainProb: data.hourly.precipitation_probability[i],
-                condition: getWeatherCondition(data.hourly.weather_code[i])
-            })) || [];
-
-            const tomorrow = {
-                maxTemp: data?.daily?.temperature_2m_max?.[1],
-                minTemp: data?.daily?.temperature_2m_min?.[1],
-                rainSum: data?.daily?.precipitation_sum?.[1],
-                condition: getWeatherCondition(data?.daily?.weather_code?.[1])
-            };
-
-            return {
-                location: loc.name,
-                current: {
-                    temp: data?.current?.temperature_2m,
-                    feelsLike: data?.current?.apparent_temperature,
-                    condition: getWeatherCondition(data?.current?.weather_code),
-                    precip: data?.current?.precipitation,
-                },
-                hourlyForecast: next24Hours.filter((_, i) => i % 4 === 0), // Sample every 4 hours to save tokens
-                tomorrow: tomorrow
-            };
-        });
-        weatherData = await Promise.all(weatherPromises);
-    } catch (e) {
-        console.error("OpenMeteo Error:", e);
-    }
-
-    const homeData = weatherData.find(d => d.location === 'Home') || {};
-
-    // 2. Feed to Gemini 3 Flash Preview
-    let aiSummary = {
-        pill: homeData.current?.condition || 'Weather',
-        recommendation: `Currently ${homeData.current?.temp || '--'}°C. Check forecast.`
-    };
-
-    const promptText = `
-        Current Date/Time: ${new Date().toLocaleString('en-PH')}
-        
-        You are a helpful, witty personal assistant.
-        Here is the comprehensive weather data for my locations (Home, Work, Metro Manila):
-        ${JSON.stringify(weatherData)}
-
-        Based on the "current", "hourlyForecast" (next 24h), and "tomorrow" data:
-        1. Analyze the likelihood of RAIN or EXTREME HEAT.
-        2. Formulate a specific recommendation (e.g., "Bring an umbrella", "Wear sunscreen", "Bring a jacket", "Stay dry").
-
-        TASKS:
-        1. "pill": A very short status (max 4 words) e.g., "Rainy Day ☔" or "Clear Skies ☀️".
-        2. "recommendation": A conversational sentence telling me what to do/bring. 
-           - If rainy: "Bring an umbrella, it's likely to rain later."
-           - If hot: "It's scorching outside, don't forget sunscreen!"
-           - If clear: "Great weather for a walk today."
-
-        Output strictly valid JSON:
-        { "pill": "...", "recommendation": "..." }
-    `;
-
-    let modelUsed = 'Offline Fallback';
-
-    try {
-        // Initialize Gemini 3 Client (Official Pattern)
-        const ai = new GoogleGenAI({
-            apiKey: import.meta.env.VITE_GEMINI_API_KEY,
-        });
-
-        // "Generic" tools array if needed, but we rely on context. 
-        // Adding thinkingConfig as per user documentation.
-        const config = {
-            thinkingConfig: {
-                thinkingLevel: 'HIGH',
-            },
-            safetySettings: [
-                { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
-                { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
-                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
-                { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' }
-            ],
-        };
-
-        const req = {
-            model: 'gemini-3-flash-preview',
-            config: config,
-            contents: [
-                {
-                    role: 'user',
-                    parts: [{ text: promptText }]
-                }
-            ],
-        };
-
-        // Use Stream as per official docs
-        const responseStream = await ai.models.generateContentStream(req);
-
-        let fullText = '';
-        for await (const chunk of responseStream) {
-            if (chunk.text) {
-                fullText += chunk.text;
-            }
-        }
-
-        console.log("Gemini 3 Raw Output:", fullText);
-
-        const cleanText = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
-        aiSummary = JSON.parse(cleanText);
-        modelUsed = 'Gemini 3 Flash Preview';
-
-    } catch (error) {
-        console.warn("Gemini 3 Summary Failed:", error);
-
-        // 2b. Fallback to Gemini 1.5 Flash (Standard)
+    if (!rawWeatherData) {
         try {
-            console.log("Attempting Gemini 1.5 Fallback...");
-            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-            const req = {
-                model: 'gemini-1.5-flash',
-                contents: [{ role: 'user', parts: [{ text: promptText }] }],
-                config: { responseMimeType: 'application/json' }
-            };
-            const result = await ai.models.generateContent(req);
-            const text = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-                aiSummary = JSON.parse(text);
-                modelUsed = 'Gemini 1.5 Flash';
-            } else {
-                throw new Error("Empty 1.5 response");
-            }
-        } catch (fallbackError) {
-            console.warn("Gemini 1.5 Fallback Failed:", fallbackError);
-            modelUsed = 'Offline Fallback';
+            const weatherPromises = LOCATIONS.map(async (loc) => {
+                const data = await fetchRawWeather(loc.lat, loc.lng);
 
-            // 2c. Robust Hardcoded Fallback
-            const rainComing = homeData.hourlyForecast?.some(h => h.rainProb > 40) || homeData.current?.precip > 0;
-            const isHot = homeData.current?.temp > 32;
-            const isCloudy = homeData.current?.condition?.includes('cloud') || homeData.current?.condition?.includes('Overcast');
+                // If fetch fails, return a safe fallback structure
+                if (!data) return { location: loc.name, current: {}, hourlyForecast: [], tomorrow: {} };
 
-            if (rainComing) {
-                aiSummary.recommendation = "Bring an umbrella, rain is expected soon! ☔";
-                aiSummary.pill = "Rain Likely 🌧️";
-            } else if (isHot) {
-                aiSummary.recommendation = "It's scorching outside! Wear sunscreen. ☀️";
-                aiSummary.pill = "Hot Weather ☀️";
-            } else if (isCloudy) {
-                aiSummary.recommendation = "It's cloudy but dry. Good weather for a walk. ☁️";
-                aiSummary.pill = "Overcast ☁️";
-            } else {
-                aiSummary.recommendation = "Clear skies ahead. Enjoy your day! 🌤️";
-                aiSummary.pill = "Clear Skies ☀️";
+                // Extract relevant future data for Gemini
+                const next24Hours = data?.hourly?.temperature_2m?.slice(0, 24).map((temp, i) => ({
+                    time: data.hourly.time[i],
+                    temp: temp,
+                    rainProb: data.hourly.precipitation_probability[i],
+                    condition: getWeatherCondition(data.hourly.weather_code[i])
+                })) || [];
+
+                const tomorrow = {
+                    maxTemp: data?.daily?.temperature_2m_max?.[1],
+                    minTemp: data?.daily?.temperature_2m_min?.[1],
+                    rainSum: data?.daily?.precipitation_sum?.[1],
+                    condition: getWeatherCondition(data?.daily?.weather_code?.[1])
+                };
+
+                return {
+                    location: loc.name,
+                    current: {
+                        temp: data?.current?.temperature_2m,
+                        feelsLike: data?.current?.apparent_temperature,
+                        condition: getWeatherCondition(data?.current?.weather_code),
+                        precip: data?.current?.precipitation,
+                    },
+                    hourlyForecast: next24Hours.filter((_, i) => i % 4 === 0), // Sample every 4 hours to save tokens
+                    tomorrow: tomorrow
+                };
+            });
+            rawWeatherData = await Promise.all(weatherPromises);
+
+            // Validate we got data before caching
+            if (rawWeatherData && rawWeatherData.length > 0 && rawWeatherData[0].current.temp !== undefined) {
+                localStorage.setItem(RAW_CACHE_KEY, JSON.stringify({
+                    timestamp: Date.now(),
+                    data: rawWeatherData
+                }));
             }
+        } catch (e) {
+            console.error("OpenMeteo Fetch Error:", e);
         }
     }
 
-    const finalResult = {
-        raw: weatherData,
-        homeTemp: homeData.current?.temp,
+    // Safely extract Home Temp for Widget (Fixes NaN issue)
+    const homeData = rawWeatherData?.find(d => d.location === 'Home') || {};
+    homeTemp = homeData.current?.temp;
+    // If undefined, we leave it null so UI can handle it, or default to 0 if preferred, but null is semantically better for "loading" or "error"
+
+    // 2. Try to get AI Summary (Expensive)
+    let aiSummary = null;
+    let modelUsed = 'Cached Memory';
+
+    try {
+        const cachedAI = localStorage.getItem(AI_SUMMARY_CACHE_KEY);
+        if (cachedAI) {
+            const parsed = JSON.parse(cachedAI);
+            const age = Date.now() - parsed.timestamp;
+
+            // Check day change
+            const cachedDate = new Date(parsed.timestamp).getDate();
+            const todayDate = new Date().getDate();
+
+            // Use cache if:
+            // 1. Same day AND
+            // 2. Age < 4 hours
+            if (cachedDate === todayDate && age < AI_CACHE_DURATION) {
+                aiSummary = parsed.data;
+                // console.log("Using cached AI Summary");
+            }
+        }
+    } catch (e) { console.error("AI cache error", e); }
+
+    // 3. Generate New AI Summary if missing or stale
+    if (!aiSummary && rawWeatherData) {
+        const promptText = `
+            Current Date/Time: ${new Date().toLocaleString('en-PH')}
+            
+            You are a helpful, witty personal assistant.
+            Here is the comprehensive weather data for my locations (Home, Work, Metro Manila):
+            ${JSON.stringify(rawWeatherData)}
+    
+            Based on the "current", "hourlyForecast" (next 24h), and "tomorrow" data:
+            1. Analyze the likelihood of RAIN or EXTREME HEAT.
+            2. Formulate a specific recommendation (e.g., "Bring an umbrella", "Wear sunscreen", "Bring a jacket", "Stay dry").
+    
+            TASKS:
+            1. "pill": A very short status (max 4 words) e.g., "Rainy Day ☔" or "Clear Skies ☀️".
+            2. "recommendation": A conversational sentence telling me what to do/bring. 
+               - If rainy: "Bring an umbrella, it's likely to rain later."
+               - If hot: "It's scorching outside, don't forget sunscreen!"
+               - If clear: "Great weather for a walk today."
+    
+            Output strictly valid JSON:
+            { "pill": "...", "recommendation": "..." }
+        `;
+
+        try {
+            // Attempt Gemini 3 Flash Preview
+            const ai = new GoogleGenAI({
+                apiKey: import.meta.env.VITE_GEMINI_API_KEY,
+            });
+
+            const config = {
+                thinkingConfig: { thinkingLevel: 'HIGH' },
+                safetySettings: [
+                    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
+                    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
+                    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+                    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' }
+                ],
+            };
+
+            const req = {
+                model: 'gemini-3-flash-preview', // Or 'gemini-2.0-flash-thinking-exp' if 3 not avail
+                config: config,
+                contents: [{ role: 'user', parts: [{ text: promptText }] }],
+            };
+
+            // Fallback safety for streaming vs non-streaming
+            // We'll use standard generateContent to be simpler/more robust for this cron-like task
+            // unless streaming is strictly required. Standard is fine for background fetch.
+            // Actually, let's keep it robust.
+
+            const result = await ai.models.generateContent(req);
+            const fullText = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (fullText) {
+                console.log("Gemini 3 Output:", fullText);
+                const cleanText = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
+                aiSummary = JSON.parse(cleanText);
+                modelUsed = 'Gemini 3 Flash';
+            } else {
+                throw new Error("Empty Gemini 3 response");
+            }
+
+        } catch (error) {
+            console.warn("Gemini 3 Failed, trying 1.5:", error);
+            try {
+                const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+                const result = await ai.models.generateContent({
+                    model: 'gemini-1.5-flash',
+                    contents: [{ role: 'user', parts: [{ text: promptText }] }],
+                    config: { responseMimeType: 'application/json' }
+                });
+                aiSummary = JSON.parse(result.response.text());
+                modelUsed = 'Gemini 1.5 Flash';
+            } catch (fbError) {
+                console.warn("All AI Failed:", fbError);
+                modelUsed = 'Offline Fallback';
+
+                // 2c. Robust Hardcoded Fallback
+                const rainComing = homeData.hourlyForecast?.some(h => h.rainProb > 40) || homeData.current?.precip > 0;
+                const isHot = homeData.current?.temp > 32;
+                const isCloudy = homeData.current?.condition?.includes('cloud') || homeData.current?.condition?.includes('Overcast');
+
+                aiSummary = {
+                    pill: rainComing ? "Rain Likely 🌧️" : isHot ? "Hot Weather ☀️" : isCloudy ? "Overcast ☁️" : "Clear Skies ☀️",
+                    recommendation: rainComing ? "Bring an umbrella, rain is expected! ☔" : "Check the forecast, AI is sleeping. 😴"
+                };
+            }
+        }
+
+        // Cache the AI Result
+        if (aiSummary) {
+            localStorage.setItem(AI_SUMMARY_CACHE_KEY, JSON.stringify({
+                timestamp: Date.now(),
+                data: aiSummary
+            }));
+        }
+    }
+
+    // Default return if everything failed (prevents crash)
+    if (!aiSummary) {
+        aiSummary = { pill: "Weather", recommendation: "Unable to load weather." };
+    }
+
+    return {
+        raw: rawWeatherData || [],
+        homeTemp: homeTemp !== undefined ? homeTemp : null, // Explicit null
         summary: { ...aiSummary, model: modelUsed }
     };
-
-    // 3. Save to Cache
-    try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({
-            timestamp: Date.now(),
-            data: finalResult
-        }));
-    } catch (e) {
-        console.error("Cache write error:", e);
-    }
-
-    return finalResult;
 };
 
 const CACHE_KEY_DETAIL_PREFIX = 'weather_detail_cache_v3_'; // Version 3

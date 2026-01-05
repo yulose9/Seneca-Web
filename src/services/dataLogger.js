@@ -1,92 +1,62 @@
 /**
- * Data Logger Service
+ * Data Logger Service (Firestore Edition)
  *
- * Structures all app data as Daily Log Documents for LLM analysis.
- * Designed for easy migration to Firestore/NoSQL databases.
- *
- * Daily Log Format:
- * {
- *   date: "2025-12-30",
- *   user_id: "local_user",
- *   protocol: { phases, completion, reflections },
- *   growth: { study_sessions, focus_metrics },
- *   wealth: { transactions, net_worth },
- *   journal: { entries, mood }
- * }
+ * Structures all app data as Daily Log Documents in Firestore.
+ * 
+ * Path: users/{uid}/daily_logs/{date}
  */
+
+import { db, auth } from './firebase';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 
 const STORAGE_KEY = "seneca_daily_logs";
-
-/**
- * ☁️ MIGRATION TO FIRESTORE GUIDE ☁️
- * 
- * To move this to Google Cloud Firestore:
- * 1. Setup 'firebase.js' with your project config.
- * 2. Replace 'getAllLogs' and 'updateTodayLog' with Firestore calls:
- * 
- *    import { db } from './firebase';
- *    import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
- * 
- *    const getLogRef = (dateKey) => doc(db, "users", "USER_ID", "daily_logs", dateKey);
- * 
- *    // Example: updateTodayLog becomes:
- *    await setDoc(getLogRef(dateKey), { [section]: data }, { merge: true });
- * 
- * 3. IMPORTANT: Move Image handling in RichTextEditor to use Firebase Storage
- *    instead of Base64 strings to avoid hitting the 1MB document limit.
- */
 
 // Get today's date in YYYY-MM-DD format
 export const getTodayKey = () => {
   const now = new Date();
-  return now.toISOString().split("T")[0];
+  // Use local time for the "day" boundary logic
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
-// Get all daily logs from localStorage
-export const getAllLogs = () => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : {};
-  } catch (error) {
-    console.error("Error reading daily logs:", error);
-    return {};
-  }
-};
+// --- FIRESTORE HELPERS ---
 
-// Get log for a specific date
-export const getLogForDate = (dateKey = getTodayKey()) => {
-  const logs = getAllLogs();
-  return logs[dateKey] || createEmptyLog(dateKey);
+const getLogRef = (dateKey) => {
+  if (!auth.currentUser) return null;
+  return doc(db, "users", auth.currentUser.uid, "daily_logs", dateKey);
 };
 
 // Create an empty log structure
-const createEmptyLog = (dateKey) => ({
+export const createEmptyLog = (dateKey) => ({
   date: dateKey,
-  user_id: "local_user",
+  user_id: auth.currentUser?.uid || "unknown",
   timestamp_created: new Date().toISOString(),
   timestamp_updated: new Date().toISOString(),
   protocol: {
     completion_rate: 0,
     phases: {},
-    custom_tasks: [],
+    custom_tasks: [], // Store custom tasks here
+    task_order: {},   // Store task order here
     reflections: "",
   },
   growth: {
     // Study goal tracking
-    active_study_goal: null, // Current certificate being studied
-    study_history: {}, // { "YYYY-MM-DD": true/false }
+    active_study_goal: null,
+    study_history: {},
     study_streak: 0,
 
-    // Personal goals (No Porn, Exercise, Weight)
+    // Personal goals
     personal_goals: {
-      noPorn: {}, // { "YYYY-MM-DD": true/false }
-      exercise: {}, // { "YYYY-MM-DD": true/false }
+      noPorn: {},
+      exercise: {},
     },
     current_weight: null,
     goal_weight: 90,
 
-    // Certificates (snapshot of current status)
-    certificates: [], // Array of { name, level, status, target }
+    // Certificates
+    certificates: [],
 
     study_sessions: [],
     focus_time: 0,
@@ -94,18 +64,14 @@ const createEmptyLog = (dateKey) => ({
     reflections: "",
   },
   wealth: {
-    // Full financial snapshot
-    assets: [], // Array of { id, name, platform, amount, category }
-    liabilities: [], // Array of { id, name, platform, amount, isPriority }
-    transactions: [], // Today's transactions
+    assets: [],
+    liabilities: [],
+    transactions: [],
     net_worth: 0,
-    total_assets: 0,
-    total_liabilities: 0,
-    spending_by_category: {},
     reflections: "",
   },
   journal: {
-    entries: [], // Today's journal entries
+    entries: [],
     mood: null,
     highlights: [],
     challenges: [],
@@ -116,41 +82,144 @@ const createEmptyLog = (dateKey) => ({
   },
 });
 
-// Update a section of today's log
-export const updateTodayLog = (section, data) => {
+// --- MAIN API ---
+
+/**
+ * Get log for a specific date (Async from Firestore)
+ */
+export const getLogForDate = async (dateKey = getTodayKey()) => {
+  // 1. Try Firestore
+  const ref = getLogRef(dateKey);
+  if (!ref) {
+    // Fallback to local if not logged in (shouldnt happen in strict mode)
+    return getLocalLog(dateKey);
+  }
+
+  try {
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      return { ...createEmptyLog(dateKey), ...snap.data() };
+    } else {
+      // Create new for today
+      const newLog = createEmptyLog(dateKey);
+      // Optionally save it immediately, or wait for first update
+      return newLog;
+    }
+  } catch (error) {
+    console.error("Error fetching log:", error);
+    return getLocalLog(dateKey); // Fallback to cache
+  }
+};
+
+/**
+ * Update a section of today's log (Writes to Firestore)
+ */
+export const updateTodayLog = async (section, data) => {
   const dateKey = getTodayKey();
-  const logs = getAllLogs();
-  const todayLog = logs[dateKey] || createEmptyLog(dateKey);
+  const ref = getLogRef(dateKey); // Will return null if not logged in
 
-  // Update the specific section
-  todayLog[section] = {
-    ...todayLog[section],
-    ...data,
+  // 1. Update LocalStorage (for instant UI and offline safety)
+  const localLog = updateLocalLog(dateKey, section, data);
+
+  // 2. Update Firestore (Background Sync)
+  if (ref) {
+    try {
+      // We use setDoc with merge: true to handle both "create" and "update" cases
+      await setDoc(ref, {
+        [section]: data,
+        timestamp_updated: new Date().toISOString(),
+        // Ensure date and id are set
+        date: dateKey,
+        user_id: auth.currentUser.uid
+      }, { merge: true });
+    } catch (error) {
+      console.error("Firestore sync failed:", error);
+      // We still have local storage, so user data isn't lost locally
+    }
+  }
+
+  return localLog;
+};
+
+/**
+ * Subscribe to today's log changes (Real-time listener)
+ * Useful for syncing across devices
+ */
+export const subscribeToTodayLog = (callback) => {
+  const dateKey = getTodayKey();
+  const ref = getLogRef(dateKey);
+  if (!ref) return () => { };
+
+  const unsubscribe = onSnapshot(
+    ref,
+    (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        // Merge with structure to ensure robust data
+        const fullLog = { ...createEmptyLog(dateKey), ...data };
+        // Update local storage to match cloud
+        saveToLocal(dateKey, fullLog);
+        callback(fullLog);
+      }
+    },
+    (error) => {
+      console.error("🔥 Real-time sync error:", error);
+      // Don't crash, just silent fail or notify
+    }
+  );
+  return unsubscribe;
+};
+
+// --- LOCAL STORAGE HELPERS (Backing Store) ---
+
+const getLocalLog = (dateKey) => {
+  try {
+    const allData = localStorage.getItem(STORAGE_KEY);
+    const logs = allData ? JSON.parse(allData) : {};
+    return logs[dateKey] || createEmptyLog(dateKey);
+  } catch (e) {
+    return createEmptyLog(dateKey);
+  }
+};
+
+const updateLocalLog = (dateKey, section, data) => {
+  const navLog = getLocalLog(dateKey);
+
+  // Merge section data
+  navLog[section] = {
+    ...navLog[section],
+    ...data
   };
+  navLog.timestamp_updated = new Date().toISOString();
 
-  // Update timestamp
-  todayLog.timestamp_updated = new Date().toISOString();
-
-  // Save back to localStorage
-  logs[dateKey] = todayLog;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
-
-  return todayLog;
+  saveToLocal(dateKey, navLog);
+  return navLog;
 };
 
-// Get logs for a date range (for weekly/monthly analysis)
-export const getLogsInRange = (startDate, endDate) => {
-  const logs = getAllLogs();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  return Object.entries(logs)
-    .filter(([dateKey]) => {
-      const date = new Date(dateKey);
-      return date >= start && date <= end;
-    })
-    .map(([_, log]) => log);
+const saveToLocal = (dateKey, logData) => {
+  try {
+    const allData = localStorage.getItem(STORAGE_KEY);
+    const logs = allData ? JSON.parse(allData) : {};
+    logs[dateKey] = logData;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+  } catch (e) {
+    console.error("Local save failed", e);
+  }
 };
+
+// --- LEGACY EXPORTS (Kept for compatibility) ---
+export const getAllLogs = () => {
+  const allData = localStorage.getItem(STORAGE_KEY);
+  return allData ? JSON.parse(allData) : {};
+};
+
+export const migrateOldData = async () => {
+  // This is now purely "Import Local to Cloud" if needed
+  // For now, we assume cloud is primary.
+  console.log("Archive data mode active.");
+};
+
+// --- EXPORT HELPERS (For ExportDataButton) ---
 
 // Get last N days of logs
 export const getLastNDaysLogs = (days = 30) => {
@@ -175,7 +244,7 @@ export const exportForLLM = (days = 30) => {
   // Create a narrative structure that LLMs love
   const narrative = {
     user_profile: {
-      user_id: "local_user",
+      user_id: auth.currentUser?.uid || "local_user", // Updated to use auth if available
       period: `Last ${days} days`,
       total_days: logs.length,
     },
@@ -187,7 +256,6 @@ export const exportForLLM = (days = 30) => {
     },
     daily_logs: logs,
     insights: {
-      // This will be populated by patterns you discover
       best_day: findBestDay(logs),
       worst_day: findWorstDay(logs),
       streaks: calculateStreaks(logs),
@@ -196,6 +264,33 @@ export const exportForLLM = (days = 30) => {
 
   return narrative;
 };
+
+// Export LLM prompt-ready format
+export const exportAsLLMPrompt = (days = 30) => {
+  const data = exportForLLM(days);
+
+  return `
+# User Habit Data (Last ${days} Days)
+
+## Summary
+- Days Tracked: ${data.user_profile.total_days}
+- Average Protocol Completion: ${data.summary.protocol?.average_completion || 0}%
+- Current Streak: ${data.insights.streaks.current_streak} days
+- Longest Streak: ${data.insights.streaks.longest_streak} days
+
+## Daily Logs
+${JSON.stringify(data.daily_logs, null, 2)}
+
+## Analysis Questions
+Based on this data, please analyze:
+1. Which habits do I skip most often?
+2. What patterns exist between my morning routine and overall day success?
+3. Which days of the week am I most productive?
+4. Are there any correlations between my mood and completion rate?
+`;
+};
+
+// --- PRIVATE HELPERS FOR EXPORTS ---
 
 // Helper: Calculate protocol summary
 const calculateProtocolSummary = (logs) => {
@@ -327,70 +422,111 @@ const calculateStreaks = (logs) => {
   };
 };
 
-// Export LLM prompt-ready format
-export const exportAsLLMPrompt = (days = 30) => {
-  const data = exportForLLM(days);
+// =============================================================================
+// 🌐 GLOBAL DATA SYNC (For data that persists across days, like Wealth)
+// =============================================================================
 
-  return `
-# User Habit Data (Last ${days} Days)
-
-## Summary
-- Days Tracked: ${data.user_profile.total_days}
-- Average Protocol Completion: ${data.summary.protocol?.average_completion || 0
-    }%
-- Current Streak: ${data.insights.streaks.current_streak} days
-- Longest Streak: ${data.insights.streaks.longest_streak} days
-
-## Daily Logs
-${JSON.stringify(data.daily_logs, null, 2)}
-
-## Analysis Questions
-Based on this data, please analyze:
-1. Which habits do I skip most often?
-2. What patterns exist between my morning routine and overall day success?
-3. Which days of the week am I most productive?
-4. Are there any correlations between my mood and completion rate?
-`;
+/**
+ * Get reference to a global data document
+ * Path: users/{uid}/global_data/{docName}
+ */
+const waitForAuth = () => {
+  return new Promise((resolve) => {
+    if (auth.currentUser) return resolve(auth.currentUser);
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
 };
 
-// Migrate old localStorage data to new format (call once)
-export const migrateOldData = () => {
-  console.log("🔄 Migrating old data to Daily Log format...");
+const getGlobalDataRef = async (docName) => {
+  const user = await waitForAuth();
+  if (!user) return null;
+  return doc(db, "users", user.uid, "global_data", docName);
+};
 
-  // Check if migration already happened
-  const migrationFlag = localStorage.getItem("migration_v1_completed");
-  if (migrationFlag === "true") {
-    console.log("✅ Migration already completed");
-    return;
-  }
+/**
+ * Get global data document
+ */
+export const getGlobalData = async (docName) => {
+  const ref = await getGlobalDataRef(docName);
+  if (!ref) return null;
 
   try {
-    // Get today's log
-    const todayLog = getLogForDate();
-
-    // Migrate Protocol data
-    const taskHistory = localStorage.getItem("protocol_task_history");
-    const customTasks = localStorage.getItem("protocol_custom_tasks");
-
-    if (taskHistory) {
-      const history = JSON.parse(taskHistory);
-      todayLog.protocol.phases = history;
-    }
-
-    if (customTasks) {
-      todayLog.protocol.custom_tasks = JSON.parse(customTasks);
-    }
-
-    // Save migrated data
-    const logs = getAllLogs();
-    logs[todayLog.date] = todayLog;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
-
-    // Mark migration as complete
-    localStorage.setItem("migration_v1_completed", "true");
-
-    console.log("✅ Migration completed successfully");
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : null;
   } catch (error) {
-    console.error("❌ Migration failed:", error);
+    console.error(`Failed to get global data (${docName}):`, error);
+    return null;
+  }
+};
+
+/**
+ * Update global data document (merge)
+ */
+export const updateGlobalData = async (docName, data) => {
+  const ref = await getGlobalDataRef(docName);
+  if (!ref) return;
+
+  try {
+    await setDoc(ref, {
+      ...data,
+      lastUpdated: new Date().toISOString(),
+    }, { merge: true });
+    console.log(`[GlobalData] ✓ Synced ${docName} to Firestore`);
+  } catch (error) {
+    console.error(`Failed to update global data (${docName}):`, error);
+  }
+};
+
+/**
+ * Subscribe to global data changes
+ */
+export const subscribeToGlobalData = (docName, callback) => {
+  let unsubscribeFirestore = () => { };
+  let isMounted = true;
+
+  getGlobalDataRef(docName).then((ref) => {
+    if (!isMounted || !ref) return;
+
+    unsubscribeFirestore = onSnapshot(
+      ref,
+      (snap) => {
+        if (snap.exists()) {
+          callback(snap.data());
+        }
+      },
+      (error) => {
+        console.error(`🔥 Global data sync error (${docName}):`, error);
+      }
+    );
+  });
+
+  return () => {
+    isMounted = false;
+    unsubscribeFirestore();
+  };
+};
+
+// Helper: Local storage for global data
+const GLOBAL_STORAGE_KEY = "seneca_global_data";
+
+export const saveGlobalDataLocal = (docName, data) => {
+  try {
+    const allData = JSON.parse(localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
+    allData[docName] = data;
+    localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(allData));
+  } catch (e) {
+    console.error("Failed to save global data locally:", e);
+  }
+};
+
+export const loadGlobalDataLocal = (docName) => {
+  try {
+    const allData = JSON.parse(localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
+    return allData[docName] || null;
+  } catch (e) {
+    return null;
   }
 };
