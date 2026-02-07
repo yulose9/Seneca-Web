@@ -42,7 +42,7 @@ import {
   Underline as UnderlineIcon,
   Video,
 } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 // Slash Command
 import Commands from "./editor/Commands";
@@ -122,13 +122,13 @@ const ToolbarButton = ({ onClick, isActive, disabled, children, title }) => (
   </motion.button>
 );
 
-export default function RichTextEditor({
+const RichTextEditor = forwardRef(function RichTextEditor({
   content = "",
   onChange,
   placeholder = "Type / for commands...",
   className,
   autoSaveKey = "journal-draft",
-}) {
+}, ref) {
   const fileInputRef = useRef(null);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   const [showFloatingActions, setShowFloatingActions] = useState(false);
@@ -221,6 +221,15 @@ export default function RichTextEditor({
       saveDraft(JSON.stringify(json));
     },
   });
+
+  // Expose focus method to parent via ref
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (editor) {
+        editor.chain().focus().run();
+      }
+    },
+  }), [editor]);
 
   useEffect(() => {
     if (editor && content !== undefined) {
@@ -498,4 +507,6 @@ export default function RichTextEditor({
       <EditorBubbleMenu editor={editor} />
     </div>
   );
-}
+});
+
+export default RichTextEditor;

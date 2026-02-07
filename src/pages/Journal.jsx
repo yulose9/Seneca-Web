@@ -281,6 +281,8 @@ export default function Journal() {
     itemId: null,
   });
   const [viewEntry, setViewEntry] = useState(null);
+  const editorRef = useRef(null);
+  const [visiblePastCount, setVisiblePastCount] = useState(10);
 
   // Initial load from localStorage
   const [entries, setEntries] = useState(() => {
@@ -706,6 +708,12 @@ export default function Journal() {
             <textarea
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Tab") {
+                  e.preventDefault();
+                  editorRef.current?.focus();
+                }
+              }}
               placeholder="Title your entry..."
               className="flex-1 bg-transparent text-[22px] font-bold text-black placeholder:text-black/20 resize-none outline-none py-2 leading-tight"
               rows={1}
@@ -716,6 +724,7 @@ export default function Journal() {
           <div className="w-full h-px bg-black/[0.06] mb-4" />
 
           <RichTextEditor
+            ref={editorRef}
             content={entry}
             onChange={setEntry}
             placeholder="Write your thoughts..."
@@ -723,19 +732,27 @@ export default function Journal() {
             className="min-h-[150px]"
           />
 
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={handleSave}
-            disabled={!hasContent || isSaving}
-            className={clsx(
-              "w-full h-[50px] rounded-xl font-semibold text-[17px] mt-4 transition-all",
-              hasContent && !isSaving
-                ? "bg-[#007AFF] text-white shadow-lg shadow-[#007AFF]/25"
-                : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]"
+          <AnimatePresence>
+            {hasContent && (
+              <motion.button
+                initial={{ opacity: 0, y: 10, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, y: 0, height: 50, marginTop: 16 }}
+                exit={{ opacity: 0, y: 10, height: 0, marginTop: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSave}
+                disabled={isSaving}
+                className={clsx(
+                  "w-full rounded-xl font-semibold text-[17px] overflow-hidden",
+                  !isSaving
+                    ? "bg-[#007AFF] text-white shadow-lg shadow-[#007AFF]/25"
+                    : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]"
+                )}
+              >
+                {isSaving ? "Saving..." : "Save Entry"}
+              </motion.button>
             )}
-          >
-            {isSaving ? "Saving..." : "Save Entry"}
-          </motion.button>
+          </AnimatePresence>
         </div>
       </motion.section>
 
@@ -767,21 +784,34 @@ export default function Journal() {
         )}
 
         {pastEntries.length > 0 ? (
-          <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            {pastEntries.map((item, index) => (
-              <EntryRow
-                key={item.id}
-                item={item}
-                isLast={index === pastEntries.length - 1}
-                isSelecting={isSelecting}
-                isSelected={selectedIds.has(item.id)}
-                onSelect={handleSelect}
-                onDelete={handleDeleteSingle}
-                onClick={setViewEntry}
-                onLongPress={handleLongPress}
-              />
-            ))}
-          </div>
+          <>
+            <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              {pastEntries.slice(0, visiblePastCount).map((item, index) => (
+                <EntryRow
+                  key={item.id}
+                  item={item}
+                  isLast={index === Math.min(visiblePastCount, pastEntries.length) - 1}
+                  isSelecting={isSelecting}
+                  isSelected={selectedIds.has(item.id)}
+                  onSelect={handleSelect}
+                  onDelete={handleDeleteSingle}
+                  onClick={setViewEntry}
+                  onLongPress={handleLongPress}
+                />
+              ))}
+            </div>
+            {visiblePastCount < pastEntries.length && (
+              <motion.button
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setVisiblePastCount((prev) => prev + 10)}
+                className="w-full mt-3 py-3.5 rounded-xl bg-white border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] text-[15px] font-semibold text-[#007AFF] flex items-center justify-center gap-2"
+              >
+                View More ({pastEntries.length - visiblePastCount} remaining)
+              </motion.button>
+            )}
+          </>
         ) : (
           entries.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 px-8">

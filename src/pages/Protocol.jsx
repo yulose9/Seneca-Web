@@ -75,6 +75,9 @@ const LongPressReorderItem = ({ children, value, className }) => {
       // Only handle primary button / first touch
       if (e.button !== 0 && e.button !== undefined) return;
 
+      // Prevent text/image selection during long press
+      e.preventDefault();
+
       startPosRef.current = { x: e.clientX, y: e.clientY };
       isDragActiveRef.current = false;
 
@@ -145,6 +148,7 @@ const LongPressReorderItem = ({ children, value, className }) => {
       onDragEnd={clearLongPress}
       className={className}
       onPointerDown={handlePointerDown}
+      style={{ userSelect: "none", WebkitUserSelect: "none", touchAction: "pan-y" }}
     >
       <motion.div
         animate={
