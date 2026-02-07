@@ -615,6 +615,9 @@ export function ProtocolProvider({ children }) {
 
   // Toggle a task in a specific phase (TODAY)
   const toggleTask = (phaseId, taskId) => {
+    // Guard: Don't allow toggling in locked phases
+    if (!isPhaseUnlocked(phaseId)) return;
+
     lastLocalInteraction.current = Date.now(); // Mark interaction time
 
     setPhaseTasks((prev) => {

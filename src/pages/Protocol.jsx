@@ -209,8 +209,11 @@ const PhaseSection = ({
     <section className="ios-list-section">
       {/* Section Header */}
       <div
-        onClick={() => onToggleExpand(phaseId)}
-        className="flex items-center justify-between px-4 mb-2 cursor-pointer"
+        onClick={() => isUnlocked && onToggleExpand(phaseId)}
+        className={clsx(
+          "flex items-center justify-between px-4 mb-2",
+          isUnlocked ? "cursor-pointer" : "cursor-default",
+        )}
       >
         <h3 className="ios-list-header px-0 pb-0">{phase.title}</h3>
         <div className="flex items-center gap-2">
