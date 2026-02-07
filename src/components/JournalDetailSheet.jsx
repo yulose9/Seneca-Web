@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Save,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -175,8 +176,10 @@ export default function JournalDetailSheet({
   onClose,
   entry,
   onUpdate,
+  onDelete,
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Form States
   const [title, setTitle] = useState("");
@@ -210,6 +213,7 @@ export default function JournalDetailSheet({
     setIsRefining(false);
     setShowHistory(false);
     setShowEmojiPicker(false);
+    setShowDeleteConfirm(false);
   }, [entry, isOpen]);
 
   // if (!entry && !isOpen) return null; // Removed to allow exit animation
@@ -438,6 +442,17 @@ export default function JournalDetailSheet({
                 {/* Actions Area */}
                 {!isEditing && (
                   <>
+                    {/* Delete Button */}
+                    {onDelete && (
+                      <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="p-2 text-gray-400 hover:text-[#FF3B30] hover:bg-red-50 rounded-full transition-colors"
+                        title="Delete Entry"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    )}
+
                     {/* History Button */}
                     <button
                       onClick={() => setShowHistory(!showHistory)}
@@ -657,6 +672,56 @@ export default function JournalDetailSheet({
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <AnimatePresence>
+              {showDeleteConfirm && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="absolute inset-0 bg-black/40 backdrop-blur-sm z-[50]"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="absolute left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl overflow-hidden z-[51] max-w-sm mx-auto shadow-2xl"
+                  >
+                    <div className="p-6 text-center">
+                      <h3 className="text-[17px] font-semibold text-black mb-2">
+                        Delete Entry?
+                      </h3>
+                      <p className="text-[15px] text-[rgba(60,60,67,0.6)]">
+                        This action cannot be undone.
+                      </p>
+                    </div>
+                    <div className="border-t border-[rgba(60,60,67,0.12)] flex">
+                      <motion.button
+                        whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="flex-1 py-4 text-[17px] font-medium text-[#007AFF] border-r border-[rgba(60,60,67,0.12)]"
+                      >
+                        Cancel
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
+                        onClick={() => {
+                          onDelete(entry.id);
+                          setShowDeleteConfirm(false);
+                          onClose();
+                        }}
+                        className="flex-1 py-4 text-[17px] font-semibold text-[#FF3B30]"
+                      >
+                        Delete
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </motion.div>
         </>
       )}

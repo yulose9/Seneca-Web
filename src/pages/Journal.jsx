@@ -7,13 +7,13 @@ import JournalDetailSheet from "../components/JournalDetailSheet";
 import PageTransition from "../components/PageTransition";
 import RichTextEditor from "../components/RichTextEditor";
 import {
-  updateTodayLog,
+  getGlobalData,
+  loadGlobalDataLocal,
+  saveGlobalDataLocal,
+  subscribeToGlobalData,
   subscribeToTodayLog,
   updateGlobalData,
-  subscribeToGlobalData,
-  getGlobalData,
-  saveGlobalDataLocal,
-  loadGlobalDataLocal
+  updateTodayLog,
 } from "../services/dataLogger";
 
 // Confirmation Dialog Component
@@ -155,7 +155,7 @@ const EntryRow = ({
       <div
         className={clsx(
           "absolute right-0 top-0 bottom-0 w-20 bg-[#FF3B30] flex items-center justify-center transition-transform duration-200",
-          showDelete ? "translate-x-0" : "translate-x-full"
+          showDelete ? "translate-x-0" : "translate-x-full",
         )}
       >
         <button
@@ -179,7 +179,7 @@ const EntryRow = ({
         className={clsx(
           "flex items-start p-4 cursor-pointer bg-white relative transition-transform duration-200 select-none",
           !isLast && "border-b border-[rgba(60,60,67,0.08)]",
-          showDelete && "-translate-x-20"
+          showDelete && "-translate-x-20",
         )}
       >
         <AnimatePresence>
@@ -195,7 +195,7 @@ const EntryRow = ({
                   "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
                   isSelected
                     ? "bg-[#007AFF] border-[#007AFF]"
-                    : "border-[rgba(60,60,67,0.3)]"
+                    : "border-[rgba(60,60,67,0.3)]",
                 )}
               >
                 {isSelected && (
@@ -210,7 +210,7 @@ const EntryRow = ({
         <div
           className={clsx(
             "w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mr-4 shrink-0 bg-gradient-to-br shadow-sm",
-            getEmojiBackground(item.mood)
+            getEmojiBackground(item.mood),
           )}
         >
           {item.mood}
@@ -233,9 +233,23 @@ const EntryRow = ({
           </p>
         </div>
 
-        {!isSelecting && !showDelete && (
-          <ChevronRight size={18} className="text-[#C7C7CC] ml-2 shrink-0 mt-3" />
-        )}
+        {isSelecting ? (
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item.id);
+            }}
+            className="ml-2 shrink-0 mt-2 p-1.5 rounded-full hover:bg-red-50 transition-colors"
+          >
+            <Trash2 size={18} className="text-[#FF3B30]" />
+          </motion.button>
+        ) : !showDelete ? (
+          <ChevronRight
+            size={18}
+            className="text-[#C7C7CC] ml-2 shrink-0 mt-3"
+          />
+        ) : null}
       </motion.div>
     </div>
   );
@@ -319,16 +333,20 @@ export default function Journal() {
       try {
         const cloudJournal = await getGlobalData("journal");
         if (cloudJournal?.entries && Array.isArray(cloudJournal.entries)) {
-          console.log("[Journal] ✓ Loaded global entries from Firestore:", cloudJournal.entries.length, "entries");
+          console.log(
+            "[Journal] ✓ Loaded global entries from Firestore:",
+            cloudJournal.entries.length,
+            "entries",
+          );
 
           // Merge cloud entries with local entries (cloud wins for duplicates)
-          setEntries(prev => {
+          setEntries((prev) => {
             // Start with cloud entries
             const merged = [...cloudJournal.entries];
 
             // Add any local entries that don't exist in cloud
-            prev.forEach(localEntry => {
-              if (!merged.find(c => c.id === localEntry.id)) {
+            prev.forEach((localEntry) => {
+              if (!merged.find((c) => c.id === localEntry.id)) {
                 merged.push(localEntry);
               }
             });
@@ -353,13 +371,17 @@ export default function Journal() {
     // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
     const timeSinceMount = Date.now() - mountTimestamp.current;
     if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-      console.log("[Journal] Mount protection active, skipping Firestore WRITE");
+      console.log(
+        "[Journal] Mount protection active, skipping Firestore WRITE",
+      );
       return;
     }
 
     // Only sync after user has actually interacted
     if (lastLocalInteraction.current === 0) {
-      console.log("[Journal] No user interaction yet, skipping Firestore WRITE");
+      console.log(
+        "[Journal] No user interaction yet, skipping Firestore WRITE",
+      );
       return;
     }
 
@@ -449,7 +471,8 @@ export default function Journal() {
           // Sort by date/id descending (newest first)
           merged.sort((a, b) => b.id - a.id);
 
-          if (JSON.stringify(merged) === JSON.stringify(prevEntries)) return prevEntries;
+          if (JSON.stringify(merged) === JSON.stringify(prevEntries))
+            return prevEntries;
           return merged;
         });
       }
@@ -461,10 +484,10 @@ export default function Journal() {
     lastLocalInteraction.current = Date.now(); // Mark interaction time
 
     setEntries((prev) =>
-      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
+      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e)),
     );
     setViewEntry((prev) =>
-      prev && prev.id === updatedEntry.id ? updatedEntry : prev
+      prev && prev.id === updatedEntry.id ? updatedEntry : prev,
     );
   }, []);
 
@@ -533,7 +556,7 @@ export default function Journal() {
       localStorage.removeItem("journal-draft");
       localStorage.removeItem("journal-draft-title");
       localStorage.removeItem("journal-draft-mood");
-    } catch (e) { }
+    } catch (e) {}
 
     setEntry(null);
     setTitle("");
@@ -570,7 +593,7 @@ export default function Journal() {
     setSelectedIds(
       selectedIds.size === entries.length
         ? new Set()
-        : new Set(entries.map((e) => e.id))
+        : new Set(entries.map((e) => e.id)),
     );
   const handleLongPress = (id) => {
     setIsSelecting(true);
@@ -657,7 +680,7 @@ export default function Journal() {
                     "px-4 py-2 rounded-lg text-[15px] font-semibold transition-colors",
                     selectedIds.size > 0
                       ? "bg-[#FF3B30] text-white"
-                      : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]"
+                      : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
                   )}
                 >
                   Delete
@@ -746,7 +769,7 @@ export default function Journal() {
                   "w-full rounded-xl font-semibold text-[17px] overflow-hidden",
                   !isSaving
                     ? "bg-[#007AFF] text-white shadow-lg shadow-[#007AFF]/25"
-                    : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]"
+                    : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
                 )}
               >
                 {isSaving ? "Saving..." : "Save Entry"}
@@ -790,7 +813,9 @@ export default function Journal() {
                 <EntryRow
                   key={item.id}
                   item={item}
-                  isLast={index === Math.min(visiblePastCount, pastEntries.length) - 1}
+                  isLast={
+                    index === Math.min(visiblePastCount, pastEntries.length) - 1
+                  }
                   isSelecting={isSelecting}
                   isSelected={selectedIds.has(item.id)}
                   onSelect={handleSelect}
@@ -846,6 +871,11 @@ export default function Journal() {
         onClose={() => setViewEntry(null)}
         entry={viewEntry}
         onUpdate={handleUpdateEntry}
+        onDelete={(id) => {
+          lastLocalInteraction.current = Date.now();
+          setEntries((prev) => prev.filter((e) => e.id !== id));
+          setViewEntry(null);
+        }}
       />
     </PageTransition>
   );

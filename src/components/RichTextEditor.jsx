@@ -42,14 +42,21 @@ import {
   Underline as UnderlineIcon,
   Video,
 } from "lucide-react";
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
 // Slash Command
 import Commands from "./editor/Commands";
 import EditorBubbleMenu from "./editor/EditorBubbleMenu";
 import suggestion from "./editor/suggestion";
 
-import { storageService } from '../services/storageService';
+import { storageService } from "../services/storageService";
 
 const HIGHLIGHT_COLORS = [
   "#FFFF00",
@@ -98,7 +105,7 @@ const FLOATING_ACTIONS = [
     label: "Image",
     command: () =>
       window.dispatchEvent(
-        new CustomEvent("editor-media-upload", { detail: { type: "image" } })
+        new CustomEvent("editor-media-upload", { detail: { type: "image" } }),
       ),
   },
 ];
@@ -115,20 +122,23 @@ const ToolbarButton = ({ onClick, isActive, disabled, children, title }) => (
       isActive
         ? "bg-[#007AFF] text-white"
         : "bg-transparent text-[rgba(60,60,67,0.6)] hover:bg-[rgba(120,120,128,0.12)]",
-      disabled && "opacity-30 cursor-not-allowed"
+      disabled && "opacity-30 cursor-not-allowed",
     )}
   >
     {children}
   </motion.button>
 );
 
-const RichTextEditor = forwardRef(function RichTextEditor({
-  content = "",
-  onChange,
-  placeholder = "Type / for commands...",
-  className,
-  autoSaveKey = "journal-draft",
-}, ref) {
+const RichTextEditor = forwardRef(function RichTextEditor(
+  {
+    content = "",
+    onChange,
+    placeholder = "Type / for commands...",
+    className,
+    autoSaveKey = "journal-draft",
+  },
+  ref,
+) {
   const fileInputRef = useRef(null);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   const [showFloatingActions, setShowFloatingActions] = useState(false);
@@ -142,14 +152,14 @@ const RichTextEditor = forwardRef(function RichTextEditor({
             JSON.stringify({
               content: htmlContent,
               timestamp: Date.now(),
-            })
+            }),
           );
         }
       } catch (e) {
         console.warn("Draft save failed:", e);
       }
     },
-    [autoSaveKey]
+    [autoSaveKey],
   );
 
   const handleFile = async (file, editorInstance) => {
@@ -202,13 +212,13 @@ const RichTextEditor = forwardRef(function RichTextEditor({
       attributes: {
         class: clsx(
           "prose prose-sm max-w-none focus:outline-none min-h-[120px] px-4 py-8 text-[17px] text-black prose-img:rounded-lg",
-          className
+          className,
         ),
       },
       handleDrop: (view, event, slice, moved) => {
         if (!moved && event.dataTransfer?.files?.length > 0) {
           Array.from(event.dataTransfer.files).forEach((file) =>
-            handleFile(file, editor)
+            handleFile(file, editor),
           );
           return true;
         }
@@ -223,13 +233,17 @@ const RichTextEditor = forwardRef(function RichTextEditor({
   });
 
   // Expose focus method to parent via ref
-  useImperativeHandle(ref, () => ({
-    focus: () => {
-      if (editor) {
-        editor.chain().focus().run();
-      }
-    },
-  }), [editor]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        if (editor) {
+          editor.chain().focus().run();
+        }
+      },
+    }),
+    [editor],
+  );
 
   useEffect(() => {
     if (editor && content !== undefined) {

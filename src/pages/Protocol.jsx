@@ -209,11 +209,8 @@ const PhaseSection = ({
     <section className="ios-list-section">
       {/* Section Header */}
       <div
-        onClick={() => isUnlocked && onToggleExpand(phaseId)}
-        className={clsx(
-          "flex items-center justify-between px-4 mb-2",
-          isUnlocked ? "cursor-pointer" : "cursor-default",
-        )}
+        onClick={() => onToggleExpand(phaseId)}
+        className="flex items-center justify-between px-4 mb-2 cursor-pointer"
       >
         <h3 className="ios-list-header px-0 pb-0">{phase.title}</h3>
         <div className="flex items-center gap-2">
@@ -242,7 +239,7 @@ const PhaseSection = ({
       <div
         className={clsx(
           "ios-inset-grouped mx-4",
-          !isUnlocked && "opacity-50 grayscale pointer-events-none",
+          !isUnlocked && "opacity-50 grayscale",
         )}
       >
         <AnimatePresence mode="wait" initial={false}>
