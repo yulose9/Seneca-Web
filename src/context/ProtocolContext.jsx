@@ -1,15 +1,21 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
+  getGlobalData,
   getLogForDate,
   getTodayKey,
+  loadGlobalDataLocal,
   migrateOldData,
-  updateTodayLog,
+  saveGlobalDataLocal,
+  subscribeToGlobalData,
   subscribeToTodayLog,
   updateGlobalData,
-  subscribeToGlobalData,
-  getGlobalData,
-  saveGlobalDataLocal,
-  loadGlobalDataLocal,
+  updateTodayLog,
 } from "../services/dataLogger";
 
 /**
@@ -98,7 +104,7 @@ const loadCustomTasks = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.CUSTOM_TASKS);
     const parsed = saved ? JSON.parse(saved) : null;
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
       ? parsed
       : { morningIgnition: [], arena: [], maintenance: [], shutdown: [] };
   } catch {
@@ -121,7 +127,7 @@ const loadTaskOrder = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.TASK_ORDER);
     const parsed = saved ? JSON.parse(saved) : null;
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
@@ -149,7 +155,12 @@ const loadTodayTasks = () => {
     const parsed = JSON.parse(saved);
     const today = getLocalDateKey();
 
-    console.log("[Protocol] Loading tasks - saved date:", parsed.date, "today:", today);
+    console.log(
+      "[Protocol] Loading tasks - saved date:",
+      parsed.date,
+      "today:",
+      today,
+    );
 
     // Only return if data is from today
     if (parsed && parsed.date === today && parsed.tasks) {
@@ -172,7 +183,7 @@ const saveTodayTasks = (phaseTasks) => {
 
     Object.entries(phaseTasks).forEach(([phaseId, taskList]) => {
       tasks[phaseId] = {};
-      taskList.forEach(task => {
+      taskList.forEach((task) => {
         tasks[phaseId][task.id] = task.done;
       });
     });
@@ -180,7 +191,7 @@ const saveTodayTasks = (phaseTasks) => {
     const data = {
       date: today,
       tasks: tasks,
-      timestamp: Date.now() // For conflict resolution
+      timestamp: Date.now(), // For conflict resolution
     };
 
     localStorage.setItem(STORAGE_KEYS.TODAY_TASKS, JSON.stringify(data));
@@ -206,13 +217,13 @@ export function ProtocolProvider({ children }) {
   // Task states for each phase (combines default + custom)
   const [phaseTasks, setPhaseTasks] = useState(() => {
     const custom = loadCustomTasks(); // Now guaranteed to be object
-    const order = loadTaskOrder();    // Now guaranteed to be object
+    const order = loadTaskOrder(); // Now guaranteed to be object
     const todayDone = loadTodayTasks(); // Load today's completion states
     const initialTasks = {};
 
     PHASE_ORDER.forEach((phaseId) => {
       const defaultTasks = PHASES[phaseId].tasks;
-      const phaseCustomTasks = (custom && custom[phaseId]) ? custom[phaseId] : []; // Extra safety
+      const phaseCustomTasks = custom && custom[phaseId] ? custom[phaseId] : []; // Extra safety
       let allTasks = [...defaultTasks, ...phaseCustomTasks];
 
       // Apply order if exists
@@ -234,9 +245,9 @@ export function ProtocolProvider({ children }) {
 
       // Restore today's done states from localStorage
       if (todayDone && todayDone[phaseId]) {
-        allTasks = allTasks.map(task => ({
+        allTasks = allTasks.map((task) => ({
           ...task,
-          done: todayDone[phaseId][task.id] ?? task.done
+          done: todayDone[phaseId][task.id] ?? task.done,
         }));
       }
 
@@ -252,7 +263,7 @@ export function ProtocolProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEYS.CUSTOM_TASKS,
-      JSON.stringify(customTasks)
+      JSON.stringify(customTasks),
     );
   }, [customTasks]);
 
@@ -260,7 +271,7 @@ export function ProtocolProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEYS.TASK_HISTORY,
-      JSON.stringify(taskHistory)
+      JSON.stringify(taskHistory),
     );
   }, [taskHistory]);
 
@@ -281,67 +292,162 @@ export function ProtocolProvider({ children }) {
   // 🛡️ MOUNT PROTECTION: Prevents cloud sync from overwriting local data during initial load
   const mountTimestamp = useRef(Date.now());
   const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds grace period after mount
+  const initialFetchDone = useRef(false); // Track if initial fetch completed
 
-  // 🔄 INITIAL CLOUD FETCH on mount - Get global Protocol data (history, custom tasks, order)
+  // 🔄 INITIAL CLOUD FETCH on mount - Get global Protocol data AND today's tasks
   useEffect(() => {
     const fetchGlobalProtocol = async () => {
       try {
+        // 1. Fetch global data (history, custom tasks, order)
         const cloudProtocol = await getGlobalData("protocol");
         if (cloudProtocol) {
           console.log("[Protocol] ✓ Loaded global data from Firestore");
 
-          // MEGE task history (Union of performed tasks)
+          // MERGE task history (Union of performed tasks)
           if (cloudProtocol.taskHistory) {
-            setTaskHistory(prev => {
+            setTaskHistory((prev) => {
               const merged = { ...prev };
-              Object.entries(cloudProtocol.taskHistory).forEach(([key, dates]) => {
-                if (!merged[key]) merged[key] = {};
-                Object.assign(merged[key], dates);
-              });
+              Object.entries(cloudProtocol.taskHistory).forEach(
+                ([key, dates]) => {
+                  if (!merged[key]) merged[key] = {};
+                  Object.assign(merged[key], dates);
+                },
+              );
               return merged;
             });
           }
 
           // MERGE custom tasks (Union by ID per phase)
           if (cloudProtocol.customTasks) {
-            setCustomTasks(prev => {
+            setCustomTasks((prev) => {
               const merged = { ...prev }; // Spread object, not array
 
-              Object.entries(cloudProtocol.customTasks).forEach(([phaseKey, phaseTasks]) => {
-                if (!Array.isArray(phaseTasks)) return;
+              Object.entries(cloudProtocol.customTasks).forEach(
+                ([phaseKey, phaseTasks]) => {
+                  if (!Array.isArray(phaseTasks)) return;
 
-                if (!merged[phaseKey]) {
-                  merged[phaseKey] = [];
-                }
-
-                const localTasks = merged[phaseKey];
-                phaseTasks.forEach(cloudTask => {
-                  if (!localTasks.find(t => t.id === cloudTask.id)) {
-                    localTasks.push(cloudTask);
+                  if (!merged[phaseKey]) {
+                    merged[phaseKey] = [];
                   }
-                });
-              });
+
+                  const localTasks = merged[phaseKey];
+                  phaseTasks.forEach((cloudTask) => {
+                    if (!localTasks.find((t) => t.id === cloudTask.id)) {
+                      localTasks.push(cloudTask);
+                    }
+                  });
+                },
+              );
 
               return merged;
             });
           }
 
-          // MERGE task order (Prefer local if it exists/changed recently? Complex. 
-          // For now, if local is empty/default, take cloud. If local has data, maybe keep local?)
-          // actually, for order, usually cloud should win if we are syncing settings. 
-          // But if user just reordered and reloaded... local is newer.
-          // Let's keep local if it has data, otherwise take cloud.
-          if (cloudProtocol.taskOrder && Object.keys(cloudProtocol.taskOrder).length > 0) {
-            setTaskOrder(prev => {
-              // simple check: if prev is empty, take cloud.
-              // if prev has keys, assume local is newer (dangerous but better for "just reloaded" case)
-              if (Object.keys(prev).length === 0) return cloudProtocol.taskOrder;
+          // MERGE task order
+          if (
+            cloudProtocol.taskOrder &&
+            Object.keys(cloudProtocol.taskOrder).length > 0
+          ) {
+            setTaskOrder((prev) => {
+              if (Object.keys(prev).length === 0)
+                return cloudProtocol.taskOrder;
               return prev;
             });
           }
+
+          // Cache global data locally for offline access
+          saveGlobalDataLocal("protocol", cloudProtocol);
         }
+
+        // 2. Fetch today's daily log to get current task completion states
+        const todayLog = await getLogForDate();
+        if (todayLog && todayLog.protocol && todayLog.protocol.phases) {
+          const remoteProtocol = todayLog.protocol;
+          const remoteCustomTasks =
+            remoteProtocol.custom_tasks &&
+            !Array.isArray(remoteProtocol.custom_tasks)
+              ? remoteProtocol.custom_tasks
+              : null;
+          const remoteOrder = remoteProtocol.task_order || null;
+
+          // Apply today's task completion states from cloud
+          setPhaseTasks((prev) => {
+            const next = {};
+            const localSaved = loadTodayTasks();
+            // Determine which is newer: localStorage or cloud
+            const localTimestamp = localSaved
+              ? JSON.parse(
+                  localStorage.getItem(STORAGE_KEYS.TODAY_TASKS) || "{}",
+                ).timestamp || 0
+              : 0;
+            const cloudTimestamp = todayLog.timestamp_updated
+              ? new Date(todayLog.timestamp_updated).getTime()
+              : 0;
+            const useCloud = cloudTimestamp > localTimestamp;
+
+            PHASE_ORDER.forEach((phaseId) => {
+              const defaultTasks = PHASES[phaseId].tasks;
+              const customForPhase =
+                remoteCustomTasks?.[phaseId] ||
+                cloudProtocol?.customTasks?.[phaseId] ||
+                prev[phaseId].filter((t) => t.isCustom);
+              const phaseCustomTasks = Array.isArray(customForPhase)
+                ? customForPhase
+                : [];
+
+              let allTasks = [
+                ...defaultTasks.map((t) => ({ ...t, isCustom: false })),
+                ...phaseCustomTasks.map((t) => ({ ...t, isCustom: true })),
+              ];
+
+              // Apply order
+              const orderSource =
+                remoteOrder?.[phaseId] || cloudProtocol?.taskOrder?.[phaseId];
+              if (Array.isArray(orderSource) && orderSource.length > 0) {
+                allTasks.sort((a, b) => {
+                  const indexA = orderSource.indexOf(a.id);
+                  const indexB = orderSource.indexOf(b.id);
+                  if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                  if (indexA !== -1) return -1;
+                  if (indexB !== -1) return 1;
+                  return 0;
+                });
+              }
+
+              // Apply completion states - use whichever is newer (cloud or local)
+              if (useCloud && remoteProtocol.phases?.[phaseId]?.tasks) {
+                const remotePhaseTasks = remoteProtocol.phases[phaseId].tasks;
+                allTasks = allTasks.map((task) => {
+                  const remoteTask = remotePhaseTasks.find(
+                    (rt) => rt.id === task.id,
+                  );
+                  return {
+                    ...task,
+                    done: remoteTask ? remoteTask.done : task.done,
+                  };
+                });
+              } else {
+                // Keep localStorage state (already applied during init)
+                const currentMap = new Map(prev[phaseId].map((t) => [t.id, t]));
+                allTasks = allTasks.map((task) => {
+                  const existing = currentMap.get(task.id);
+                  return existing ? { ...task, done: existing.done } : task;
+                });
+              }
+
+              next[phaseId] = allTasks;
+            });
+
+            if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+            console.log("[Protocol] ✓ Applied cloud task states on mount");
+            return next;
+          });
+        }
+
+        initialFetchDone.current = true;
       } catch (error) {
         console.error("[Protocol] Failed to fetch global data:", error);
+        initialFetchDone.current = true;
       }
     };
 
@@ -393,16 +499,27 @@ export function ProtocolProvider({ children }) {
       }
 
       // Throttle
-      if (Date.now() - lastLocalInteraction.current < 2000 || isDragging.current) return;
+      if (
+        Date.now() - lastLocalInteraction.current < 2000 ||
+        isDragging.current
+      )
+        return;
 
       if (!cloudProtocol) return;
 
       console.log("[Protocol] Received global data from cloud");
 
-      // Merge task history
+      // Cache locally for offline access
+      saveGlobalDataLocal("protocol", cloudProtocol);
+
+      // Merge task history (union - never remove history entries)
       if (cloudProtocol.taskHistory) {
-        setTaskHistory(prev => {
-          const merged = { ...prev, ...cloudProtocol.taskHistory };
+        setTaskHistory((prev) => {
+          const merged = { ...prev };
+          Object.entries(cloudProtocol.taskHistory).forEach(([key, dates]) => {
+            if (!merged[key]) merged[key] = {};
+            merged[key] = { ...merged[key], ...dates };
+          });
           if (JSON.stringify(merged) === JSON.stringify(prev)) return prev;
           return merged;
         });
@@ -410,16 +527,20 @@ export function ProtocolProvider({ children }) {
 
       // Sync custom tasks
       if (cloudProtocol.customTasks) {
-        setCustomTasks(prev => {
-          if (JSON.stringify(prev) === JSON.stringify(cloudProtocol.customTasks)) return prev;
+        setCustomTasks((prev) => {
+          if (
+            JSON.stringify(prev) === JSON.stringify(cloudProtocol.customTasks)
+          )
+            return prev;
           return cloudProtocol.customTasks;
         });
       }
 
       // Sync task order
       if (cloudProtocol.taskOrder) {
-        setTaskOrder(prev => {
-          if (JSON.stringify(prev) === JSON.stringify(cloudProtocol.taskOrder)) return prev;
+        setTaskOrder((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(cloudProtocol.taskOrder))
+            return prev;
           return cloudProtocol.taskOrder;
         });
       }
@@ -451,6 +572,8 @@ export function ProtocolProvider({ children }) {
 
   // Reset task order to default
   const resetTaskOrder = () => {
+    lastLocalInteraction.current = Date.now(); // Mark as user interaction so sync fires
+
     setTaskOrder({}); // Clear order state
     localStorage.removeItem(STORAGE_KEYS.TASK_ORDER); // Clear storage
 
@@ -460,13 +583,11 @@ export function ProtocolProvider({ children }) {
       PHASE_ORDER.forEach((phaseId) => {
         const defaultTasks = PHASES[phaseId].tasks;
         const phaseCustomTasks = customTasks[phaseId] || [];
-        // Combine default and custom tasks.
-        // We need to preserve the 'done' state from the current 'prev' state if possible,
-        // or just rebuild the list.
-        // Rebuilding is safer for order, but we must preserve 'done' status.
 
+        // Build a lookup of current done states
         const currentTasksMap = new Map(prev[phaseId].map((t) => [t.id, t]));
 
+        // Default tasks first in template order, then custom tasks appended
         const allTasks = [...defaultTasks, ...phaseCustomTasks].map((t) => {
           const existing = currentTasksMap.get(t.id);
           return existing ? { ...t, done: existing.done } : t;
@@ -498,7 +619,7 @@ export function ProtocolProvider({ children }) {
 
     setPhaseTasks((prev) => {
       const newTasks = prev[phaseId].map((task) =>
-        task.id === taskId ? { ...task, done: !task.done } : task
+        task.id === taskId ? { ...task, done: !task.done } : task,
       );
 
       // Allow this update to happen
@@ -558,7 +679,7 @@ export function ProtocolProvider({ children }) {
       setPhaseTasks((prev) => ({
         ...prev,
         [phaseId]: prev[phaseId].map((task) =>
-          task.id === taskId ? { ...task, done: !task.done } : task
+          task.id === taskId ? { ...task, done: !task.done } : task,
         ),
       }));
     }
@@ -580,7 +701,7 @@ export function ProtocolProvider({ children }) {
     setPhaseTasks((prev) => ({
       ...prev,
       [phaseId]: prev[phaseId].map((task) =>
-        task.id === taskId ? { ...task, done: true } : task
+        task.id === taskId ? { ...task, done: true } : task,
       ),
     }));
 
@@ -601,6 +722,52 @@ export function ProtocolProvider({ children }) {
     const task = phaseTasks.arena.find((t) => t.id === 4);
     return task?.done || false;
   };
+
+  // Mark "Reflect on your day" as done (called when journal entry exists for today)
+  const markReflectDone = () => {
+    const phaseId = "arena";
+    const taskId = 1; // "Reflect on your day" task
+
+    setPhaseTasks((prev) => ({
+      ...prev,
+      [phaseId]: prev[phaseId].map((task) =>
+        task.id === taskId ? { ...task, done: true } : task,
+      ),
+    }));
+
+    const today = formatLocalDate(new Date());
+    const key = getTaskKey(phaseId, taskId);
+    setTaskHistory((prev) => ({
+      ...prev,
+      [key]: {
+        ...(prev[key] || {}),
+        [today]: true,
+      },
+    }));
+  };
+
+  // Auto-check "Reflect on your day" when a journal entry exists for today
+  useEffect(() => {
+    const unsubscribe = subscribeToGlobalData("journal", (journalData) => {
+      if (!journalData || !journalData.entries) return;
+
+      const today = formatLocalDate(new Date());
+      const hasTodayEntry = journalData.entries.some((entry) => {
+        // Check isoDate field (used by Journal page)
+        return entry.isoDate === today;
+      });
+
+      if (hasTodayEntry) {
+        // Only mark done if not already done (avoid unnecessary state updates)
+        const reflectTask = phaseTasks.arena?.find((t) => t.id === 1);
+        if (reflectTask && !reflectTask.done) {
+          markReflectDone();
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [phaseTasks.arena]);
 
   // Add a custom task to a phase
   const addCustomTask = (phaseId, task) => {
@@ -730,7 +897,7 @@ export function ProtocolProvider({ children }) {
 
   // Check if ALL tasks across ALL phases are done
   const allPhasesComplete = PHASE_ORDER.every((phaseId) =>
-    phaseTasks[phaseId].every((task) => task.done)
+    phaseTasks[phaseId].every((task) => task.done),
   );
 
   // Calculate total progress across all phases
@@ -753,13 +920,17 @@ export function ProtocolProvider({ children }) {
     // This prevents new devices from overwriting cloud data with empty state
     const timeSinceMount = Date.now() - mountTimestamp.current;
     if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-      console.log("[Protocol] Mount protection active, skipping Firestore WRITE");
+      console.log(
+        "[Protocol] Mount protection active, skipping Firestore WRITE",
+      );
       return; // Don't write to Firestore during mount protection
     }
 
     // Also check if user has actually interacted (not just initial render)
     if (lastLocalInteraction.current === 0) {
-      console.log("[Protocol] No user interaction yet, skipping Firestore WRITE");
+      console.log(
+        "[Protocol] No user interaction yet, skipping Firestore WRITE",
+      );
       return; // User hasn't toggled anything yet
     }
 
@@ -831,7 +1002,11 @@ export function ProtocolProvider({ children }) {
         return;
       }
       // Throttle: Ignore cloud updates if user just interacted locally (<2s) OR is actively dragging
-      if (Date.now() - lastLocalInteraction.current < 2000 || isDragging.current) return;
+      if (
+        Date.now() - lastLocalInteraction.current < 2000 ||
+        isDragging.current
+      )
+        return;
 
       if (!todayLog || !todayLog.protocol) return;
 
@@ -842,7 +1017,12 @@ export function ProtocolProvider({ children }) {
       let remoteCustomTasks = remoteProtocol.custom_tasks;
       // Handle edge case where it might be initialized as empty array in dataLogger
       if (Array.isArray(remoteCustomTasks) || !remoteCustomTasks) {
-        remoteCustomTasks = { morningIgnition: [], arena: [], maintenance: [], shutdown: [] };
+        remoteCustomTasks = {
+          morningIgnition: [],
+          arena: [],
+          maintenance: [],
+          shutdown: [],
+        };
       }
       // Update Custom Tasks State
       setCustomTasks(remoteCustomTasks);
@@ -865,12 +1045,12 @@ export function ProtocolProvider({ children }) {
             ...t,
             isCustom: !!isCustom,
             // Verify ID is present and valid
-            id: t.id
+            id: t.id,
           });
 
           let allTasks = [
-            ...defaultTasks.map(t => normalize(t, false)),
-            ...phaseCustom.map(t => normalize(t, true))
+            ...defaultTasks.map((t) => normalize(t, false)),
+            ...phaseCustom.map((t) => normalize(t, true)),
           ];
 
           // B. Apply Order
@@ -888,14 +1068,15 @@ export function ProtocolProvider({ children }) {
 
           // C. Sync Completion Status
           // We look at remoteProtocol.phases[phaseId].tasks for the authoritative 'done' status
-          const remotePhaseData = (remoteProtocol.phases && remoteProtocol.phases[phaseId]) || {};
+          const remotePhaseData =
+            (remoteProtocol.phases && remoteProtocol.phases[phaseId]) || {};
           const remotePhaseTasks = remotePhaseData.tasks || [];
 
-          allTasks = allTasks.map(task => {
+          allTasks = allTasks.map((task) => {
             // Find matching task in remote phase data to get its 'done' status
-            const remoteTask = remotePhaseTasks.find(rt => rt.id === task.id);
+            const remoteTask = remotePhaseTasks.find((rt) => rt.id === task.id);
             // If found, use remote done status. If not (newly added?), default to false.
-            // But we try to preserve local 'prev' state if it really matters? 
+            // But we try to preserve local 'prev' state if it really matters?
             // unique constraint: We are in "Cloud Truth" mode (quiet period). Trust cloud.
             return { ...task, done: remoteTask ? remoteTask.done : false };
           });

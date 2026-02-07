@@ -34,5 +34,9 @@ dist-ssr
 # ChatGPT exports
 ChatGPT-*.json
 
+# Claude temp files
+tmpclaude-*
 
-
+# firebase hosting cache
+.firebase/hosting.*
+.firebase/hosting.ZGlzdA.cache

@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router } from "react-router-dom";
 import AnimatedRoutes from "./AnimatedRoutes";
 import GlassTabBar from "./components/GlassTabBar";
 import LoginScreen from "./components/LoginScreen";
-import { authService } from "./services/authService";
 import { PersonalGoalsProvider } from "./context/PersonalGoalsContext";
+import { PreferencesProvider } from "./context/PreferencesContext";
 import { ProtocolProvider } from "./context/ProtocolContext";
 import { StudyGoalProvider } from "./context/StudyGoalContext";
-import { PreferencesProvider } from "./context/PreferencesContext";
+import { authService } from "./services/authService";
 
-import { auth } from "./services/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./services/firebase";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -48,8 +48,10 @@ export default function App() {
         <ProtocolProvider>
           <StudyGoalProvider>
             <PersonalGoalsProvider>
-              <div className="font-sans antialiased text-[#1C1C1E] selection:bg-[#2E5C8A]/30">
-                <AnimatedRoutes />
+              <div className="font-sans antialiased text-[#1C1C1E] selection:bg-[#2E5C8A]/30 desktop-shell">
+                <div className="desktop-app-frame">
+                  <AnimatedRoutes />
+                </div>
                 <GlassTabBar />
               </div>
             </PersonalGoalsProvider>

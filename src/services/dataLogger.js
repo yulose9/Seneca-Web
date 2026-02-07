@@ -2,12 +2,12 @@
  * Data Logger Service (Firestore Edition)
  *
  * Structures all app data as Daily Log Documents in Firestore.
- * 
+ *
  * Path: users/{uid}/daily_logs/{date}
  */
 
-import { db, auth } from './firebase';
-import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
+import { auth, db } from "./firebase";
 
 const STORAGE_KEY = "seneca_daily_logs";
 
@@ -38,7 +38,7 @@ export const createEmptyLog = (dateKey) => ({
     completion_rate: 0,
     phases: {},
     custom_tasks: [], // Store custom tasks here
-    task_order: {},   // Store task order here
+    task_order: {}, // Store task order here
     reflections: "",
   },
   growth: {
@@ -125,13 +125,17 @@ export const updateTodayLog = async (section, data) => {
   if (ref) {
     try {
       // We use setDoc with merge: true to handle both "create" and "update" cases
-      await setDoc(ref, {
-        [section]: data,
-        timestamp_updated: new Date().toISOString(),
-        // Ensure date and id are set
-        date: dateKey,
-        user_id: auth.currentUser.uid
-      }, { merge: true });
+      await setDoc(
+        ref,
+        {
+          [section]: data,
+          timestamp_updated: new Date().toISOString(),
+          // Ensure date and id are set
+          date: dateKey,
+          user_id: auth.currentUser.uid,
+        },
+        { merge: true },
+      );
     } catch (error) {
       console.error("Firestore sync failed:", error);
       // We still have local storage, so user data isn't lost locally
@@ -148,7 +152,7 @@ export const updateTodayLog = async (section, data) => {
 export const subscribeToTodayLog = (callback) => {
   const dateKey = getTodayKey();
   const ref = getLogRef(dateKey);
-  if (!ref) return () => { };
+  if (!ref) return () => {};
 
   const unsubscribe = onSnapshot(
     ref,
@@ -165,7 +169,7 @@ export const subscribeToTodayLog = (callback) => {
     (error) => {
       console.error("🔥 Real-time sync error:", error);
       // Don't crash, just silent fail or notify
-    }
+    },
   );
   return unsubscribe;
 };
@@ -188,7 +192,7 @@ const updateLocalLog = (dateKey, section, data) => {
   // Merge section data
   navLog[section] = {
     ...navLog[section],
-    ...data
+    ...data,
   };
   navLog.timestamp_updated = new Date().toISOString();
 
@@ -300,14 +304,14 @@ const calculateProtocolSummary = (logs) => {
   const avgCompletion =
     validLogs.reduce(
       (sum, log) => sum + (log.protocol.completion_rate || 0),
-      0
+      0,
     ) / validLogs.length;
 
   return {
     average_completion: Math.round(avgCompletion * 100) / 100,
     total_days_tracked: validLogs.length,
     phases_completed: validLogs.filter(
-      (log) => log.protocol.completion_rate === 1
+      (log) => log.protocol.completion_rate === 1,
     ).length,
   };
 };
@@ -319,18 +323,18 @@ const calculateGrowthSummary = (logs) => {
 
   const totalStudyTime = validLogs.reduce(
     (sum, log) => sum + (log.growth.focus_time || 0),
-    0
+    0,
   );
 
   return {
     total_study_time_minutes: totalStudyTime,
     total_sessions: validLogs.reduce(
       (sum, log) => sum + (log.growth.study_sessions?.length || 0),
-      0
+      0,
     ),
     books_read: validLogs.reduce(
       (sum, log) => sum + (log.growth.books_read?.length || 0),
-      0
+      0,
     ),
   };
 };
@@ -341,7 +345,7 @@ const calculateWealthSummary = (logs) => {
   if (validLogs.length === 0) return null;
 
   const transactions = validLogs.flatMap(
-    (log) => log.wealth.transactions || []
+    (log) => log.wealth.transactions || [],
   );
 
   return {
@@ -359,7 +363,7 @@ const calculateJournalSummary = (logs) => {
   return {
     total_entries: validLogs.reduce(
       (sum, log) => sum + (log.journal.entries?.length || 0),
-      0
+      0,
     ),
     mood_distribution: getMoodDistribution(validLogs),
   };
@@ -402,7 +406,7 @@ const calculateStreaks = (logs) => {
 
   // Sort logs by date (most recent first)
   const sortedLogs = [...logs].sort(
-    (a, b) => new Date(b.date) - new Date(a.date)
+    (a, b) => new Date(b.date) - new Date(a.date),
   );
 
   for (let i = 0; i < sortedLogs.length; i++) {
@@ -470,10 +474,14 @@ export const updateGlobalData = async (docName, data) => {
   if (!ref) return;
 
   try {
-    await setDoc(ref, {
-      ...data,
-      lastUpdated: new Date().toISOString(),
-    }, { merge: true });
+    await setDoc(
+      ref,
+      {
+        ...data,
+        lastUpdated: new Date().toISOString(),
+      },
+      { merge: true },
+    );
     console.log(`[GlobalData] ✓ Synced ${docName} to Firestore`);
   } catch (error) {
     console.error(`Failed to update global data (${docName}):`, error);
@@ -484,7 +492,7 @@ export const updateGlobalData = async (docName, data) => {
  * Subscribe to global data changes
  */
 export const subscribeToGlobalData = (docName, callback) => {
-  let unsubscribeFirestore = () => { };
+  let unsubscribeFirestore = () => {};
   let isMounted = true;
 
   getGlobalDataRef(docName).then((ref) => {
@@ -494,12 +502,15 @@ export const subscribeToGlobalData = (docName, callback) => {
       ref,
       (snap) => {
         if (snap.exists()) {
-          callback(snap.data());
+          const data = snap.data();
+          // Cache locally for offline access
+          saveGlobalDataLocal(docName, data);
+          callback(data);
         }
       },
       (error) => {
         console.error(`🔥 Global data sync error (${docName}):`, error);
-      }
+      },
     );
   });
 
@@ -514,7 +525,9 @@ const GLOBAL_STORAGE_KEY = "seneca_global_data";
 
 export const saveGlobalDataLocal = (docName, data) => {
   try {
-    const allData = JSON.parse(localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
+    const allData = JSON.parse(
+      localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}",
+    );
     allData[docName] = data;
     localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(allData));
   } catch (e) {
@@ -524,7 +537,9 @@ export const saveGlobalDataLocal = (docName, data) => {
 
 export const loadGlobalDataLocal = (docName) => {
   try {
-    const allData = JSON.parse(localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
+    const allData = JSON.parse(
+      localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}",
+    );
     return allData[docName] || null;
   } catch (e) {
     return null;

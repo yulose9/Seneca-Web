@@ -1,8 +1,13 @@
 import confetti from "canvas-confetti";
 import clsx from "clsx";
-import { AnimatePresence, motion, Reorder } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  Reorder,
+  useDragControls,
+} from "framer-motion";
 import { Check, ChevronRight, Plus, RotateCcw } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import AddTaskSheet from "../components/AddTaskSheet";
 import HabitDetailSheet from "../components/HabitDetailSheet";
 import PageTransition from "../components/PageTransition";
@@ -44,6 +49,115 @@ const Checkbox = ({ done, onClick }) => {
   );
 };
 
+// Long-press Reorder Item - requires hold before drag activates
+const LONG_PRESS_DELAY = 500; // ms before drag activates
+const MOVE_THRESHOLD = 8; // px - cancel long press if finger moves
+
+const LongPressReorderItem = ({ children, value, className }) => {
+  const controls = useDragControls();
+  const timerRef = useRef(null);
+  const startPosRef = useRef(null);
+  const isDragActiveRef = useRef(false);
+  const [isHolding, setIsHolding] = useState(false);
+
+  const clearLongPress = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setIsHolding(false);
+    isDragActiveRef.current = false;
+    startPosRef.current = null;
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (e) => {
+      // Only handle primary button / first touch
+      if (e.button !== 0 && e.button !== undefined) return;
+
+      startPosRef.current = { x: e.clientX, y: e.clientY };
+      isDragActiveRef.current = false;
+
+      timerRef.current = setTimeout(() => {
+        isDragActiveRef.current = true;
+        setIsHolding(true);
+
+        // Haptic feedback on supported devices
+        if (navigator.vibrate) navigator.vibrate(30);
+
+        // Start drag with a fresh PointerEvent at the stored position
+        const dragEvent = new PointerEvent("pointerdown", {
+          clientX: startPosRef.current?.x ?? e.clientX,
+          clientY: startPosRef.current?.y ?? e.clientY,
+          bubbles: true,
+          cancelable: true,
+          pointerId: e.pointerId,
+          pointerType: e.pointerType,
+        });
+        controls.start(dragEvent);
+      }, LONG_PRESS_DELAY);
+    },
+    [controls],
+  );
+
+  useEffect(() => {
+    const handleMove = (e) => {
+      // If drag is already active, let framer-motion handle it
+      if (isDragActiveRef.current) return;
+
+      // If still in long-press wait, cancel if finger moved too much
+      if (startPosRef.current && timerRef.current) {
+        const dx = Math.abs(e.clientX - startPosRef.current.x);
+        const dy = Math.abs(e.clientY - startPosRef.current.y);
+        if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+          clearLongPress();
+        }
+      }
+    };
+
+    const handleUp = () => {
+      clearLongPress();
+    };
+
+    window.addEventListener("pointermove", handleMove, { passive: true });
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleUp);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [clearLongPress]);
+
+  return (
+    <Reorder.Item
+      value={value}
+      as="div"
+      dragListener={false}
+      dragControls={controls}
+      whileDrag={{
+        scale: 1.02,
+        boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+        zIndex: 50,
+      }}
+      onDragEnd={clearLongPress}
+      className={className}
+      onPointerDown={handlePointerDown}
+    >
+      <motion.div
+        animate={
+          isHolding ? { scale: 1.01, opacity: 0.92 } : { scale: 1, opacity: 1 }
+        }
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      >
+        {children}
+      </motion.div>
+    </Reorder.Item>
+  );
+};
+
 // Task Row Component
 const TaskRow = ({ task, onToggle, onClick, isLast }) => {
   return (
@@ -51,7 +165,7 @@ const TaskRow = ({ task, onToggle, onClick, isLast }) => {
       onClick={onClick}
       className={clsx(
         "flex items-center py-4 px-4 cursor-pointer bg-white transition-colors",
-        !isLast && "border-b border-[rgba(60,60,67,0.12)]"
+        !isLast && "border-b border-[rgba(60,60,67,0.12)]",
       )}
     >
       <Checkbox done={task.done} onClick={onToggle} />
@@ -61,7 +175,7 @@ const TaskRow = ({ task, onToggle, onClick, isLast }) => {
           "flex-1 text-[17px] transition-all duration-200",
           task.done
             ? "text-[rgba(60,60,67,0.3)] line-through decoration-[rgba(60,60,67,0.2)]"
-            : "text-black"
+            : "text-black",
         )}
       >
         {task.title}
@@ -71,7 +185,6 @@ const TaskRow = ({ task, onToggle, onClick, isLast }) => {
   );
 };
 
-// Phase Section Component
 // Phase Section Component
 const PhaseSection = ({
   phaseId,
@@ -101,19 +214,20 @@ const PhaseSection = ({
             <span className="ios-pill ios-pill-gray text-[11px]">Locked</span>
           )}
           {isPhaseComplete && (
-            <AnimatePresence>
-              {isExpanded && (
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="ios-pill ios-pill-green text-[11px]"
-                >
-                  Completed
-                </motion.span>
-              )}
-            </AnimatePresence>
+            <motion.span
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="ios-pill ios-pill-green text-[11px]"
+            >
+              Completed
+            </motion.span>
           )}
+          <motion.div
+            animate={{ rotate: isExpanded ? 90 : 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          >
+            <ChevronRight size={16} className="text-[#C7C7CC]" />
+          </motion.div>
         </div>
       </div>
 
@@ -121,7 +235,7 @@ const PhaseSection = ({
       <div
         className={clsx(
           "ios-inset-grouped mx-4",
-          !isUnlocked && "opacity-50 grayscale pointer-events-none"
+          !isUnlocked && "opacity-50 grayscale pointer-events-none",
         )}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -146,15 +260,9 @@ const PhaseSection = ({
                 as="div"
               >
                 {tasks.map((task, index) => (
-                  <Reorder.Item
+                  <LongPressReorderItem
                     key={task.id}
                     value={task}
-                    as="div"
-                    whileDrag={{
-                      scale: 1.02,
-                      boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
-                      zIndex: 50,
-                    }}
                     className="relative"
                   >
                     <TaskRow
@@ -163,7 +271,7 @@ const PhaseSection = ({
                       onClick={() => onTaskPress(phaseId, task)}
                       isLast={index === tasks.length - 1}
                     />
-                  </Reorder.Item>
+                  </LongPressReorderItem>
                 ))}
               </Reorder.Group>
             </motion.div>
@@ -183,7 +291,7 @@ const PhaseSection = ({
               whileTap={{ scale: 0.98 }}
               className={clsx(
                 "p-4 flex items-center justify-between cursor-pointer rounded-xl shadow-sm",
-                isPhaseComplete ? "bg-[#34C759]" : "bg-white"
+                isPhaseComplete ? "bg-[#34C759]" : "bg-white",
               )}
             >
               <div className="flex items-center gap-3">
@@ -191,7 +299,7 @@ const PhaseSection = ({
                 <span
                   className={clsx(
                     "text-[17px] font-medium transition-colors",
-                    isPhaseComplete ? "text-white" : "text-black"
+                    isPhaseComplete ? "text-white" : "text-black",
                   )}
                 >
                   {isPhaseComplete
@@ -251,11 +359,10 @@ export default function Protocol() {
       if (isComplete && !wasComplete) {
         const nextPhaseId = phaseOrder[index + 1];
 
+        // Don't auto-collapse - let the user see the completed state
+        // Only auto-expand the next phase
         setExpandedPhases((prev) => {
-          // Collapse the completed phase
-          let newState = prev.filter((p) => p !== phaseId);
-
-          // Expand the next phase if it exists
+          let newState = [...prev];
           if (nextPhaseId && !newState.includes(nextPhaseId)) {
             newState = [...newState, nextPhaseId];
           }
@@ -288,7 +395,7 @@ export default function Protocol() {
     setExpandedPhases((prev) =>
       prev.includes(phaseId)
         ? prev.filter((p) => p !== phaseId)
-        : [...prev, phaseId]
+        : [...prev, phaseId],
     );
   };
 

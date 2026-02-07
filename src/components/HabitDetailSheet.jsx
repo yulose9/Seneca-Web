@@ -406,7 +406,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle }) => {
                       whileTap={{ scale: 0.85 }}
                       className={clsx(
                         "rounded-[10px] cursor-pointer flex items-center justify-center transition-all duration-300 relative overflow-hidden",
-                        isFuture ? "opacity-0 pointer-events-none" : ""
+                        isFuture ? "opacity-0 pointer-events-none" : "",
                       )}
                       style={{
                         width: BOX_SIZE,
@@ -424,7 +424,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle }) => {
                         className={clsx(
                           "text-[13px] font-bold",
                           isDone ? "text-white" : "text-[rgba(60,60,67,0.3)]",
-                          isToday && !isDone ? "text-[color:var(--color)]" : ""
+                          isToday && !isDone ? "text-[color:var(--color)]" : "",
                         )}
                         style={{
                           color: isToday && !isDone ? color : undefined,
@@ -681,6 +681,32 @@ export default function HabitDetailSheet({
                 </div>
               )}
 
+              {/* News Sources */}
+              {habitInfo.sources && (
+                <div className="mb-8">
+                  <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
+                    Sources
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {habitInfo.sources.map((source, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2.5 px-4 py-3 rounded-2xl"
+                        style={{ backgroundColor: `${habitInfo.color}10` }}
+                      >
+                        <span className="text-xl">{source.icon}</span>
+                        <span
+                          className="text-[15px] font-semibold"
+                          style={{ color: habitInfo.color }}
+                        >
+                          {source.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Certifications */}
               {habitInfo.certifications && (
                 <div className="mb-8">
@@ -694,7 +720,7 @@ export default function HabitDetailSheet({
                         className={clsx(
                           "flex items-center p-4",
                           i !== habitInfo.certifications.length - 1 &&
-                            "border-b border-[rgba(60,60,67,0.08)]"
+                            "border-b border-[rgba(60,60,67,0.08)]",
                         )}
                       >
                         <div
@@ -703,16 +729,16 @@ export default function HabitDetailSheet({
                             cert.status === "done"
                               ? "bg-[#D1FAE5]"
                               : cert.status === "progress"
-                              ? "bg-[#FEF3C7]"
-                              : "bg-[#F3F4F6]"
+                                ? "bg-[#FEF3C7]"
+                                : "bg-[#F3F4F6]",
                           )}
                         >
                           <span className="text-lg">
                             {cert.status === "done"
                               ? "✅"
                               : cert.status === "progress"
-                              ? "⏳"
-                              : "🔒"}
+                                ? "⏳"
+                                : "🔒"}
                           </span>
                         </div>
                         <div className="flex-1">
@@ -789,7 +815,7 @@ export default function HabitDetailSheet({
                       "w-full h-[56px] rounded-2xl flex items-center justify-center text-[18px] font-bold transition-all duration-200",
                       isTodayDone
                         ? "text-white shadow-xl bg-opacity-100"
-                        : "bg-[rgba(120,120,128,0.12)] text-black"
+                        : "bg-[rgba(120,120,128,0.12)] text-black",
                     )}
                     style={{
                       backgroundColor: isTodayDone
