@@ -1,9 +1,5 @@
 import clsx from "clsx";
-import {
-  AnimatePresence,
-  animate,
-  useMotionValue,
-} from "framer-motion";
+import { AnimatePresence, animate, motion, useMotionValue } from "framer-motion";
 import Fuse from "fuse.js";
 import {
   ArrowDownLeft,
