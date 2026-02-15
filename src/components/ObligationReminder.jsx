@@ -327,18 +327,33 @@ export function ReminderSettingsSheet({ visible, onClose }) {
 }
 
 // ─── Hook: auto-show on app open unless snoozed ─────────────────────
+// Chains: obligation popup → (dismiss) → daily tasks popup
 export function useObligationReminder() {
   const [showReminder, setShowReminder] = useState(false);
+  const [showTasksReminder, setShowTasksReminder] = useState(false);
 
   useEffect(() => {
     if (!isSnoozed()) {
       const timer = setTimeout(() => setShowReminder(true), 800);
       return () => clearTimeout(timer);
+    } else {
+      // If obligation is snoozed, go straight to tasks reminder
+      const timer = setTimeout(() => setShowTasksReminder(true), 800);
+      return () => clearTimeout(timer);
     }
   }, []);
 
   const openReminder = useCallback(() => setShowReminder(true), []);
-  const closeReminder = useCallback(() => setShowReminder(false), []);
 
-  return { showReminder, openReminder, closeReminder };
+  const closeReminder = useCallback(() => {
+    setShowReminder(false);
+    // After dismissing obligation, show tasks reminder
+    setTimeout(() => setShowTasksReminder(true), 400);
+  }, []);
+
+  const closeTasksReminder = useCallback(() => {
+    setShowTasksReminder(false);
+  }, []);
+
+  return { showReminder, openReminder, closeReminder, showTasksReminder, closeTasksReminder };
 }
