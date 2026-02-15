@@ -130,7 +130,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
             transition={{ type: "spring", damping: 28, stiffness: 350 }}
             className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[10000] max-w-md mx-auto"
           >
-            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl">
+            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl select-none">
               {/* Header */}
               <div className="bg-gradient-to-r from-[#FF3B30] to-[#FF6B5E] px-6 pt-6 pb-5 relative">
                 {/* Close button */}
