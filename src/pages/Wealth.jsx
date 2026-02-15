@@ -118,6 +118,21 @@ const DEFAULT_LIABILITIES = [
 
 const DEFAULT_TRANSACTIONS = [];
 
+// Hydrate a liability from cloud data by restoring missing fields from defaults
+const hydrateLiability = (cloudLiability) => {
+  const defaults = DEFAULT_LIABILITIES.find((d) => d.id === cloudLiability.id);
+  if (defaults) {
+    return { ...defaults, ...cloudLiability, category: "Liabilities" };
+  }
+  // Unknown liability — ensure category is present
+  return {
+    icon: "🏦",
+    category: "Liabilities",
+    value: 0,
+    ...cloudLiability,
+  };
+};
+
 // Load from localStorage helpers
 const loadAssets = () => {
   try {
@@ -709,7 +724,9 @@ export default function Wealth() {
   const saveGuardRef = useRef(false);
   useEffect(() => {
     // Allow saves after first cloud fetch or after a short delay
-    const timer = setTimeout(() => { saveGuardRef.current = true; }, 500);
+    const timer = setTimeout(() => {
+      saveGuardRef.current = true;
+    }, 500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -756,7 +773,10 @@ export default function Wealth() {
             cloudWealth.assets.length > 0
           ) {
             setAssets(cloudWealth.assets);
-            localStorage.setItem(WEALTH_STORAGE_KEYS.ASSETS, JSON.stringify(cloudWealth.assets));
+            localStorage.setItem(
+              WEALTH_STORAGE_KEYS.ASSETS,
+              JSON.stringify(cloudWealth.assets),
+            );
           }
 
           // Restore liabilities
@@ -764,8 +784,12 @@ export default function Wealth() {
             Array.isArray(cloudWealth.liabilities) &&
             cloudWealth.liabilities.length > 0
           ) {
-            setLiabilities(cloudWealth.liabilities);
-            localStorage.setItem(WEALTH_STORAGE_KEYS.LIABILITIES, JSON.stringify(cloudWealth.liabilities));
+            const hydrated = cloudWealth.liabilities.map(hydrateLiability);
+            setLiabilities(hydrated);
+            localStorage.setItem(
+              WEALTH_STORAGE_KEYS.LIABILITIES,
+              JSON.stringify(hydrated),
+            );
           }
 
           // Restore transactions
@@ -774,13 +798,19 @@ export default function Wealth() {
             cloudWealth.transactions.length > 0
           ) {
             setTransactions(cloudWealth.transactions);
-            localStorage.setItem(WEALTH_STORAGE_KEYS.TRANSACTIONS, JSON.stringify(cloudWealth.transactions));
+            localStorage.setItem(
+              WEALTH_STORAGE_KEYS.TRANSACTIONS,
+              JSON.stringify(cloudWealth.transactions),
+            );
           }
 
           // Restore search history
           if (Array.isArray(cloudWealth.search_history)) {
             setSearchHistory(cloudWealth.search_history);
-            localStorage.setItem(WEALTH_STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(cloudWealth.search_history));
+            localStorage.setItem(
+              WEALTH_STORAGE_KEYS.SEARCH_HISTORY,
+              JSON.stringify(cloudWealth.search_history),
+            );
           }
 
           // Enable localStorage saves now that we have real data
@@ -836,11 +866,8 @@ export default function Wealth() {
           amount: a.amount,
         })),
         liabilities: liabilities.map((l) => ({
-          id: l.id,
-          name: l.name,
-          platform: l.platform,
+          ...l,
           amount: l.amount,
-          isPriority: l.isPriority,
         })),
         transactions: transactions, // ALL transactions
         search_history: searchHistory,
@@ -942,7 +969,7 @@ export default function Wealth() {
         });
       }
 
-      // 3. Liabilities
+      // 3. Liabilities — merge with hydration to restore missing fields
       if (Array.isArray(cloudLiabilities)) {
         setLiabilities((prev) => {
           const cloud = cloudLiabilities;
@@ -950,14 +977,17 @@ export default function Wealth() {
           let hasChanges = false;
 
           cloud.forEach((cloudItem) => {
+            const hydrated = hydrateLiability(cloudItem);
             const index = merged.findIndex((p) => p.id === cloudItem.id);
             if (index !== -1) {
-              if (JSON.stringify(merged[index]) !== JSON.stringify(cloudItem)) {
-                merged[index] = cloudItem;
+              // Merge: keep local fields, update with cloud data
+              const mergedItem = { ...merged[index], ...hydrated };
+              if (JSON.stringify(merged[index]) !== JSON.stringify(mergedItem)) {
+                merged[index] = mergedItem;
                 hasChanges = true;
               }
             } else {
-              merged.push(cloudItem);
+              merged.push(hydrated);
               hasChanges = true;
             }
           });
@@ -1226,8 +1256,12 @@ export default function Wealth() {
     const isPositive = diff > 0;
     const amount = Math.abs(diff);
 
+    // Determine if this is a liability by checking the liabilities array
+    // (more reliable than account.category which may be stripped by cloud sync)
+    const isLiability = liabilities.some((l) => l.id === account.id);
+
     // Update Account Balance in State
-    if (account.category === "Liabilities") {
+    if (isLiability) {
       setLiabilities((prev) =>
         prev.map((l) =>
           l.id === account.id ? { ...l, amount: newBalance } : l,
@@ -1242,21 +1276,20 @@ export default function Wealth() {
     }
 
     // Auto-generate transaction
-    const type =
-      account.category === "Liabilities"
-        ? isPositive
-          ? "withdrawal"
-          : "deposit" // Debt up = withdrawal from net worth, Debt down = deposit to net worth
-        : isPositive
-          ? "deposit"
-          : "withdrawal";
+    const type = isLiability
+      ? isPositive
+        ? "withdrawal"
+        : "deposit" // Debt up = withdrawal from net worth, Debt down = deposit to net worth
+      : isPositive
+        ? "deposit"
+        : "withdrawal";
 
     const transaction = {
       id: Date.now(),
       date: new Date().toISOString(),
       amount: amount,
       type: type,
-      category: account.category,
+      category: isLiability ? "Liabilities" : account.category,
       bank: account.name,
       note: "Balance Adjustment",
       location: "Manual Edit",
@@ -1876,6 +1909,35 @@ export default function Wealth() {
         onAdd={(transaction) => {
           lastLocalInteraction.current = Date.now(); // Mark interaction time
           setTransactions((prev) => [transaction, ...prev]);
+
+          // Update the account balance based on transaction type
+          if (transaction.category === "Liabilities" && transaction.accountId) {
+            // Liability payment: reduce the outstanding balance
+            setLiabilities((prev) =>
+              prev.map((l) =>
+                l.id === transaction.accountId
+                  ? { ...l, amount: Math.max(0, l.amount - transaction.amount) }
+                  : l,
+              ),
+            );
+          } else if (
+            (transaction.category === "Savings" ||
+              transaction.category === "Investments") &&
+            transaction.accountId
+          ) {
+            // Asset deposit: increase the balance
+            const delta =
+              transaction.type === "deposit"
+                ? transaction.amount
+                : -transaction.amount;
+            setAssets((prev) =>
+              prev.map((a) =>
+                a.id === transaction.accountId
+                  ? { ...a, amount: Math.max(0, a.amount + delta) }
+                  : a,
+              ),
+            );
+          }
         }}
       />
 
