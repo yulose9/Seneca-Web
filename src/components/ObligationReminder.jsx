@@ -75,17 +75,20 @@ const setTasksSnooze = (ms) => setSnoozeKey(TASKS_SNOOZE_KEY, ms);
 const getTasksSnoozeInfo = () => getSnoozeInfoKey(TASKS_SNOOZE_KEY);
 
 // ─── Notification Popup (shows on app open) ─────────────────────────
-// Load liabilities instantly from localStorage (same key Wealth.jsx uses)
+// Load liabilities instantly from localStorage, preferring Firestore cache
 const loadLiabilitiesLocal = () => {
   try {
-    // Primary: Wealth page stores here
-    const saved = localStorage.getItem("wealth_liabilities");
-    if (saved) return JSON.parse(saved);
-    // Fallback: Firestore cache
+    // Primary: Firestore cache (most up-to-date, written by subscribeToGlobalData)
     const raw = localStorage.getItem("seneca_global_data");
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.wealth?.liabilities) return parsed.wealth.liabilities;
+      if (parsed?.wealth?.liabilities?.length) return parsed.wealth.liabilities;
+    }
+    // Fallback: Wealth page localStorage
+    const saved = localStorage.getItem("wealth_liabilities");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
     }
   } catch {
     /* ignore */

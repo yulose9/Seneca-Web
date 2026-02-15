@@ -45,16 +45,16 @@ const WEALTH_STORAGE_KEYS = {
   SEARCH_HISTORY: "wealth_search_history",
 };
 
-// Default data
+// Default data (amounts are 0 — real values come from Firestore)
 const DEFAULT_ASSETS = [
   {
     id: "maribank",
     icon: "🏦",
     name: "MariBank",
     platform: "SeaMoney",
-    amount: 257766.97,
-    value: 257766.97,
-    change: 450.25,
+    amount: 0,
+    value: 0,
+    change: 0,
     isPositive: true,
     category: "Savings",
   },
@@ -63,9 +63,9 @@ const DEFAULT_ASSETS = [
     icon: "🚨",
     name: "Emergency Fund",
     platform: "Emergency Fund",
-    amount: 1928,
-    value: 1928,
-    change: 312.82,
+    amount: 0,
+    value: 0,
+    change: 0,
     isPositive: true,
     category: "Savings",
   },
@@ -74,9 +74,9 @@ const DEFAULT_ASSETS = [
     icon: "📈",
     name: "Trading212",
     platform: "AI Growth Stocks",
-    amount: 5000,
-    value: 5000,
-    change: 145.5,
+    amount: 0,
+    value: 0,
+    change: 0,
     isPositive: true,
     category: "Investments",
   },
@@ -85,8 +85,8 @@ const DEFAULT_ASSETS = [
     icon: "💳",
     name: "GCash",
     platform: "Digital Wallet",
-    amount: 850,
-    value: 850,
+    amount: 0,
+    value: 0,
     change: 0,
     isPositive: true,
     category: "Savings",
@@ -99,8 +99,8 @@ const DEFAULT_LIABILITIES = [
     icon: "🤝",
     name: "Loan from Kuya",
     platform: "Personal - PRIORITY",
-    amount: 16000,
-    value: -16000,
+    amount: 0,
+    value: 0,
     category: "Liabilities",
     isPriority: true,
   },
@@ -109,51 +109,14 @@ const DEFAULT_LIABILITIES = [
     icon: "🏦",
     name: "Other Loans",
     platform: "Bank / Other",
-    amount: 160000,
-    value: -160000,
+    amount: 0,
+    value: 0,
     category: "Liabilities",
     isPriority: false,
   },
 ];
 
-const DEFAULT_TRANSACTIONS = [
-  {
-    id: 1,
-    date: new Date().toISOString(),
-    bank: "MariBank",
-    location: "Imus, Cavite",
-    amount: 312.82,
-    type: "deposit",
-    category: "Savings",
-  },
-  {
-    id: 2,
-    date: new Date(Date.now() - 86400000 * 3).toISOString(),
-    bank: "GCash",
-    location: "Payment",
-    amount: 150.0,
-    type: "withdrawal",
-    category: "Savings",
-  },
-  {
-    id: 3,
-    date: new Date(Date.now() - 86400000 * 7).toISOString(),
-    bank: "MariBank",
-    location: "Interest",
-    amount: 12.82,
-    type: "deposit",
-    category: "Savings",
-  },
-  {
-    id: 4,
-    date: new Date(Date.now() - 86400000 * 30).toISOString(),
-    bank: "Trading212",
-    location: "Deposit",
-    amount: 5000.0,
-    type: "deposit",
-    category: "Investments",
-  },
-];
+const DEFAULT_TRANSACTIONS = [];
 
 // Load from localStorage helpers
 const loadAssets = () => {
@@ -742,12 +705,21 @@ export default function Wealth() {
   const [transactions, setTransactions] = useState(loadTransactions);
   const [searchHistory, setSearchHistory] = useState(loadSearchHistory); // New State
 
-  // Persist to localStorage whenever data changes
+  // Persist to localStorage whenever data changes (skip the very first render with defaults)
+  const saveGuardRef = useRef(false);
   useEffect(() => {
+    // Allow saves after first cloud fetch or after a short delay
+    const timer = setTimeout(() => { saveGuardRef.current = true; }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!saveGuardRef.current) return;
     localStorage.setItem(WEALTH_STORAGE_KEYS.ASSETS, JSON.stringify(assets));
   }, [assets]);
 
   useEffect(() => {
+    if (!saveGuardRef.current) return;
     localStorage.setItem(
       WEALTH_STORAGE_KEYS.LIABILITIES,
       JSON.stringify(liabilities),
@@ -755,6 +727,7 @@ export default function Wealth() {
   }, [liabilities]);
 
   useEffect(() => {
+    if (!saveGuardRef.current) return;
     localStorage.setItem(
       WEALTH_STORAGE_KEYS.TRANSACTIONS,
       JSON.stringify(transactions),
@@ -762,6 +735,7 @@ export default function Wealth() {
   }, [transactions]);
 
   useEffect(() => {
+    if (!saveGuardRef.current) return;
     localStorage.setItem(
       WEALTH_STORAGE_KEYS.SEARCH_HISTORY,
       JSON.stringify(searchHistory),
@@ -782,6 +756,7 @@ export default function Wealth() {
             cloudWealth.assets.length > 0
           ) {
             setAssets(cloudWealth.assets);
+            localStorage.setItem(WEALTH_STORAGE_KEYS.ASSETS, JSON.stringify(cloudWealth.assets));
           }
 
           // Restore liabilities
@@ -790,6 +765,7 @@ export default function Wealth() {
             cloudWealth.liabilities.length > 0
           ) {
             setLiabilities(cloudWealth.liabilities);
+            localStorage.setItem(WEALTH_STORAGE_KEYS.LIABILITIES, JSON.stringify(cloudWealth.liabilities));
           }
 
           // Restore transactions
@@ -798,12 +774,17 @@ export default function Wealth() {
             cloudWealth.transactions.length > 0
           ) {
             setTransactions(cloudWealth.transactions);
+            localStorage.setItem(WEALTH_STORAGE_KEYS.TRANSACTIONS, JSON.stringify(cloudWealth.transactions));
           }
 
           // Restore search history
           if (Array.isArray(cloudWealth.search_history)) {
             setSearchHistory(cloudWealth.search_history);
+            localStorage.setItem(WEALTH_STORAGE_KEYS.SEARCH_HISTORY, JSON.stringify(cloudWealth.search_history));
           }
+
+          // Enable localStorage saves now that we have real data
+          saveGuardRef.current = true;
         }
       } catch (error) {
         console.error("[Wealth] Failed to fetch global data:", error);
