@@ -365,13 +365,20 @@ export function ReminderSettingsSheet({ visible, onClose }) {
   );
 }
 
-// ─── Hook: auto-show on app open unless snoozed ─────────────────────
+// ─── Hook: auto-show ONCE per app session ───────────────────────────
 // Chains: obligation popup → (dismiss) → daily tasks popup
+// Uses sessionStorage so popups only fire once per browser session (tab open).
+const SESSION_KEY = "obligation_shown_session";
+
 export function useObligationReminder() {
   const [showReminder, setShowReminder] = useState(false);
   const [showTasksReminder, setShowTasksReminder] = useState(false);
 
   useEffect(() => {
+    // Already shown this session? Skip.
+    if (sessionStorage.getItem(SESSION_KEY)) return;
+    sessionStorage.setItem(SESSION_KEY, "1");
+
     if (!isSnoozed()) {
       const timer = setTimeout(() => setShowReminder(true), 800);
       return () => clearTimeout(timer);

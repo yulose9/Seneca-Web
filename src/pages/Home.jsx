@@ -3,12 +3,8 @@ import { motion, Reorder } from "framer-motion";
 import { ChevronRight, GripVertical, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import DailyTasksReminder from "../components/DailyTasksReminder";
 import ExportDataButton from "../components/ExportDataButton";
 import GsapText from "../components/GsapText";
-import ObligationReminder, {
-  useObligationReminder,
-} from "../components/ObligationReminder";
 import PageTransition from "../components/PageTransition";
 import ProtocolCarousel from "../components/ProtocolCarousel";
 import SystemCard from "../components/SystemCard";
@@ -184,8 +180,7 @@ export default function Home() {
   const [hasJournalToday, setHasJournalToday] = useState(false);
 
   // Obligation + tasks reminders — chained on app open
-  const { showReminder, closeReminder, showTasksReminder, closeTasksReminder } =
-    useObligationReminder();
+
 
   // 🌐 Wealth data from global sync
   const [wealthData, setWealthData] = useState({
@@ -509,14 +504,6 @@ export default function Home() {
       {/* Export Data Button (floating) */}
       <ExportDataButton />
 
-      {/* Obligation Reminder — shows on every app open unless snoozed */}
-      <ObligationReminder isOpen={showReminder} onClose={closeReminder} />
-
-      {/* Daily Tasks Reminder — shows after obligation is dismissed */}
-      <DailyTasksReminder
-        isOpen={showTasksReminder}
-        onClose={closeTasksReminder}
-      />
     </PageTransition>
   );
 }

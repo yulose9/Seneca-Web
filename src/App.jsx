@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router } from "react-router-dom";
 import AnimatedRoutes from "./AnimatedRoutes";
+import DailyTasksReminder from "./components/DailyTasksReminder";
 import GlassTabBar from "./components/GlassTabBar";
 import LoginScreen from "./components/LoginScreen";
+import ObligationReminder, {
+  useObligationReminder,
+} from "./components/ObligationReminder";
 import { PersonalGoalsProvider } from "./context/PersonalGoalsContext";
 import { PreferencesProvider } from "./context/PreferencesContext";
 import { ProtocolProvider } from "./context/ProtocolContext";
@@ -48,16 +52,35 @@ export default function App() {
         <ProtocolProvider>
           <StudyGoalProvider>
             <PersonalGoalsProvider>
-              <div className="font-sans antialiased text-[#1C1C1E] selection:bg-[#2E5C8A]/30 desktop-shell">
-                <div className="desktop-app-frame">
-                  <AnimatedRoutes />
-                </div>
-                <GlassTabBar />
-              </div>
+              <AppShell />
             </PersonalGoalsProvider>
           </StudyGoalProvider>
         </ProtocolProvider>
       </PreferencesProvider>
     </Router>
+  );
+}
+
+// Separate component so hooks can access context providers above
+function AppShell() {
+  const { showReminder, closeReminder, showTasksReminder, closeTasksReminder } =
+    useObligationReminder();
+
+  return (
+    <>
+      <div className="font-sans antialiased text-[#1C1C1E] selection:bg-[#2E5C8A]/30 desktop-shell">
+        <div className="desktop-app-frame">
+          <AnimatedRoutes />
+        </div>
+        <GlassTabBar />
+      </div>
+
+      {/* Notifications — rendered at app level, fire once per session */}
+      <ObligationReminder isOpen={showReminder} onClose={closeReminder} />
+      <DailyTasksReminder
+        isOpen={showTasksReminder}
+        onClose={closeTasksReminder}
+      />
+    </>
   );
 }
