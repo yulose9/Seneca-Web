@@ -1,10 +1,26 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
+
+// Feedback messages for yes/no actions per card type
+const FEEDBACK = {
+  study: {
+    yes: { icon: "👍", text: "Great job!", sub: "Knowledge is power." },
+    no: { icon: "📖", text: "It's okay.", sub: "Tomorrow's a new chance." },
+  },
+  noporn: {
+    yes: { icon: "🛡️", text: "Warrior!", sub: "Stay disciplined." },
+    no: { icon: "🌅", text: "Be honest.", sub: "Start fresh tomorrow." },
+  },
+  exercise: {
+    yes: { icon: "💪", text: "Beast mode!", sub: "Keep crushing it." },
+    no: { icon: "🚶", text: "Rest day.", sub: "Go again tomorrow." },
+  },
+};
 
 // Helper to get today's date as YYYY-MM-DD in local tz
 const getTodayStr = () => {
@@ -35,6 +51,13 @@ export default function ProtocolCarousel() {
   const navigate = useNavigate();
   const [[activeIndex, direction], setPage] = useState([0, 0]);
 
+  // Feedback animation state: { cardId, type: "yes"|"no" } or null
+  const [feedback, setFeedback] = useState(null);
+  const feedbackTimer = useRef(null);
+
+  // Clear timer on unmount
+  useEffect(() => () => { if (feedbackTimer.current) clearTimeout(feedbackTimer.current); }, []);
+
   // Context hooks
   const {
     completedCount,
@@ -57,7 +80,7 @@ export default function ProtocolCarousel() {
   const noPornStreak = getGoalStreak("noPorn");
   const exerciseStreak = getGoalStreak("exercise");
 
-  // Build available cards — only show incomplete ones
+  // Build available cards — only show if NOT yet logged (yes OR no)
   const cards = useMemo(() => {
     const available = [];
 
@@ -66,18 +89,18 @@ export default function ProtocolCarousel() {
       available.push({ id: "protocol", label: "Protocol" });
     }
 
-    // 2 — Study Goal (show if goal exists and not studied today)
-    if (activeStudyGoal && studiedToday !== true) {
+    // 2 — Study Goal (show if goal exists and not logged today — neither true nor false)
+    if (activeStudyGoal && studiedToday == null) {
       available.push({ id: "study", label: "Study Goal" });
     }
 
-    // 3 — No Porn (show if not checked in today)
-    if (noPornToday !== true) {
+    // 3 — No Porn (show if not checked in today at all)
+    if (noPornToday == null) {
       available.push({ id: "noporn", label: "No Porn" });
     }
 
-    // 4 — Exercise (show if not checked in today)
-    if (exerciseToday !== true) {
+    // 4 — Exercise (show if not checked in today at all)
+    if (exerciseToday == null) {
       available.push({ id: "exercise", label: "Exercise" });
     }
 
@@ -108,8 +131,22 @@ export default function ProtocolCarousel() {
     setPage(([prev]) => [idx, idx > prev ? 1 : -1]);
   }, []);
 
+  // Trigger feedback animation, then fire the action after a brief delay
+  const triggerFeedback = useCallback(
+    (cardId, type, action) => {
+      setFeedback({ cardId, type });
+      // Fire the actual state-changing action after a short animation
+      feedbackTimer.current = setTimeout(() => {
+        action();
+        // The card will auto-remove from `cards` on next render
+        setFeedback(null);
+      }, 1400);
+    },
+    [],
+  );
+
   // Nothing to show — all done for the day!
-  if (cards.length === 0) {
+  if (cards.length === 0 && !feedback) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -138,6 +175,8 @@ export default function ProtocolCarousel() {
   }
 
   const currentCard = cards[safeIndex];
+  const showingFeedback = feedback && currentCard && feedback.cardId === currentCard.id;
+  const feedbackData = showingFeedback ? FEEDBACK[feedback.cardId]?.[feedback.type] : null;
 
   // Mark no porn / exercise for today
   const handleNoPornCheck = (value) => {
@@ -327,24 +366,20 @@ export default function ProtocolCarousel() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() =>
-                          markStudiedToday(true, markLearnStuffDone)
+                          triggerFeedback("study", "yes", () => markStudiedToday(true, markLearnStuffDone))
                         }
-                        className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
-                          studiedToday === true
-                            ? "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
-                            : "bg-[#34C759]/10 text-[#34C759]"
-                        }`}
+                        disabled={!!feedback}
+                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#34C759]/10 text-[#34C759]"
                       >
                         <Check size={18} strokeWidth={3} /> Yes
                       </motion.button>
                       <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => markStudiedToday(false)}
-                        className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
-                          studiedToday === false
-                            ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
-                            : "bg-[#FF3B30]/10 text-[#FF3B30]"
-                        }`}
+                        onClick={() =>
+                          triggerFeedback("study", "no", () => markStudiedToday(false))
+                        }
+                        disabled={!!feedback}
+                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#FF3B30]/10 text-[#FF3B30]"
                       >
                         <X size={18} strokeWidth={3} /> No
                       </motion.button>
@@ -390,23 +425,21 @@ export default function ProtocolCarousel() {
                     <div className="flex gap-3">
                       <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => handleNoPornCheck(true)}
-                        className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
-                          noPornToday === true
-                            ? "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
-                            : "bg-[#34C759]/10 text-[#34C759]"
-                        }`}
+                        onClick={() =>
+                          triggerFeedback("noporn", "yes", () => handleNoPornCheck(true))
+                        }
+                        disabled={!!feedback}
+                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#34C759]/10 text-[#34C759]"
                       >
                         <Check size={18} strokeWidth={3} /> Yes
                       </motion.button>
                       <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => handleNoPornCheck(false)}
-                        className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
-                          noPornToday === false
-                            ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
-                            : "bg-[#FF3B30]/10 text-[#FF3B30]"
-                        }`}
+                        onClick={() =>
+                          triggerFeedback("noporn", "no", () => handleNoPornCheck(false))
+                        }
+                        disabled={!!feedback}
+                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#FF3B30]/10 text-[#FF3B30]"
                       >
                         <X size={18} strokeWidth={3} /> No
                       </motion.button>
@@ -452,23 +485,21 @@ export default function ProtocolCarousel() {
                     <div className="flex gap-3">
                       <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => handleExerciseCheck(true)}
-                        className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
-                          exerciseToday === true
-                            ? "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
-                            : "bg-[#34C759]/10 text-[#34C759]"
-                        }`}
+                        onClick={() =>
+                          triggerFeedback("exercise", "yes", () => handleExerciseCheck(true))
+                        }
+                        disabled={!!feedback}
+                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#34C759]/10 text-[#34C759]"
                       >
                         <Check size={18} strokeWidth={3} /> Yes
                       </motion.button>
                       <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => handleExerciseCheck(false)}
-                        className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
-                          exerciseToday === false
-                            ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
-                            : "bg-[#FF3B30]/10 text-[#FF3B30]"
-                        }`}
+                        onClick={() =>
+                          triggerFeedback("exercise", "no", () => handleExerciseCheck(false))
+                        }
+                        disabled={!!feedback}
+                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#FF3B30]/10 text-[#FF3B30]"
                       >
                         <X size={18} strokeWidth={3} /> No
                       </motion.button>
@@ -476,6 +507,59 @@ export default function ProtocolCarousel() {
                   </div>
                 </div>
               )}
+
+              {/* ── Feedback Animation Overlay ── */}
+              <AnimatePresence>
+                {showingFeedback && feedbackData && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="absolute inset-0 flex items-center justify-center z-20 rounded-2xl"
+                    style={{
+                      backgroundColor:
+                        feedback.type === "yes"
+                          ? "rgba(52, 199, 89, 0.06)"
+                          : "rgba(255, 59, 48, 0.06)",
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <motion.div
+                        initial={{ scale: 0, rotate: -30 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{
+                          type: "spring",
+                          damping: 12,
+                          stiffness: 200,
+                          delay: 0.1,
+                        }}
+                      >
+                        <span className="text-[52px] block">{feedbackData.icon}</span>
+                      </motion.div>
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.25, duration: 0.3 }}
+                        className="text-center"
+                      >
+                        <p
+                          className="text-[18px] font-bold"
+                          style={{
+                            color:
+                              feedback.type === "yes" ? "#34C759" : "#FF3B30",
+                          }}
+                        >
+                          {feedbackData.text}
+                        </p>
+                        <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
+                          {feedbackData.sub}
+                        </p>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </AnimatePresence>
         </div>
