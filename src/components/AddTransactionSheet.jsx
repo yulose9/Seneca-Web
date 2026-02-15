@@ -27,7 +27,7 @@ const SelectionRow = ({
     <div
       className={clsx(
         "w-10 h-10 rounded-full flex items-center justify-center text-lg mr-3 shrink-0",
-        isSelected ? "bg-[#007AFF]/10" : "bg-[rgba(120,120,128,0.08)]"
+        isSelected ? "bg-[#007AFF]/10" : "bg-[rgba(120,120,128,0.08)]",
       )}
     >
       {icon}
@@ -60,7 +60,7 @@ const RollingNumber = ({ value, displayValue, prefix = "", className }) => {
             ref.current.textContent = `${prefix}${displayValue}`;
           } else {
             ref.current.textContent = `${prefix}${Math.round(
-              latest
+              latest,
             ).toLocaleString()}`;
           }
         }
@@ -264,7 +264,7 @@ export default function AddTransactionSheet({
 
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
           );
           const data = await response.json();
           const address = data.address;
@@ -287,7 +287,7 @@ export default function AddTransactionSheet({
         setLocationName("Location access denied. Tap to retry ↻");
         setIsGettingLocation(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   };
 
@@ -344,7 +344,7 @@ export default function AddTransactionSheet({
     const transaction = {
       id: Date.now(),
       date: new Date().toISOString(),
-      type: transactionType === "liability" ? "withdrawal" : "deposit",
+      type: transactionType === "liability" ? "payment" : "deposit",
       accountId: selectedAccount.id,
       bank: selectedAccount.name,
       location: locationName || "Unknown Location",
@@ -355,10 +355,10 @@ export default function AddTransactionSheet({
         transactionType === "savings"
           ? "Savings"
           : transactionType === "investment"
-          ? "Investments"
-          : transactionType === "liability"
-          ? "Liabilities"
-          : transactionType,
+            ? "Investments"
+            : transactionType === "liability"
+              ? "Liabilities"
+              : transactionType,
     };
 
     handleAddTransaction(transaction);
@@ -580,7 +580,7 @@ export default function AddTransactionSheet({
                             "text-[42px] font-bold tabular-nums select-none",
                             transactionType === "liability"
                               ? "text-[#FF3B30]"
-                              : "text-[#34C759]"
+                              : "text-[#34C759]",
                           )}
                         />
                       </div>
@@ -589,7 +589,7 @@ export default function AddTransactionSheet({
                           Remaining: ₱
                           {Math.max(
                             0,
-                            selectedAccount.amount - (parseFloat(amount) || 0)
+                            selectedAccount.amount - (parseFloat(amount) || 0),
                           ).toLocaleString()}
                         </p>
                       )}
@@ -666,7 +666,7 @@ export default function AddTransactionSheet({
                             ? transactionType === "liability"
                               ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
                               : "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
-                            : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]"
+                            : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
                         )}
                       >
                         {transactionType === "liability"
@@ -725,10 +725,10 @@ export default function AddTransactionSheet({
                     >
                       {transactionType === "liability"
                         ? `Successfully paid ₱${parseFloat(
-                            amount
+                            amount,
                           ).toLocaleString()}`
                         : `Successfully deposited ₱${parseFloat(
-                            amount
+                            amount,
                           ).toLocaleString()}`}
                     </motion.p>
                   </motion.div>

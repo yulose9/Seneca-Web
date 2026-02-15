@@ -2,9 +2,7 @@ import clsx from "clsx";
 import {
   AnimatePresence,
   animate,
-  motion,
   useMotionValue,
-  useTransform,
 } from "framer-motion";
 import Fuse from "fuse.js";
 import {
@@ -29,10 +27,8 @@ import PageTransition from "../components/PageTransition";
 import TransactionDetailSheet from "../components/TransactionDetailSheet";
 import {
   getGlobalData,
-  loadGlobalDataLocal,
   saveGlobalDataLocal,
   subscribeToGlobalData,
-  subscribeToTodayLog,
   updateGlobalData,
   updateTodayLog,
 } from "../services/dataLogger";
@@ -96,23 +92,25 @@ const DEFAULT_ASSETS = [
 const DEFAULT_LIABILITIES = [
   {
     id: "kuya",
-    icon: "🤝",
+    icon: "�",
     name: "Loan from Kuya",
-    platform: "Personal - PRIORITY",
+    platform: "Personal",
     amount: 0,
     value: 0,
     category: "Liabilities",
     isPriority: true,
+    tags: ["Personal", "Priority"],
   },
   {
     id: "other",
-    icon: "🏦",
+    icon: "🍀",
     name: "Other Loans",
     platform: "Bank / Other",
     amount: 0,
     value: 0,
     category: "Liabilities",
     isPriority: false,
+    tags: ["Bank"],
   },
 ];
 
@@ -133,22 +131,22 @@ const hydrateLiability = (cloudLiability) => {
   };
 };
 
-// Load from localStorage helpers
+// Load from localStorage helpers — no defaults, data comes from Firestore
 const loadAssets = () => {
   try {
     const saved = localStorage.getItem(WEALTH_STORAGE_KEYS.ASSETS);
-    return saved ? JSON.parse(saved) : DEFAULT_ASSETS;
+    return saved ? JSON.parse(saved) : [];
   } catch {
-    return DEFAULT_ASSETS;
+    return [];
   }
 };
 
 const loadLiabilities = () => {
   try {
     const saved = localStorage.getItem(WEALTH_STORAGE_KEYS.LIABILITIES);
-    return saved ? JSON.parse(saved) : DEFAULT_LIABILITIES;
+    return saved ? JSON.parse(saved) : [];
   } catch {
-    return DEFAULT_LIABILITIES;
+    return [];
   }
 };
 
@@ -430,17 +428,22 @@ const LiabilityRow = (props) => (
         {props.icon}
       </div>
       <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <p className="text-[16px] font-semibold text-black">{props.name}</p>
-          {props.isPriority && (
-            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#FF3B30] text-white">
-              Priority
+        <p className="text-[16px] font-semibold text-black">{props.name}</p>
+        <div className="flex items-center gap-1.5 mt-1">
+          {(props.tags || []).map((tag) => (
+            <span
+              key={tag}
+              className={clsx(
+                "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
+                tag === "Priority"
+                  ? "bg-[#FF3B30] text-white"
+                  : "bg-black/[0.06] text-black/50",
+              )}
+            >
+              {tag}
             </span>
-          )}
+          ))}
         </div>
-        <p className="text-[13px] text-[rgba(60,60,67,0.6)]">
-          {props.platform}
-        </p>
       </div>
       <p className="text-[16px] font-bold text-[#FF3B30]">
         -₱{(props.amount || 0).toLocaleString()}
@@ -513,15 +516,15 @@ const TransactionRow = ({
     <div className="relative overflow-hidden">
       <div
         className={clsx(
-          "absolute right-0 top-0 bottom-0 w-20 bg-[#FF3B30] flex items-center justify-center transition-transform duration-200",
+          "absolute right-2 top-2 bottom-2 w-[70px] flex items-center justify-center transition-transform duration-200",
           showDelete ? "translate-x-0" : "translate-x-full",
         )}
       >
         <button
           onClick={() => onDelete(item.id)}
-          className="w-full h-full flex items-center justify-center"
+          className="w-full h-full bg-[#FF3B30] text-white rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-transform"
         >
-          <Trash2 size={20} className="text-white" />
+          <Trash2 size={20} />
         </button>
       </div>
 
@@ -563,7 +566,7 @@ const TransactionRow = ({
         </AnimatePresence>
 
         <div className="w-10 h-10 rounded-full border-2 border-[rgba(60,60,67,0.2)] flex items-center justify-center mr-3 shrink-0">
-          {item.type === "deposit" ? (
+          {item.type === "deposit" || item.type === "payment" ? (
             <ArrowDownLeft size={18} className="text-[#34C759]" />
           ) : (
             <ArrowUpRight size={18} className="text-[#FF3B30]" />
@@ -595,7 +598,9 @@ const TransactionRow = ({
           <p
             className={clsx(
               "text-[17px] font-bold",
-              item.type === "deposit" ? "text-black" : "text-[#FF3B30]",
+              item.type === "deposit" || item.type === "payment"
+                ? "text-black"
+                : "text-[#FF3B30]",
             )}
           >
             {item.type === "withdrawal" && "-"}₱
@@ -815,6 +820,16 @@ export default function Wealth() {
 
           // Enable localStorage saves now that we have real data
           saveGuardRef.current = true;
+        } else {
+          // No Firestore data yet — seed with defaults if localStorage is also empty
+          console.log(
+            "[Wealth] No Firestore data found, seeding defaults if needed",
+          );
+          setAssets((prev) => (prev.length > 0 ? prev : DEFAULT_ASSETS));
+          setLiabilities((prev) =>
+            prev.length > 0 ? prev : DEFAULT_LIABILITIES,
+          );
+          saveGuardRef.current = true;
         }
       } catch (error) {
         console.error("[Wealth] Failed to fetch global data:", error);
@@ -982,7 +997,9 @@ export default function Wealth() {
             if (index !== -1) {
               // Merge: keep local fields, update with cloud data
               const mergedItem = { ...merged[index], ...hydrated };
-              if (JSON.stringify(merged[index]) !== JSON.stringify(mergedItem)) {
+              if (
+                JSON.stringify(merged[index]) !== JSON.stringify(mergedItem)
+              ) {
                 merged[index] = mergedItem;
                 hasChanges = true;
               }
@@ -1305,9 +1322,6 @@ export default function Wealth() {
     console.log("New transaction added:", transaction);
   };
 
-  const savingsAccounts = assets.filter((a) => a.category === "Savings");
-  const investmentAccounts = assets.filter((a) => a.category === "Investments");
-
   const totalAssets = assets.reduce((sum, a) => sum + a.amount, 0);
   const totalLiabilities = liabilities.reduce((sum, l) => sum + l.amount, 0);
   const netWorth = totalAssets - totalLiabilities;
@@ -1350,8 +1364,6 @@ export default function Wealth() {
   const monthlyWithdrawals = thisMonthTransactions
     .filter((t) => t.type === "withdrawal")
     .reduce((sum, t) => sum + t.amount, 0);
-  const monthlyNetChange = monthlyDeposits - monthlyWithdrawals;
-
   const filteredAssets =
     selectedCategory === "All Assets"
       ? assets
@@ -1380,7 +1392,7 @@ export default function Wealth() {
         layout
         className="relative z-20"
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1a472a] via-[#1e3a2f] to-[#2d4a3e]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0f2419] via-[#132e1f] to-[#1a3d2a]" />
 
         <div className="relative pt-[calc(3.5rem+env(safe-area-inset-top))] pb-4 px-5">
           {/* Header: Search vs Normal */}
@@ -1413,9 +1425,6 @@ export default function Wealth() {
                     className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative"
                   >
                     <Bell size={20} className="text-white" />
-                    {totalLiabilities > 0 && (
-                      <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#FF3B30] rounded-full border-2 border-[#1C1C1E]" />
-                    )}
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.9 }}

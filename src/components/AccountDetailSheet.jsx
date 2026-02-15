@@ -56,7 +56,7 @@ const RollingNumber = ({ value, prefix = "" }) => {
         if (ref.current) {
           ref.current.textContent = `${prefix}${latest.toLocaleString(
             undefined,
-            { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+            { minimumFractionDigits: 2, maximumFractionDigits: 2 },
           )}`;
         }
       },
@@ -147,7 +147,10 @@ export default function AccountDetailSheet({
     if (!account) return 0;
     return accountTransactions
       .filter(
-        (t) => t.type === "deposit" || (isLiability && t.type === "withdrawal")
+        (t) =>
+          t.type === "deposit" ||
+          t.type === "payment" ||
+          (isLiability && t.type === "withdrawal"),
       )
       .reduce((sum, t) => sum + t.amount, 0);
   }, [accountTransactions, isLiability, account]);
@@ -231,7 +234,7 @@ export default function AccountDetailSheet({
                       "w-20 h-20 rounded-[28px] flex items-center justify-center text-4xl mb-4 shadow-xl",
                       isLiability
                         ? "bg-gradient-to-br from-[#FF3B30] to-[#FF9500] text-white"
-                        : "bg-gradient-to-br from-white to-[#F2F2F7] border border-white shadow-black/5"
+                        : "bg-gradient-to-br from-white to-[#F2F2F7] border border-white shadow-black/5",
                     )}
                   >
                     {account.icon}
@@ -250,7 +253,7 @@ export default function AccountDetailSheet({
                         <span
                           className={clsx(
                             "text-4xl font-bold tracking-tight mr-1",
-                            isLiability ? "text-[#FF3B30]" : "text-black"
+                            isLiability ? "text-[#FF3B30]" : "text-black",
                           )}
                         >
                           {isLiability ? "-" : ""}₱
@@ -266,7 +269,7 @@ export default function AccountDetailSheet({
                           autoFocus
                           className={clsx(
                             "text-4xl font-bold tracking-tight bg-transparent text-left w-[180px] outline-none border-b-2 border-dashed border-black/20 focus:border-black/50 p-0 m-0",
-                            isLiability ? "text-[#FF3B30]" : "text-black"
+                            isLiability ? "text-[#FF3B30]" : "text-black",
                           )}
                         />
                       </div>
@@ -276,7 +279,7 @@ export default function AccountDetailSheet({
                         onClick={handleStartEdit}
                         className={clsx(
                           "relative flex items-center justify-center px-3 py-1 rounded-xl hover:bg-black/5 transition-colors group",
-                          isLiability ? "text-[#FF3B30]" : "text-black"
+                          isLiability ? "text-[#FF3B30]" : "text-black",
                         )}
                       >
                         <span className="text-4xl font-bold tracking-tight">
@@ -303,7 +306,7 @@ export default function AccountDetailSheet({
                         "py-3.5 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 shadow-lg",
                         isLiability
                           ? "bg-[#FF3B30] text-white shadow-[#FF3B30]/20"
-                          : "bg-black text-white shadow-black/20"
+                          : "bg-black text-white shadow-black/20",
                       )}
                     >
                       {isLiability ? (
@@ -311,7 +314,7 @@ export default function AccountDetailSheet({
                       ) : (
                         <ArrowDownLeft size={18} />
                       )}
-                      {isLiability ? "Make Payment" : "Add Funds"}
+                      {isLiability ? "Pay" : "Add Funds"}
                     </motion.button>
 
                     <motion.button
@@ -323,7 +326,7 @@ export default function AccountDetailSheet({
                       ) : (
                         <ArrowUpRight size={18} />
                       )}
-                      {isLiability ? "History" : "Withdraw"}
+                      {isLiability ? "Add Loan" : "Withdraw"}
                     </motion.button>
                   </div>
                 </div>
@@ -479,7 +482,7 @@ export default function AccountDetailSheet({
                         "flex items-center p-4 border-b border-black/[0.04] last:border-0 cursor-pointer transition-colors",
                         t.id === highlightTransactionId
                           ? "bg-yellow-100/50"
-                          : ""
+                          : "",
                       )}
                     >
                       <div
@@ -487,7 +490,7 @@ export default function AccountDetailSheet({
                           "w-10 h-10 rounded-full flex items-center justify-center text-lg mr-3 shrink-0",
                           t.type === "deposit"
                             ? "bg-[#34C759]/10"
-                            : "bg-[rgba(120,120,128,0.08)]"
+                            : "bg-[rgba(120,120,128,0.08)]",
                         )}
                       >
                         {t.type === "deposit" ? "💰" : "💸"}
@@ -503,7 +506,9 @@ export default function AccountDetailSheet({
                       <p
                         className={clsx(
                           "text-[15px] font-bold tabular-nums",
-                          t.type === "deposit" ? "text-[#34C759]" : "text-black"
+                          t.type === "deposit"
+                            ? "text-[#34C759]"
+                            : "text-black",
                         )}
                       >
                         {t.type === "deposit" ? "+" : "-"}₱
