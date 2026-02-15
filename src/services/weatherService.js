@@ -159,46 +159,31 @@ export const getSmartWeatherSummary = async () => {
         `;
 
         try {
-            // Attempt Gemini 3 Flash Preview
+            // Attempt 1: Gemini 2.0 Flash (Stable)
             const ai = new GoogleGenAI({
                 apiKey: import.meta.env.VITE_GEMINI_API_KEY,
             });
 
-            const config = {
-                thinkingConfig: { thinkingLevel: 'HIGH' },
-                safetySettings: [
-                    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
-                    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
-                    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
-                    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' }
-                ],
-            };
-
-            const req = {
-                model: 'gemini-3-flash-preview', // Or 'gemini-2.0-flash-thinking-exp' if 3 not avail
-                config: config,
+            const result = await ai.models.generateContent({
+                model: 'gemini-2.0-flash',
                 contents: [{ role: 'user', parts: [{ text: promptText }] }],
-            };
+                config: { responseMimeType: 'application/json' }
+            });
 
-            // Fallback safety for streaming vs non-streaming
-            // We'll use standard generateContent to be simpler/more robust for this cron-like task
-            // unless streaming is strictly required. Standard is fine for background fetch.
-            // Actually, let's keep it robust.
-
-            const result = await ai.models.generateContent(req);
-            const fullText = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text;
+            const fullText = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text
+                || result?.response?.text?.();
 
             if (fullText) {
-                console.log("Gemini 3 Output:", fullText);
+                console.log("Gemini 2.0 Flash Output:", fullText);
                 const cleanText = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
                 aiSummary = JSON.parse(cleanText);
-                modelUsed = 'Gemini 3 Flash';
+                modelUsed = 'Gemini 2.0 Flash';
             } else {
-                throw new Error("Empty Gemini 3 response");
+                throw new Error("Empty Gemini 2.0 response");
             }
 
         } catch (error) {
-            console.warn("Gemini 3 Failed, trying 1.5:", error);
+            console.warn("Gemini 2.0 Failed, trying 1.5:", error);
             try {
                 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
                 const result = await ai.models.generateContent({
@@ -206,21 +191,20 @@ export const getSmartWeatherSummary = async () => {
                     contents: [{ role: 'user', parts: [{ text: promptText }] }],
                     config: { responseMimeType: 'application/json' }
                 });
-                aiSummary = JSON.parse(result.response.text());
-                modelUsed = 'Gemini 1.5 Flash';
+                const text = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text
+                    || result?.response?.text?.();
+                if (text) {
+                    aiSummary = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+                    modelUsed = 'Gemini 1.5 Flash';
+                } else {
+                    throw new Error("Empty Gemini 1.5 response");
+                }
             } catch (fbError) {
                 console.warn("All AI Failed:", fbError);
                 modelUsed = 'Offline Fallback';
 
-                // 2c. Robust Hardcoded Fallback
-                const rainComing = homeData.hourlyForecast?.some(h => h.rainProb > 40) || homeData.current?.precip > 0;
-                const isHot = homeData.current?.temp > 32;
-                const isCloudy = homeData.current?.condition?.includes('cloud') || homeData.current?.condition?.includes('Overcast');
-
-                aiSummary = {
-                    pill: rainComing ? "Rain Likely 🌧️" : isHot ? "Hot Weather ☀️" : isCloudy ? "Overcast ☁️" : "Clear Skies ☀️",
-                    recommendation: rainComing ? "Bring an umbrella, rain is expected! ☔" : "Check the forecast, AI is sleeping. 😴"
-                };
+                // Smart Offline Fallback using raw weather data
+                aiSummary = generateOfflineSummary(homeData);
             }
         }
 
@@ -302,18 +286,16 @@ export const getDetailedLocationSummary = async (locationName, locationData) => 
             apiKey: import.meta.env.VITE_GEMINI_API_KEY,
         });
 
-        // Attempt 1: Gemini 2.0 Flash (Bleeding Edge) with Search
-        console.log(`Asking Gemini 2.0 for ${locationName}...`);
+        // Attempt 1: Gemini 2.0 Flash (Stable)
+        console.log(`Asking Gemini 2.0 Flash for ${locationName}...`);
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash-exp',
+            model: 'gemini-2.0-flash',
             contents: [{ role: 'user', parts: [{ text: promptText }] }],
-            config: {
-                tools: [{ googleSearch: {} }], // Enable Search Grounding
-                temperature: 0.9,
-            }
+            config: { temperature: 0.9 }
         });
 
-        const text = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        const text = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+            || response?.response?.text?.()?.trim();
 
         if (text) {
             localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: text }));
@@ -321,7 +303,7 @@ export const getDetailedLocationSummary = async (locationName, locationData) => 
         }
 
     } catch (error) {
-        console.warn("Gemini 2.0 Summary Failed, falling back to 1.5:", error);
+        console.warn("Gemini 2.0 Flash Summary Failed, falling back to 1.5:", error);
 
         // Attempt 2: Gemini 1.5 Flash (Reliable)
         try {
@@ -331,7 +313,8 @@ export const getDetailedLocationSummary = async (locationName, locationData) => 
                 contents: [{ role: 'user', parts: [{ text: promptText }] }],
                 config: { temperature: 0.7 }
             });
-            const text = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            const text = response?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+                || response?.response?.text?.()?.trim();
             if (text) {
                 localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), data: text }));
                 return text;
@@ -353,5 +336,45 @@ export const getDetailedLocationSummary = async (locationName, locationData) => 
     if (temp < 24) return "Cooler weather today. A light jacket might be nice. 🧥";
 
     return "Skies look clear. Enjoy your day! 🌤️";
+};
+
+// Smart offline fallback that generates a useful summary from raw weather data
+const generateOfflineSummary = (locationData) => {
+    const temp = locationData?.current?.temp;
+    const cond = (locationData?.current?.condition || '').toLowerCase();
+    const precip = locationData?.current?.precip || 0;
+    const rainComing = locationData?.hourlyForecast?.some(h => h.rainProb > 40);
+    const rainNow = precip > 0 || cond.includes('rain') || cond.includes('drizzle') || cond.includes('shower');
+    const isHot = temp > 32;
+    const isWarm = temp > 28;
+    const isCool = temp < 24;
+    const isCloudy = cond.includes('cloud') || cond.includes('overcast');
+    const isFoggy = cond.includes('fog');
+
+    if (rainNow) {
+        return { pill: "Raining Now 🌧️", recommendation: "It's raining outside. Grab an umbrella before heading out! ☔" };
+    }
+    if (rainComing) {
+        return { pill: "Rain Expected 🌦️", recommendation: "Rain is expected later. Keep an umbrella handy! ☂️" };
+    }
+    if (isHot) {
+        return { pill: "Hot Weather ☀️", recommendation: `It's ${temp ? Math.round(temp) + '°C' : 'hot'}. Stay hydrated and wear light clothing! 🥤` };
+    }
+    if (isFoggy) {
+        return { pill: "Foggy 🌫️", recommendation: "Visibility is low with fog. Drive carefully! 🌫️" };
+    }
+    if (isCloudy && isWarm) {
+        return { pill: "Warm & Cloudy ⛅", recommendation: `${temp ? Math.round(temp) + '°C' : 'Warm'} with clouds. Comfortable weather, no umbrella needed. 👍` };
+    }
+    if (isCloudy) {
+        return { pill: "Overcast ☁️", recommendation: "Cloudy skies today. Should stay dry though! ☁️" };
+    }
+    if (isCool) {
+        return { pill: "Cool Weather 🧥", recommendation: `Cooler at ${temp ? Math.round(temp) + '°C' : 'low temps'}. A light jacket would be nice! 🧥` };
+    }
+    if (temp !== undefined) {
+        return { pill: "Clear Skies ☀️", recommendation: `${Math.round(temp)}°C with clear skies. Great weather to be outside! 🌤️` };
+    }
+    return { pill: "Weather ⛅", recommendation: "Couldn't reach the forecast. Check outside before heading out! 👀" };
 };
 

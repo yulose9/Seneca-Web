@@ -38,11 +38,11 @@ export const refineEntryWithGemini = async (currentTitle, currentContent) => {
     // 1. Setup Request
     const promptText = `${SYSTEM_PROMPT}\n\nInput Title: ${currentTitle}\nInput Content: ${currentContent}`;
 
-    // 2. Try Gemini 3 Flash Preview (Streaming)
+    // 2. Try Gemini 2.0 Flash (Streaming)
     try {
         const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
         const req = {
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.0-flash',
             contents: [{ role: 'user', parts: [{ text: promptText }] }],
         };
 
@@ -57,7 +57,7 @@ export const refineEntryWithGemini = async (currentTitle, currentContent) => {
         return JSON.parse(cleanText);
 
     } catch (e) {
-        console.warn("Gemini 3 Journal Rewrite Failed:", e);
+        console.warn("Gemini 2.0 Journal Rewrite Failed:", e);
 
         // 3. Fallback to Gemini 1.5 Flash (Standard)
         try {
