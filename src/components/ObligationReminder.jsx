@@ -78,13 +78,11 @@ const getTasksSnoozeInfo = () => getSnoozeInfoKey(TASKS_SNOOZE_KEY);
 // Load liabilities instantly from localStorage, preferring Firestore cache
 const loadLiabilitiesLocal = () => {
   try {
-    // Primary: Firestore cache (most up-to-date, written by subscribeToGlobalData)
     const raw = localStorage.getItem("seneca_global_data");
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed?.wealth?.liabilities?.length) return parsed.wealth.liabilities;
     }
-    // Fallback: Wealth page localStorage
     const saved = localStorage.getItem("wealth_liabilities");
     if (saved) {
       const parsed = JSON.parse(saved);
@@ -96,14 +94,70 @@ const loadLiabilitiesLocal = () => {
   return [];
 };
 
+// Load transactions from localStorage
+const loadTransactionsLocal = () => {
+  try {
+    const raw = localStorage.getItem("seneca_global_data");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.wealth?.transactions?.length) return parsed.wealth.transactions;
+    }
+    const saved = localStorage.getItem("wealth_transactions");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    }
+  } catch {
+    /* ignore */
+  }
+  return [];
+};
+
+// Format a date into a human-readable relative time
+const formatRelativeTime = (dateStr) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays <= 6) {
+    const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
+    return `last ${dayName}`;
+  }
+  if (diffDays <= 13) return "a week ago";
+  if (diffDays <= 29) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays <= 59) return "a month ago";
+  if (diffDays <= 364) return `${Math.floor(diffDays / 30)} months ago`;
+  return "over a year ago";
+};
+
+// Find the last payment transaction for a specific liability
+const findLastPayment = (transactions, liability) => {
+  // Match by accountId or bank name, only "payment" or "deposit" on Liabilities category
+  const payments = transactions.filter(
+    (t) =>
+      t.category === "Liabilities" &&
+      (t.type === "payment" || t.type === "deposit") &&
+      (t.accountId === liability.id || t.bank === liability.name),
+  );
+  if (payments.length === 0) return null;
+  // Sort by date descending, return most recent
+  payments.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return payments[0];
+};
+
 export default function ObligationReminder({ isOpen, onClose }) {
   // Load instantly from localStorage — no waiting for Firestore
   const [liabilities, setLiabilities] = useState(loadLiabilitiesLocal);
+  const [transactions, setTransactions] = useState(loadTransactionsLocal);
 
   useEffect(() => {
     // Also subscribe to Firestore for live updates
     const unsub = subscribeToGlobalData("wealth", (data) => {
       if (data?.liabilities) setLiabilities(data.liabilities);
+      if (data?.transactions) setTransactions(data.transactions);
     });
     return () => unsub();
   }, []);
@@ -116,7 +170,6 @@ export default function ObligationReminder({ isOpen, onClose }) {
   const otherLoans = liabilities.filter(
     (l) => l.id !== "kuya" && !l.isPriority,
   );
-  const otherTotal = otherLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
 
   const handleDismiss = () => {
     onClose?.();
@@ -176,47 +229,95 @@ export default function ObligationReminder({ isOpen, onClose }) {
 
               {/* Liabilities */}
               <div className="px-6 py-4 space-y-3">
-                {kuyaLoan && (
-                  <div className="flex items-center justify-between py-3 px-4 rounded-2xl bg-[#FF3B30]/5 border border-[#FF3B30]/10">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🤝</span>
-                      <div>
-                        <p className="text-[15px] font-semibold text-black">
-                          {kuyaLoan.name || "Loan from Kuya"}
-                        </p>
-                        <p className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
-                          {kuyaLoan.platform || "Personal"} • Priority
+                {kuyaLoan && (() => {
+                  const lastPay = findLastPayment(transactions, kuyaLoan);
+                  return (
+                    <div className="rounded-2xl bg-[#FF3B30]/5 border border-[#FF3B30]/10 overflow-hidden">
+                      <div className="flex items-center justify-between py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{kuyaLoan.icon || "🧑"}</span>
+                          <div>
+                            <p className="text-[15px] font-semibold text-black">
+                              {kuyaLoan.name || "Loan from Kuya"}
+                            </p>
+                            <p className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
+                              {kuyaLoan.platform || "Personal"} • Priority
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-[17px] font-bold text-[#FF3B30]">
+                          ₱{(kuyaLoan.amount || 0).toLocaleString()}
                         </p>
                       </div>
+                      {/* Last payment info */}
+                      <div className="px-4 pb-3 pt-0">
+                        <div className="bg-white/70 rounded-xl px-3 py-2">
+                          {lastPay ? (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-4 h-4 rounded-full bg-[#34C759]/15 flex items-center justify-center">
+                                  <Check size={10} className="text-[#34C759]" />
+                                </div>
+                                <p className="text-[11px] text-[rgba(60,60,67,0.6)] font-medium">
+                                  Paid <span className="font-semibold text-[#34C759]">₱{lastPay.amount.toLocaleString()}</span> · {formatRelativeTime(lastPay.date)}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-[rgba(60,60,67,0.4)] font-medium italic">
+                              No payments recorded yet
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-[17px] font-bold text-[#FF3B30]">
-                      ₱{(kuyaLoan.amount || 0).toLocaleString()}
-                    </p>
-                  </div>
-                )}
+                  );
+                })()}
 
-                {otherLoans.length > 0 && (
-                  <div className="flex items-center justify-between py-3 px-4 rounded-2xl bg-[rgba(120,120,128,0.04)] border border-[rgba(120,120,128,0.08)]">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🏦</span>
-                      <div>
-                        <p className="text-[15px] font-semibold text-black">
-                          {otherLoans.length === 1
-                            ? otherLoans[0].name
-                            : "Other Loans"}
-                        </p>
-                        <p className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
-                          {otherLoans.length === 1
-                            ? otherLoans[0].platform || "Bank / Other"
-                            : `${otherLoans.length} outstanding obligations`}
+                {otherLoans.length > 0 && otherLoans.map((loan) => {
+                  const lastPay = findLastPayment(transactions, loan);
+                  return (
+                    <div key={loan.id} className="rounded-2xl bg-[rgba(120,120,128,0.04)] border border-[rgba(120,120,128,0.08)] overflow-hidden">
+                      <div className="flex items-center justify-between py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{loan.icon || "🍀"}</span>
+                          <div>
+                            <p className="text-[15px] font-semibold text-black">
+                              {loan.name}
+                            </p>
+                            <p className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
+                              {loan.platform || "Bank / Other"}
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-[17px] font-bold text-[rgba(60,60,67,0.8)]">
+                          ₱{(loan.amount || 0).toLocaleString()}
                         </p>
                       </div>
+                      {/* Last payment info */}
+                      <div className="px-4 pb-3 pt-0">
+                        <div className="bg-white/70 rounded-xl px-3 py-2">
+                          {lastPay ? (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-4 h-4 rounded-full bg-[#34C759]/15 flex items-center justify-center">
+                                  <Check size={10} className="text-[#34C759]" />
+                                </div>
+                                <p className="text-[11px] text-[rgba(60,60,67,0.6)] font-medium">
+                                  Paid <span className="font-semibold text-[#34C759]">₱{lastPay.amount.toLocaleString()}</span> · {formatRelativeTime(lastPay.date)}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-[rgba(60,60,67,0.4)] font-medium italic">
+                              No payments recorded yet
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-[17px] font-bold text-[rgba(60,60,67,0.8)]">
-                      ₱{otherTotal.toLocaleString()}
-                    </p>
-                  </div>
-                )}
+                  );
+                })}
 
                 {/* Motivational message */}
                 <div className="pt-2 pb-1">
