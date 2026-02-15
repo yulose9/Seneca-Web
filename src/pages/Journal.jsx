@@ -3,6 +3,7 @@ import EmojiPicker from "emoji-picker-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Check, ChevronRight, SmilePlus, Trash2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import JournalDetailSheet from "../components/JournalDetailSheet";
 import PageTransition from "../components/PageTransition";
 import RichTextEditor from "../components/RichTextEditor";
@@ -15,6 +16,94 @@ import {
   updateGlobalData,
   updateTodayLog,
 } from "../services/dataLogger";
+
+// iOS-style Journal Logged Success Overlay
+const JournalLoggedOverlay = ({ isOpen, onBack }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/30 backdrop-blur-md z-[400]"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 30 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 30 }}
+          transition={{ type: "spring", damping: 22, stiffness: 260 }}
+          className="fixed inset-0 flex items-center justify-center z-[401] px-8"
+        >
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-[320px] w-full shadow-2xl text-center">
+            {/* Animated Checkmark */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{
+                delay: 0.15,
+                type: "spring",
+                damping: 12,
+                stiffness: 200,
+              }}
+              className="mx-auto mb-5 w-[72px] h-[72px] rounded-full bg-[#34C759] flex items-center justify-center shadow-lg shadow-[#34C759]/30"
+            >
+              <motion.svg
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ delay: 0.35, duration: 0.4, ease: "easeOut" }}
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <motion.path
+                  d="M5 13l4 4L19 7"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ delay: 0.35, duration: 0.4, ease: "easeOut" }}
+                />
+              </motion.svg>
+            </motion.div>
+
+            <motion.h2
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-[22px] font-bold text-black mb-1"
+            >
+              Journal Logged
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-[15px] text-[rgba(60,60,67,0.6)] mb-7"
+            >
+              Your reflection has been saved.
+            </motion.p>
+
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onBack}
+              className="w-full h-[50px] rounded-2xl bg-[#007AFF] text-white font-semibold text-[17px] shadow-lg shadow-[#007AFF]/25 active:opacity-90 transition-opacity"
+            >
+              Back to Protocol
+            </motion.button>
+          </div>
+        </motion.div>
+      </>
+    )}
+  </AnimatePresence>
+);
 
 // Confirmation Dialog Component
 const ConfirmDialog = ({
@@ -286,7 +375,9 @@ export default function Journal() {
   const [mood, setMood] = useState(getRandomMood());
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [confirmDialog, setConfirmDialog] = useState({
@@ -562,6 +653,7 @@ export default function Journal() {
     setTitle("");
     setMood(getRandomMood());
     setIsSaving(false);
+    setShowSuccess(true);
   }, [entry, title, mood]);
 
   const handleSelect = (id) => {
@@ -875,6 +967,15 @@ export default function Journal() {
           lastLocalInteraction.current = Date.now();
           setEntries((prev) => prev.filter((e) => e.id !== id));
           setViewEntry(null);
+        }}
+      />
+
+      {/* Journal Logged Success Overlay */}
+      <JournalLoggedOverlay
+        isOpen={showSuccess}
+        onBack={() => {
+          setShowSuccess(false);
+          navigate("/protocol");
         }}
       />
     </PageTransition>
