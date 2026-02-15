@@ -74,44 +74,73 @@ const formatDate = () => {
   return now.toLocaleDateString("en-US", options).toUpperCase();
 };
 
-// Get dynamic greeting based on time of day
-const getTimeBasedGreeting = () => {
+// Get dynamic greeting based on time of day + journal/protocol state
+const getTimeBasedGreeting = (hasJournalToday = false, protocolProgress = 0) => {
   const hour = new Date().getHours();
 
+  // If user already journaled today, give contextual "finish strong" messages
+  if (hasJournalToday) {
+    if (hour >= 4 && hour < 12) {
+      return {
+        title: "Already Reflected ✓",
+        message: "You've logged your thoughts this morning. Now go conquer the day.",
+        buttonText: "View Entry",
+      };
+    } else if (hour >= 12 && hour < 18) {
+      return {
+        title: "Journal Logged ✓",
+        message: protocolProgress >= 80
+          ? "Great progress today. Keep pushing through the rest of your protocol."
+          : "You've reflected. Now finish strong — complete your remaining tasks.",
+        buttonText: "View Entry",
+      };
+    } else {
+      return {
+        title: "Day Captured ✓",
+        message: protocolProgress >= 100
+          ? "What a day. Protocol done, journal written. Rest well tonight."
+          : "Your thoughts are saved. Wrap up any remaining tasks and wind down.",
+        buttonText: "View Entry",
+      };
+    }
+  }
+
+  // No journal entry yet — prompt to write
   if (hour >= 4 && hour < 6) {
     return {
       title: "Early Riser",
-      message:
-        "The world is quiet. A perfect time to set your intentions for the day.",
+      message: "The world is quiet. A perfect time to set your intentions for the day.",
+      buttonText: "Write Entry",
     };
   } else if (hour >= 6 && hour < 12) {
     return {
       title: "Good Morning",
       message: "A fresh start awaits. What are your main goals for today?",
+      buttonText: "Write Entry",
     };
   } else if (hour >= 12 && hour < 14) {
     return {
       title: "Midday Check-in",
-      message:
-        "Half the day is gone. How are you feeling? Time to refuel and reset.",
+      message: "Half the day is gone. How are you feeling? Time to refuel and reset.",
+      buttonText: "Write Entry",
     };
   } else if (hour >= 14 && hour < 18) {
     return {
       title: "Afternoon Focus",
-      message:
-        "Keep the momentum going. You're doing great. What's next on the list?",
+      message: "Keep the momentum going. You're doing great. What's next on the list?",
+      buttonText: "Write Entry",
     };
   } else if (hour >= 18 && hour < 21) {
     return {
       title: "Evening Wind Down",
-      message:
-        "The day is shifting. Time to relax and reflect on what you've accomplished.",
+      message: "The day is shifting. Time to relax and reflect on what you've accomplished.",
+      buttonText: "Write Entry",
     };
   } else {
     return {
       title: "Late Night Thoughts",
-      message:
-        "The stars are out. Capture your final thoughts before sleep takes over.",
+      message: "The stars are out. Capture your final thoughts before sleep takes over.",
+      buttonText: "Write Entry",
     };
   }
 };
@@ -138,7 +167,7 @@ export default function Home() {
   const [profileImage, setProfileImage] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [cardOrder, setCardOrder] = useState(loadCardOrder);
-  const greeting = getTimeBasedGreeting();
+  const [hasJournalToday, setHasJournalToday] = useState(false);
 
   // 🌐 Wealth data from global sync
   const [wealthData, setWealthData] = useState({
@@ -211,6 +240,33 @@ export default function Home() {
 
   const studiedToday = getStudiedToday();
   const studyStreak = getStudyStreak();
+  const greeting = getTimeBasedGreeting(hasJournalToday, progress);
+
+  // Check if user has a journal entry today
+  useEffect(() => {
+    const checkJournal = () => {
+      try {
+        const saved = localStorage.getItem("journal_entries");
+        if (saved) {
+          const entries = JSON.parse(saved);
+          const today = new Date().toISOString().split("T")[0];
+          setHasJournalToday(entries.some((e) => e.isoDate === today));
+        }
+      } catch { /* ignore */ }
+    };
+
+    checkJournal();
+
+    // Also subscribe to global journal data for real-time updates
+    const unsubscribe = subscribeToGlobalData("journal", (journalData) => {
+      if (journalData?.entries) {
+        const today = new Date().toISOString().split("T")[0];
+        setHasJournalToday(journalData.entries.some((e) => e.isoDate === today));
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <PageTransition className="min-h-screen bg-[#F2F2F7] pb-32">
@@ -517,13 +573,17 @@ export default function Home() {
                     {!isEditMode && (
                       <motion.button
                         whileTap={{ scale: 0.97 }}
-                        className="w-full py-3.5 rounded-xl bg-[#5856D6] text-white font-semibold text-[15px] shadow-lg shadow-[#5856D6]/25"
+                        className={`w-full py-3.5 rounded-xl font-semibold text-[15px] shadow-lg ${
+                          hasJournalToday
+                            ? "bg-[#34C759] text-white shadow-[#34C759]/25"
+                            : "bg-[#5856D6] text-white shadow-[#5856D6]/25"
+                        }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate("/journal");
                         }}
                       >
-                        Write Entry
+                        {greeting.buttonText || "Write Entry"}
                       </motion.button>
                     )}
                   </div>
