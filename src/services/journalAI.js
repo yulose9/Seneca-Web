@@ -35,45 +35,49 @@ Return ONLY a JSON object with "title" (short, punchy, stoic) and "content" (HTM
 `;
 
 export const refineEntryWithGemini = async (currentTitle, currentContent) => {
-    // 1. Setup Request
-    const promptText = `${SYSTEM_PROMPT}\n\nInput Title: ${currentTitle}\nInput Content: ${currentContent}`;
+  // 1. Setup Request
+  const promptText = `${SYSTEM_PROMPT}\n\nInput Title: ${currentTitle}\nInput Content: ${currentContent}`;
 
-    // 2. Try Gemini 2.0 Flash (Streaming)
-    try {
-        const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-        const req = {
-            model: 'gemini-2.0-flash',
-            contents: [{ role: 'user', parts: [{ text: promptText }] }],
-        };
+  // 2. Try Gemini 2.0 Flash (Streaming)
+  try {
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+    const req = {
+      model: "gemini-2.0-flash",
+      contents: [{ role: "user", parts: [{ text: promptText }] }],
+    };
 
-        const resultStream = await ai.models.generateContentStream(req);
-        let fullText = '';
-        for await (const chunk of resultStream) {
-            if (chunk.text) fullText += chunk.text;
-        }
-
-        console.log("Journal AI Raw:", fullText);
-        const cleanText = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(cleanText);
-
-    } catch (e) {
-        console.warn("Gemini 2.0 Journal Rewrite Failed:", e);
-
-        // 3. Fallback to Gemini 1.5 Flash (Standard)
-        try {
-            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-            const req = {
-                model: 'gemini-1.5-flash',
-                contents: [{ role: 'user', parts: [{ text: promptText }] }],
-                config: { responseMimeType: 'application/json' }
-            };
-            const result = await ai.models.generateContent(req);
-            const text = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) return JSON.parse(text);
-        } catch (fallbackError) {
-            console.error("Gemini 1.5 Fallback Failed:", fallbackError);
-            throw new Error("Unable to refine entry.");
-        }
+    const resultStream = await ai.models.generateContentStream(req);
+    let fullText = "";
+    for await (const chunk of resultStream) {
+      if (chunk.text) fullText += chunk.text;
     }
-    return null; // Should not reach here
+
+    console.log("Journal AI Raw:", fullText);
+    const cleanText = fullText
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+    return JSON.parse(cleanText);
+  } catch (e) {
+    console.warn("Gemini 2.0 Journal Rewrite Failed:", e);
+
+    // 3. Fallback to Gemini 1.5 Flash (Standard)
+    try {
+      const ai = new GoogleGenAI({
+        apiKey: import.meta.env.VITE_GEMINI_API_KEY,
+      });
+      const req = {
+        model: "gemini-1.5-flash",
+        contents: [{ role: "user", parts: [{ text: promptText }] }],
+        config: { responseMimeType: "application/json" },
+      };
+      const result = await ai.models.generateContent(req);
+      const text = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) return JSON.parse(text);
+    } catch (fallbackError) {
+      console.error("Gemini 1.5 Fallback Failed:", fallbackError);
+      throw new Error("Unable to refine entry.");
+    }
+  }
+  return null; // Should not reach here
 };

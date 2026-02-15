@@ -10,6 +10,7 @@ import Fuse from "fuse.js";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  Bell,
   Check,
   ChevronDown,
   ChevronRight,
@@ -24,6 +25,7 @@ import { useSearchParams } from "react-router-dom";
 import AccountDetailSheet from "../components/AccountDetailSheet";
 import AddTransactionSheet from "../components/AddTransactionSheet";
 import PageTransition from "../components/PageTransition";
+import ObligationReminder from "../components/ObligationReminder";
 import TransactionDetailSheet from "../components/TransactionDetailSheet";
 import {
   updateTodayLog,
@@ -695,6 +697,7 @@ export default function Wealth() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [viewTransaction, setViewTransaction] = useState(null);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showObligationReminder, setShowObligationReminder] = useState(false);
 
   // Search state
   const [isSearching, setIsSearching] = useState(false);
@@ -1368,6 +1371,16 @@ export default function Wealth() {
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowObligationReminder(true)}
+                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative"
+                  >
+                    <Bell size={20} className="text-white" />
+                    {totalLiabilities > 0 && (
+                      <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#FF3B30] rounded-full border-2 border-[#1C1C1E]" />
+                    )}
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => setIsSearching(true)}
                     className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
                   >
@@ -1859,6 +1872,12 @@ export default function Wealth() {
           lastLocalInteraction.current = Date.now(); // Mark interaction time
           setTransactions((prev) => [transaction, ...prev]);
         }}
+      />
+
+      {/* Obligation Reminder Popup */}
+      <ObligationReminder
+        isOpen={showObligationReminder}
+        onClose={() => setShowObligationReminder(false)}
       />
     </PageTransition>
   );

@@ -1,19 +1,18 @@
+import { signOut } from "firebase/auth";
 import { motion, Reorder } from "framer-motion";
 import { ChevronRight, GripVertical, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "../services/firebase";
 import ExportDataButton from "../components/ExportDataButton";
 import GsapText from "../components/GsapText";
+import ObligationReminder, { useObligationReminder } from "../components/ObligationReminder";
 import PageTransition from "../components/PageTransition";
 import ProtocolCarousel from "../components/ProtocolCarousel";
 import SystemCard from "../components/SystemCard";
 import WeatherWidget from "../components/WeatherWidget";
 import { useProtocol } from "../context/ProtocolContext";
 import { getGlobalData, subscribeToGlobalData } from "../services/dataLogger";
-
-
+import { auth } from "../services/firebase";
 
 // LocalStorage key for card order
 const CARD_ORDER_KEY = "home_card_order";
@@ -75,7 +74,10 @@ const formatDate = () => {
 };
 
 // Get dynamic greeting based on time of day + journal/protocol state
-const getTimeBasedGreeting = (hasJournalToday = false, protocolProgress = 0) => {
+const getTimeBasedGreeting = (
+  hasJournalToday = false,
+  protocolProgress = 0,
+) => {
   const hour = new Date().getHours();
 
   // If user already journaled today, give contextual "finish strong" messages
@@ -83,23 +85,26 @@ const getTimeBasedGreeting = (hasJournalToday = false, protocolProgress = 0) => 
     if (hour >= 4 && hour < 12) {
       return {
         title: "Already Reflected ✓",
-        message: "You've logged your thoughts this morning. Now go conquer the day.",
+        message:
+          "You've logged your thoughts this morning. Now go conquer the day.",
         buttonText: "View Entry",
       };
     } else if (hour >= 12 && hour < 18) {
       return {
         title: "Journal Logged ✓",
-        message: protocolProgress >= 80
-          ? "Great progress today. Keep pushing through the rest of your protocol."
-          : "You've reflected. Now finish strong — complete your remaining tasks.",
+        message:
+          protocolProgress >= 80
+            ? "Great progress today. Keep pushing through the rest of your protocol."
+            : "You've reflected. Now finish strong — complete your remaining tasks.",
         buttonText: "View Entry",
       };
     } else {
       return {
         title: "Day Captured ✓",
-        message: protocolProgress >= 100
-          ? "What a day. Protocol done, journal written. Rest well tonight."
-          : "Your thoughts are saved. Wrap up any remaining tasks and wind down.",
+        message:
+          protocolProgress >= 100
+            ? "What a day. Protocol done, journal written. Rest well tonight."
+            : "Your thoughts are saved. Wrap up any remaining tasks and wind down.",
         buttonText: "View Entry",
       };
     }
@@ -109,7 +114,8 @@ const getTimeBasedGreeting = (hasJournalToday = false, protocolProgress = 0) => 
   if (hour >= 4 && hour < 6) {
     return {
       title: "Early Riser",
-      message: "The world is quiet. A perfect time to set your intentions for the day.",
+      message:
+        "The world is quiet. A perfect time to set your intentions for the day.",
       buttonText: "Write Entry",
     };
   } else if (hour >= 6 && hour < 12) {
@@ -121,25 +127,29 @@ const getTimeBasedGreeting = (hasJournalToday = false, protocolProgress = 0) => 
   } else if (hour >= 12 && hour < 14) {
     return {
       title: "Midday Check-in",
-      message: "Half the day is gone. How are you feeling? Time to refuel and reset.",
+      message:
+        "Half the day is gone. How are you feeling? Time to refuel and reset.",
       buttonText: "Write Entry",
     };
   } else if (hour >= 14 && hour < 18) {
     return {
       title: "Afternoon Focus",
-      message: "Keep the momentum going. You're doing great. What's next on the list?",
+      message:
+        "Keep the momentum going. You're doing great. What's next on the list?",
       buttonText: "Write Entry",
     };
   } else if (hour >= 18 && hour < 21) {
     return {
       title: "Evening Wind Down",
-      message: "The day is shifting. Time to relax and reflect on what you've accomplished.",
+      message:
+        "The day is shifting. Time to relax and reflect on what you've accomplished.",
       buttonText: "Write Entry",
     };
   } else {
     return {
       title: "Late Night Thoughts",
-      message: "The stars are out. Capture your final thoughts before sleep takes over.",
+      message:
+        "The stars are out. Capture your final thoughts before sleep takes over.",
       buttonText: "Write Entry",
     };
   }
@@ -170,6 +180,9 @@ export default function Home() {
   const [cardOrder, setCardOrder] = useState(loadCardOrder);
   const [hasJournalToday, setHasJournalToday] = useState(false);
 
+  // Obligation reminder — auto-shows on app open unless snoozed
+  const { showReminder, closeReminder } = useObligationReminder();
+
   // 🌐 Wealth data from global sync
   const [wealthData, setWealthData] = useState({
     netWorth: 0,
@@ -187,9 +200,16 @@ export default function Home() {
       try {
         const cloudWealth = await getGlobalData("wealth");
         if (cloudWealth) {
-          const totalAssets = cloudWealth.assets?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
-          const totalLiabs = cloudWealth.liabilities?.reduce((sum, l) => sum + (l.amount || 0), 0) || 0;
-          const priorityLiab = cloudWealth.liabilities?.find(l => l.isPriority) || null;
+          const totalAssets =
+            cloudWealth.assets?.reduce((sum, a) => sum + (a.amount || 0), 0) ||
+            0;
+          const totalLiabs =
+            cloudWealth.liabilities?.reduce(
+              (sum, l) => sum + (l.amount || 0),
+              0,
+            ) || 0;
+          const priorityLiab =
+            cloudWealth.liabilities?.find((l) => l.isPriority) || null;
 
           setWealthData({
             netWorth: totalAssets - totalLiabs,
@@ -206,9 +226,15 @@ export default function Home() {
     // Subscribe to real-time updates
     const unsubscribe = subscribeToGlobalData("wealth", (cloudWealth) => {
       if (cloudWealth) {
-        const totalAssets = cloudWealth.assets?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
-        const totalLiabs = cloudWealth.liabilities?.reduce((sum, l) => sum + (l.amount || 0), 0) || 0;
-        const priorityLiab = cloudWealth.liabilities?.find(l => l.isPriority) || null;
+        const totalAssets =
+          cloudWealth.assets?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
+        const totalLiabs =
+          cloudWealth.liabilities?.reduce(
+            (sum, l) => sum + (l.amount || 0),
+            0,
+          ) || 0;
+        const priorityLiab =
+          cloudWealth.liabilities?.find((l) => l.isPriority) || null;
 
         setWealthData({
           netWorth: totalAssets - totalLiabs,
@@ -243,7 +269,9 @@ export default function Home() {
           const today = new Date().toISOString().split("T")[0];
           setHasJournalToday(entries.some((e) => e.isoDate === today));
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
 
     checkJournal();
@@ -252,7 +280,9 @@ export default function Home() {
     const unsubscribe = subscribeToGlobalData("journal", (journalData) => {
       if (journalData?.entries) {
         const today = new Date().toISOString().split("T")[0];
-        setHasJournalToday(journalData.entries.some((e) => e.isoDate === today));
+        setHasJournalToday(
+          journalData.entries.some((e) => e.isoDate === today),
+        );
       }
     });
 
@@ -350,16 +380,21 @@ export default function Home() {
                         </div>
                         <div>
                           <p className="text-[17px] font-semibold text-black">
-                            {wealthData.priorityLiability?.name || "Loan from Kuya"}
+                            {wealthData.priorityLiability?.name ||
+                              "Loan from Kuya"}
                           </p>
                           <p className="text-[13px] text-[rgba(60,60,67,0.6)]">
-                            {wealthData.priorityLiability?.platform || "Personal Loan"}
+                            {wealthData.priorityLiability?.platform ||
+                              "Personal Loan"}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-baseline justify-between">
                         <span className="text-[28px] font-bold text-[#FF3B30] tracking-tight">
-                          ₱{(wealthData.priorityLiability?.amount || 0).toLocaleString()}
+                          ₱
+                          {(
+                            wealthData.priorityLiability?.amount || 0
+                          ).toLocaleString()}
                         </span>
                         <span className="text-[13px] font-medium text-[rgba(60,60,67,0.6)]">
                           Outstanding
@@ -421,8 +456,9 @@ export default function Home() {
               key={cardId}
               value={cardId}
               dragListener={isEditMode}
-              className={`relative ${isEditMode ? "cursor-grab active:cursor-grabbing" : ""
-                }`}
+              className={`relative ${
+                isEditMode ? "cursor-grab active:cursor-grabbing" : ""
+              }`}
             >
               {/* Drag Handle Overlay in Edit Mode */}
               {isEditMode && (
@@ -468,6 +504,9 @@ export default function Home() {
 
       {/* Export Data Button (floating) */}
       <ExportDataButton />
+
+      {/* Obligation Reminder — shows on every app open unless snoozed */}
+      <ObligationReminder isOpen={showReminder} onClose={closeReminder} />
     </PageTransition>
   );
 }

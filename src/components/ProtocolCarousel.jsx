@@ -1,10 +1,10 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
-import { usePersonalGoals } from "../context/PersonalGoalsContext";
 
 // Helper to get today's date as YYYY-MM-DD in local tz
 const getTodayStr = () => {
@@ -82,7 +82,13 @@ export default function ProtocolCarousel() {
     }
 
     return available;
-  }, [allPhasesComplete, activeStudyGoal, studiedToday, noPornToday, exerciseToday]);
+  }, [
+    allPhasesComplete,
+    activeStudyGoal,
+    studiedToday,
+    noPornToday,
+    exerciseToday,
+  ]);
 
   // Clamp active index when cards change
   const safeIndex = Math.min(activeIndex, Math.max(cards.length - 1, 0));
@@ -95,15 +101,12 @@ export default function ProtocolCarousel() {
         return [next, newDirection];
       });
     },
-    [cards.length]
+    [cards.length],
   );
 
-  const goTo = useCallback(
-    (idx) => {
-      setPage(([prev]) => [idx, idx > prev ? 1 : -1]);
-    },
-    []
-  );
+  const goTo = useCallback((idx) => {
+    setPage(([prev]) => [idx, idx > prev ? 1 : -1]);
+  }, []);
 
   // Nothing to show — all done for the day!
   if (cards.length === 0) {
@@ -122,8 +125,12 @@ export default function ProtocolCarousel() {
             <span className="text-2xl">🏆</span>
           </div>
           <div>
-            <h4 className="text-[17px] font-bold text-[#34C759]">All Caught Up</h4>
-            <p className="text-[14px] text-[rgba(60,60,67,0.6)]">Everything checked in for today</p>
+            <h4 className="text-[17px] font-bold text-[#34C759]">
+              All Caught Up
+            </h4>
+            <p className="text-[14px] text-[rgba(60,60,67,0.6)]">
+              Everything checked in for today
+            </p>
           </div>
         </div>
       </motion.div>
@@ -176,7 +183,9 @@ export default function ProtocolCarousel() {
             whileTap={{ scale: 0.9 }}
             onClick={() => paginate(-1)}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-opacity ${
-              safeIndex === 0 ? "opacity-20 pointer-events-none" : "opacity-60 active:opacity-100"
+              safeIndex === 0
+                ? "opacity-20 pointer-events-none"
+                : "opacity-60 active:opacity-100"
             }`}
           >
             <ChevronLeft size={18} className="text-[rgba(60,60,67,0.6)]" />
@@ -190,7 +199,8 @@ export default function ProtocolCarousel() {
                 onClick={() => goTo(i)}
                 className="w-2 h-2 rounded-full transition-all duration-300"
                 animate={{
-                  backgroundColor: i === safeIndex ? "#007AFF" : "rgba(120,120,128,0.2)",
+                  backgroundColor:
+                    i === safeIndex ? "#007AFF" : "rgba(120,120,128,0.2)",
                   scale: i === safeIndex ? 1.3 : 1,
                 }}
               />
@@ -202,7 +212,9 @@ export default function ProtocolCarousel() {
             whileTap={{ scale: 0.9 }}
             onClick={() => paginate(1)}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-opacity ${
-              safeIndex === cards.length - 1 ? "opacity-20 pointer-events-none" : "opacity-60 active:opacity-100"
+              safeIndex === cards.length - 1
+                ? "opacity-20 pointer-events-none"
+                : "opacity-60 active:opacity-100"
             }`}
           >
             <ChevronRight size={18} className="text-[rgba(60,60,67,0.6)]" />
@@ -231,7 +243,10 @@ export default function ProtocolCarousel() {
             >
               {/* Protocol Card */}
               {currentCard.id === "protocol" && (
-                <div onClick={() => navigate("/protocol")} className="cursor-pointer">
+                <div
+                  onClick={() => navigate("/protocol")}
+                  className="cursor-pointer"
+                >
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-[13px] font-semibold text-[#FF9500] uppercase tracking-wide">
                       Protocol
@@ -269,7 +284,10 @@ export default function ProtocolCarousel() {
               {/* Study Goal Card */}
               {currentCard.id === "study" && (
                 <div>
-                  <div className="flex justify-between items-center mb-1" onClick={() => navigate("/growth")}>
+                  <div
+                    className="flex justify-between items-center mb-1"
+                    onClick={() => navigate("/growth")}
+                  >
                     <span className="text-[13px] font-semibold text-[#007AFF] uppercase tracking-wide">
                       Study Goal
                     </span>
@@ -291,8 +309,12 @@ export default function ProtocolCarousel() {
                     </div>
                     {getStudyStreak() > 0 && (
                       <div className="text-right ml-3">
-                        <p className="text-[20px] font-bold text-[#007AFF]">{getStudyStreak()}</p>
-                        <p className="text-[11px] text-[rgba(60,60,67,0.6)]">day streak</p>
+                        <p className="text-[20px] font-bold text-[#007AFF]">
+                          {getStudyStreak()}
+                        </p>
+                        <p className="text-[11px] text-[rgba(60,60,67,0.6)]">
+                          day streak
+                        </p>
                       </div>
                     )}
                   </div>
@@ -304,7 +326,9 @@ export default function ProtocolCarousel() {
                     <div className="flex gap-3">
                       <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => markStudiedToday(true, markLearnStuffDone)}
+                        onClick={() =>
+                          markStudiedToday(true, markLearnStuffDone)
+                        }
                         className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
                           studiedToday === true
                             ? "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
@@ -332,7 +356,10 @@ export default function ProtocolCarousel() {
               {/* No Porn Card */}
               {currentCard.id === "noporn" && (
                 <div>
-                  <div className="flex justify-between items-center mb-1" onClick={() => navigate("/growth")}>
+                  <div
+                    className="flex justify-between items-center mb-1"
+                    onClick={() => navigate("/growth")}
+                  >
                     <span className="text-[13px] font-semibold text-[#8B5CF6] uppercase tracking-wide">
                       No Porn
                     </span>
@@ -348,7 +375,9 @@ export default function ProtocolCarousel() {
                           Stay Clean Today
                         </p>
                         <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-0.5">
-                          {noPornStreak > 0 ? `${noPornStreak} day streak 🔥` : "Start your streak today"}
+                          {noPornStreak > 0
+                            ? `${noPornStreak} day streak 🔥`
+                            : "Start your streak today"}
                         </p>
                       </div>
                     </div>
@@ -389,7 +418,10 @@ export default function ProtocolCarousel() {
               {/* Exercise Card */}
               {currentCard.id === "exercise" && (
                 <div>
-                  <div className="flex justify-between items-center mb-1" onClick={() => navigate("/growth")}>
+                  <div
+                    className="flex justify-between items-center mb-1"
+                    onClick={() => navigate("/growth")}
+                  >
                     <span className="text-[13px] font-semibold text-[#007AFF] uppercase tracking-wide">
                       Exercise
                     </span>
@@ -405,7 +437,9 @@ export default function ProtocolCarousel() {
                           Workout
                         </p>
                         <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-0.5">
-                          {exerciseStreak > 0 ? `${exerciseStreak} day streak 🔥` : "Get moving today"}
+                          {exerciseStreak > 0
+                            ? `${exerciseStreak} day streak 🔥`
+                            : "Get moving today"}
                         </p>
                       </div>
                     </div>
