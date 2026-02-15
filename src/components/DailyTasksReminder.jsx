@@ -223,7 +223,9 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                           key={item.id}
                           className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-[rgba(120,120,128,0.04)]"
                         >
-                          <span className="text-base shrink-0">{item.emoji}</span>
+                          <span className="text-base shrink-0">
+                            {item.emoji}
+                          </span>
                           <p className="text-[14px] text-[#1C1C1E] font-medium truncate">
                             {item.label}
                           </p>

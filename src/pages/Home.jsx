@@ -181,7 +181,6 @@ export default function Home() {
 
   // Obligation + tasks reminders — chained on app open
 
-
   // 🌐 Wealth data from global sync
   const [wealthData, setWealthData] = useState({
     netWorth: 0,
@@ -503,7 +502,6 @@ export default function Home() {
 
       {/* Export Data Button (floating) */}
       <ExportDataButton />
-
     </PageTransition>
   );
 }

@@ -6,10 +6,11 @@ import {
   Reorder,
   useDragControls,
 } from "framer-motion";
-import { Check, ChevronRight, Plus, RotateCcw } from "lucide-react";
+import { Bell, Check, ChevronRight, Plus, RotateCcw } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import AddTaskSheet from "../components/AddTaskSheet";
 import HabitDetailSheet from "../components/HabitDetailSheet";
+import { TasksReminderSettingsSheet } from "../components/ObligationReminder";
 import PageTransition from "../components/PageTransition";
 import { useProtocol } from "../context/ProtocolContext";
 
@@ -148,7 +149,11 @@ const LongPressReorderItem = ({ children, value, className }) => {
       onDragEnd={clearLongPress}
       className={className}
       onPointerDown={handlePointerDown}
-      style={{ userSelect: "none", WebkitUserSelect: "none", touchAction: "pan-y" }}
+      style={{
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        touchAction: "pan-y",
+      }}
     >
       <motion.div
         animate={
@@ -348,6 +353,7 @@ export default function Protocol() {
   const [expandedPhases, setExpandedPhases] = useState(["morningIgnition"]);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [addTaskSheetVisible, setAddTaskSheetVisible] = useState(false);
+  const [tasksReminderSettings, setTasksReminderSettings] = useState(false);
   const [selectedHabit, setSelectedHabit] = useState(null);
 
   // Track previous completion state to trigger auto-advance
@@ -434,6 +440,14 @@ export default function Protocol() {
             </AnimatePresence>
             <motion.button
               whileTap={{ scale: 0.9 }}
+              onClick={() => setTasksReminderSettings(true)}
+              className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-200"
+              aria-label="Reminder Settings"
+            >
+              <Bell size={20} className="text-[#FF9500]" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               onClick={() => setAddTaskSheetVisible(true)}
               className="w-10 h-10 rounded-full bg-[#007AFF] flex items-center justify-center shadow-lg shadow-[#007AFF]/25"
             >
@@ -478,6 +492,12 @@ export default function Protocol() {
         visible={addTaskSheetVisible}
         onClose={() => setAddTaskSheetVisible(false)}
         onAddTask={addCustomTask}
+      />
+
+      {/* Tasks Reminder Settings */}
+      <TasksReminderSettingsSheet
+        visible={tasksReminderSettings}
+        onClose={() => setTasksReminderSettings(false)}
       />
     </PageTransition>
   );

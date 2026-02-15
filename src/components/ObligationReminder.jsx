@@ -3,10 +3,11 @@ import { Bell, Check, Clock, X } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { subscribeToGlobalData } from "../services/dataLogger";
 
-// LocalStorage key for snooze
+// LocalStorage keys for snooze
 const SNOOZE_KEY = "obligation_reminder_snooze";
+const TASKS_SNOOZE_KEY = "tasks_reminder_snooze";
 
-// Snooze options (used by settings sheet in Wealth)
+// Snooze options (shared by both settings sheets)
 const SNOOZE_OPTIONS = [
   { label: "Every app open", description: "Always remind me", ms: 0 },
   {
@@ -22,37 +23,35 @@ const SNOOZE_OPTIONS = [
   },
 ];
 
-// Check if the reminder is currently snoozed
-const isSnoozed = () => {
+// Generic snooze helpers that work with any key
+const isSnoozedKey = (key) => {
   try {
-    const raw = localStorage.getItem(SNOOZE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return false;
     const snoozeUntil = JSON.parse(raw);
     if (Date.now() < snoozeUntil) return true;
-    localStorage.removeItem(SNOOZE_KEY);
+    localStorage.removeItem(key);
     return false;
   } catch {
     return false;
   }
 };
 
-// Set a snooze (0 = clear / every app open)
-const setSnooze = (durationMs) => {
+const setSnoozeKey = (key, durationMs) => {
   if (durationMs <= 0) {
-    localStorage.removeItem(SNOOZE_KEY);
+    localStorage.removeItem(key);
   } else {
-    localStorage.setItem(SNOOZE_KEY, JSON.stringify(Date.now() + durationMs));
+    localStorage.setItem(key, JSON.stringify(Date.now() + durationMs));
   }
 };
 
-// Get current snooze info for display
-const getSnoozeInfo = () => {
+const getSnoozeInfoKey = (key) => {
   try {
-    const raw = localStorage.getItem(SNOOZE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return { snoozed: false, label: "Every app open" };
     const snoozeUntil = JSON.parse(raw);
     if (Date.now() >= snoozeUntil) {
-      localStorage.removeItem(SNOOZE_KEY);
+      localStorage.removeItem(key);
       return { snoozed: false, label: "Every app open" };
     }
     const remaining = snoozeUntil - Date.now();
@@ -64,6 +63,16 @@ const getSnoozeInfo = () => {
     return { snoozed: false, label: "Every app open" };
   }
 };
+
+// Convenience wrappers for obligation
+const isObligationSnoozed = () => isSnoozedKey(SNOOZE_KEY);
+const setObligationSnooze = (ms) => setSnoozeKey(SNOOZE_KEY, ms);
+const getObligationSnoozeInfo = () => getSnoozeInfoKey(SNOOZE_KEY);
+
+// Convenience wrappers for tasks
+const isTasksSnoozed = () => isSnoozedKey(TASKS_SNOOZE_KEY);
+const setTasksSnooze = (ms) => setSnoozeKey(TASKS_SNOOZE_KEY, ms);
+const getTasksSnoozeInfo = () => getSnoozeInfoKey(TASKS_SNOOZE_KEY);
 
 // ─── Notification Popup (shows on app open) ─────────────────────────
 // Load liabilities instantly from localStorage (same key Wealth.jsx uses)
@@ -78,7 +87,9 @@ const loadLiabilitiesLocal = () => {
       const parsed = JSON.parse(raw);
       if (parsed?.wealth?.liabilities) return parsed.wealth.liabilities;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return [];
 };
 
@@ -231,18 +242,18 @@ export default function ObligationReminder({ isOpen, onClose }) {
   );
 }
 
-// ─── Reminder Settings Sheet (for Wealth bell icon) ─────────────────
+// ─── Obligation Reminder Settings Sheet (for Wealth bell icon) ──────
 export function ReminderSettingsSheet({ visible, onClose }) {
-  const [snoozeInfo, setSnoozeInfo] = useState(getSnoozeInfo);
+  const [snoozeInfo, setSnoozeInfo] = useState(getObligationSnoozeInfo);
 
   const handleSetSnooze = (ms) => {
-    setSnooze(ms);
-    setSnoozeInfo(getSnoozeInfo());
+    setObligationSnooze(ms);
+    setSnoozeInfo(getObligationSnoozeInfo());
   };
 
   // Refresh snooze info when opened
   useEffect(() => {
-    if (visible) setSnoozeInfo(getSnoozeInfo());
+    if (visible) setSnoozeInfo(getObligationSnoozeInfo());
   }, [visible]);
 
   return (
@@ -365,36 +376,37 @@ export function ReminderSettingsSheet({ visible, onClose }) {
   );
 }
 
-// ─── Hook: auto-show ONCE per app session ───────────────────────────
-// Chains: obligation popup → (dismiss) → daily tasks popup
-// Uses sessionStorage so popups only fire once per browser session (tab open).
-const SESSION_KEY = "obligation_shown_session";
-
+// ─── Hook: auto-show on every app open (page load) ─────────────────
+// Each notification has its own independent snooze.
+// Chains: obligation popup → (dismiss) → daily tasks popup (if not snoozed).
 export function useObligationReminder() {
   const [showReminder, setShowReminder] = useState(false);
   const [showTasksReminder, setShowTasksReminder] = useState(false);
 
   useEffect(() => {
-    // Already shown this session? Skip.
-    if (sessionStorage.getItem(SESSION_KEY)) return;
-    sessionStorage.setItem(SESSION_KEY, "1");
+    const obligationSnoozed = isObligationSnoozed();
+    const tasksSnoozed = isTasksSnoozed();
 
-    if (!isSnoozed()) {
+    if (!obligationSnoozed) {
+      // Show obligation first, tasks will chain after dismiss
       const timer = setTimeout(() => setShowReminder(true), 800);
       return () => clearTimeout(timer);
-    } else {
-      // If obligation is snoozed, go straight to tasks reminder
+    } else if (!tasksSnoozed) {
+      // Obligation snoozed, go straight to tasks
       const timer = setTimeout(() => setShowTasksReminder(true), 800);
       return () => clearTimeout(timer);
     }
+    // Both snoozed → show nothing
   }, []);
 
   const openReminder = useCallback(() => setShowReminder(true), []);
 
   const closeReminder = useCallback(() => {
     setShowReminder(false);
-    // After dismissing obligation, show tasks reminder
-    setTimeout(() => setShowTasksReminder(true), 400);
+    // After dismissing obligation, show tasks if not snoozed
+    if (!isTasksSnoozed()) {
+      setTimeout(() => setShowTasksReminder(true), 400);
+    }
   }, []);
 
   const closeTasksReminder = useCallback(() => {
@@ -408,4 +420,129 @@ export function useObligationReminder() {
     showTasksReminder,
     closeTasksReminder,
   };
+}
+
+// ─── Tasks Reminder Settings Sheet (for Protocol bell icon) ─────────
+export function TasksReminderSettingsSheet({ visible, onClose }) {
+  const [snoozeInfo, setSnoozeInfo] = useState(getTasksSnoozeInfo);
+
+  const handleSetSnooze = (ms) => {
+    setTasksSnooze(ms);
+    setSnoozeInfo(getTasksSnoozeInfo());
+  };
+
+  useEffect(() => {
+    if (visible) setSnoozeInfo(getTasksSnoozeInfo());
+  }, [visible]);
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
+            onClick={onClose}
+          />
+
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 350 }}
+            className="fixed inset-x-0 bottom-0 z-[9999] max-w-md mx-auto"
+          >
+            <div className="bg-white rounded-t-3xl shadow-2xl pb-10">
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-9 h-1 rounded-full bg-[rgba(60,60,67,0.15)]" />
+              </div>
+
+              <div className="px-6 pt-3 pb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-[19px] font-bold text-black">
+                    Tasks Reminder
+                  </h3>
+                  <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
+                    {snoozeInfo.label}
+                  </p>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center"
+                >
+                  <X size={16} className="text-[rgba(60,60,67,0.6)]" />
+                </motion.button>
+              </div>
+
+              <div className="px-6 pb-2">
+                <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.4)] uppercase tracking-wide">
+                  Reminder Frequency
+                </p>
+              </div>
+
+              <div className="px-6 space-y-1">
+                {SNOOZE_OPTIONS.map((opt) => {
+                  const isActive = opt.ms === 0 ? !snoozeInfo.snoozed : false;
+
+                  return (
+                    <motion.button
+                      key={opt.label}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleSetSnooze(opt.ms)}
+                      className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
+                        isActive
+                          ? "bg-[#FF9500]/8 border border-[#FF9500]/15"
+                          : "bg-[rgba(120,120,128,0.04)] border border-transparent active:bg-[rgba(120,120,128,0.08)]"
+                      }`}
+                      style={
+                        isActive
+                          ? {
+                              backgroundColor: "rgba(255,149,0,0.08)",
+                              borderColor: "rgba(255,149,0,0.15)",
+                            }
+                          : {}
+                      }
+                    >
+                      <div className="flex items-center gap-3">
+                        <Clock
+                          size={18}
+                          className={
+                            isActive
+                              ? "text-[#FF9500]"
+                              : "text-[rgba(60,60,67,0.4)]"
+                          }
+                        />
+                        <div className="text-left">
+                          <p
+                            className={`text-[15px] font-semibold ${isActive ? "text-[#FF9500]" : "text-black"}`}
+                          >
+                            {opt.label}
+                          </p>
+                          <p className="text-[12px] text-[rgba(60,60,67,0.5)]">
+                            {opt.description}
+                          </p>
+                        </div>
+                      </div>
+                      {isActive && (
+                        <Check size={18} className="text-[#FF9500]" />
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              <div className="px-6 pt-4">
+                <p className="text-[12px] text-[rgba(60,60,67,0.4)] text-center leading-relaxed">
+                  Controls when the daily tasks reminder appears on app open.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 }
