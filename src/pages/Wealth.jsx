@@ -25,7 +25,7 @@ import { useSearchParams } from "react-router-dom";
 import AccountDetailSheet from "../components/AccountDetailSheet";
 import AddTransactionSheet from "../components/AddTransactionSheet";
 import PageTransition from "../components/PageTransition";
-import ObligationReminder from "../components/ObligationReminder";
+import { ReminderSettingsSheet } from "../components/ObligationReminder";
 import TransactionDetailSheet from "../components/TransactionDetailSheet";
 import {
   updateTodayLog,
@@ -697,7 +697,7 @@ export default function Wealth() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [viewTransaction, setViewTransaction] = useState(null);
   const [showAddSheet, setShowAddSheet] = useState(false);
-  const [showObligationReminder, setShowObligationReminder] = useState(false);
+  const [showReminderSettings, setShowReminderSettings] = useState(false);
 
   // Search state
   const [isSearching, setIsSearching] = useState(false);
@@ -1371,7 +1371,7 @@ export default function Wealth() {
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setShowObligationReminder(true)}
+                    onClick={() => setShowReminderSettings(true)}
                     className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative"
                   >
                     <Bell size={20} className="text-white" />
@@ -1874,10 +1874,10 @@ export default function Wealth() {
         }}
       />
 
-      {/* Obligation Reminder Popup */}
-      <ObligationReminder
-        isOpen={showObligationReminder}
-        onClose={() => setShowObligationReminder(false)}
+      {/* Reminder Settings Sheet */}
+      <ReminderSettingsSheet
+        visible={showReminderSettings}
+        onClose={() => setShowReminderSettings(false)}
       />
     </PageTransition>
   );
