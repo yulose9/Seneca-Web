@@ -170,7 +170,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
             transition={{ type: "spring", damping: 28, stiffness: 350 }}
             className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[10000] max-w-md mx-auto"
           >
-            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[80vh] flex flex-col">
+            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[80vh] flex flex-col select-none">
               {/* Header */}
               <div className="bg-gradient-to-r from-[#FF9500] to-[#FFAD33] px-6 pt-6 pb-5 relative shrink-0">
                 {/* Close button */}
