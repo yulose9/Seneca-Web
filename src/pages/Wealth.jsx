@@ -24,17 +24,17 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import AccountDetailSheet from "../components/AccountDetailSheet";
 import AddTransactionSheet from "../components/AddTransactionSheet";
-import PageTransition from "../components/PageTransition";
 import { ReminderSettingsSheet } from "../components/ObligationReminder";
+import PageTransition from "../components/PageTransition";
 import TransactionDetailSheet from "../components/TransactionDetailSheet";
 import {
-  updateTodayLog,
+  getGlobalData,
+  loadGlobalDataLocal,
+  saveGlobalDataLocal,
+  subscribeToGlobalData,
   subscribeToTodayLog,
   updateGlobalData,
-  subscribeToGlobalData,
-  getGlobalData,
-  saveGlobalDataLocal,
-  loadGlobalDataLocal
+  updateTodayLog,
 } from "../services/dataLogger";
 
 // LocalStorage keys for Wealth data
@@ -205,7 +205,7 @@ const RollingNumber = ({ value, prefix = "", className }) => {
       onUpdate: (latest) => {
         if (ref.current) {
           ref.current.textContent = `${prefix}${Math.round(
-            latest
+            latest,
           ).toLocaleString()}`;
         }
       },
@@ -364,7 +364,7 @@ const SwipeableRow = ({
         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
         className={clsx(
           "bg-white active:bg-black/[0.02] transition-colors relative z-0",
-          isSelecting && "pl-12"
+          isSelecting && "pl-12",
         )}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -385,7 +385,7 @@ const SwipeableRow = ({
                   "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
                   isSelected
                     ? "bg-[#007AFF] border-[#007AFF]"
-                    : "border-[rgba(60,60,67,0.3)] bg-transparent"
+                    : "border-[rgba(60,60,67,0.3)] bg-transparent",
                 )}
               >
                 {isSelected && (
@@ -424,7 +424,7 @@ const AssetRow = (props) => (
           <p
             className={clsx(
               "text-[13px] font-semibold",
-              props.isPositive ? "text-[#34C759]" : "text-[#FF3B30]"
+              props.isPositive ? "text-[#34C759]" : "text-[#FF3B30]",
             )}
           >
             {props.isPositive ? "+" : "-"}₱
@@ -440,12 +440,14 @@ const AssetRow = (props) => (
 const LiabilityRow = (props) => (
   <SwipeableRow {...props} item={props} onSwipeDelete={props.onDelete}>
     <div
-      className={`flex items-center p-4 cursor-pointer ${props.isPriority ? "bg-[#FF3B30]/5" : ""
-        }`}
+      className={`flex items-center p-4 cursor-pointer ${
+        props.isPriority ? "bg-[#FF3B30]/5" : ""
+      }`}
     >
       <div
-        className={`w-11 h-11 rounded-full flex items-center justify-center text-xl mr-3 shrink-0 ${props.isPriority ? "bg-[#FF3B30]/20" : "bg-[#FF3B30]/10"
-          }`}
+        className={`w-11 h-11 rounded-full flex items-center justify-center text-xl mr-3 shrink-0 ${
+          props.isPriority ? "bg-[#FF3B30]/20" : "bg-[#FF3B30]/10"
+        }`}
       >
         {props.icon}
       </div>
@@ -534,7 +536,7 @@ const TransactionRow = ({
       <div
         className={clsx(
           "absolute right-0 top-0 bottom-0 w-20 bg-[#FF3B30] flex items-center justify-center transition-transform duration-200",
-          showDelete ? "translate-x-0" : "translate-x-full"
+          showDelete ? "translate-x-0" : "translate-x-full",
         )}
       >
         <button
@@ -554,7 +556,7 @@ const TransactionRow = ({
         className={clsx(
           "flex items-center p-4 bg-white border border-black/[0.04] relative transition-transform duration-200 select-none",
           !isLast ? "border-b-0" : "",
-          showDelete && "-translate-x-20"
+          showDelete && "-translate-x-20",
         )}
         style={{ borderRadius: "12px", marginBottom: "8px" }}
       >
@@ -571,7 +573,7 @@ const TransactionRow = ({
                   "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
                   isSelected
                     ? "bg-[#007AFF] border-[#007AFF]"
-                    : "border-[rgba(60,60,67,0.3)]"
+                    : "border-[rgba(60,60,67,0.3)]",
                 )}
               >
                 {isSelected && (
@@ -615,10 +617,11 @@ const TransactionRow = ({
           <p
             className={clsx(
               "text-[17px] font-bold",
-              item.type === "deposit" ? "text-black" : "text-[#FF3B30]"
+              item.type === "deposit" ? "text-black" : "text-[#FF3B30]",
             )}
           >
-            {item.type === "withdrawal" && "-"}₱{(item.amount || 0).toLocaleString()}
+            {item.type === "withdrawal" && "-"}₱
+            {(item.amount || 0).toLocaleString()}
           </p>
         </div>
       </motion.div>
@@ -667,7 +670,7 @@ const CategoryDropdown = ({
                 "w-full px-4 py-3 text-left text-[15px] font-medium",
                 selected === option
                   ? "text-[#007AFF] bg-[#007AFF]/5"
-                  : "text-black"
+                  : "text-black",
               )}
             >
               {option}
@@ -747,21 +750,21 @@ export default function Wealth() {
   useEffect(() => {
     localStorage.setItem(
       WEALTH_STORAGE_KEYS.LIABILITIES,
-      JSON.stringify(liabilities)
+      JSON.stringify(liabilities),
     );
   }, [liabilities]);
 
   useEffect(() => {
     localStorage.setItem(
       WEALTH_STORAGE_KEYS.TRANSACTIONS,
-      JSON.stringify(transactions)
+      JSON.stringify(transactions),
     );
   }, [transactions]);
 
   useEffect(() => {
     localStorage.setItem(
       WEALTH_STORAGE_KEYS.SEARCH_HISTORY,
-      JSON.stringify(searchHistory)
+      JSON.stringify(searchHistory),
     );
   }, [searchHistory]);
 
@@ -774,17 +777,26 @@ export default function Wealth() {
           console.log("[Wealth] ✓ Loaded global data from Firestore");
 
           // Restore assets
-          if (Array.isArray(cloudWealth.assets) && cloudWealth.assets.length > 0) {
+          if (
+            Array.isArray(cloudWealth.assets) &&
+            cloudWealth.assets.length > 0
+          ) {
             setAssets(cloudWealth.assets);
           }
 
           // Restore liabilities
-          if (Array.isArray(cloudWealth.liabilities) && cloudWealth.liabilities.length > 0) {
+          if (
+            Array.isArray(cloudWealth.liabilities) &&
+            cloudWealth.liabilities.length > 0
+          ) {
             setLiabilities(cloudWealth.liabilities);
           }
 
           // Restore transactions
-          if (Array.isArray(cloudWealth.transactions) && cloudWealth.transactions.length > 0) {
+          if (
+            Array.isArray(cloudWealth.transactions) &&
+            cloudWealth.transactions.length > 0
+          ) {
             setTransactions(cloudWealth.transactions);
           }
 
@@ -817,11 +829,13 @@ export default function Wealth() {
     }
 
     const syncTimer = setTimeout(() => {
-      console.log("[Wealth] Syncing to GLOBAL Firestore (persists across days)...");
+      console.log(
+        "[Wealth] Syncing to GLOBAL Firestore (persists across days)...",
+      );
       const totalAssets = assets.reduce((sum, a) => sum + (a.amount || 0), 0);
       const totalLiabilities = liabilities.reduce(
         (sum, l) => sum + (l.amount || 0),
-        0
+        0,
       );
       const netWorth = totalAssets - totalLiabilities;
 
@@ -866,7 +880,7 @@ export default function Wealth() {
       // Daily log: Just summary for analytics
       const today = new Date().toISOString().split("T")[0];
       const todayTransactions = transactions.filter(
-        (t) => t.date && t.date.split("T")[0] === today
+        (t) => t.date && t.date.split("T")[0] === today,
       );
       updateTodayLog("wealth", {
         net_worth: netWorth,
@@ -897,7 +911,12 @@ export default function Wealth() {
 
       console.log("[Wealth] Received global data from cloud");
 
-      const { assets: cloudAssets, liabilities: cloudLiabilities, transactions: cloudTransactions, search_history: cloudSearchHistory } = cloudWealth;
+      const {
+        assets: cloudAssets,
+        liabilities: cloudLiabilities,
+        transactions: cloudTransactions,
+        search_history: cloudSearchHistory,
+      } = cloudWealth;
 
       // 1. Transactions - Union by ID
       if (Array.isArray(cloudTransactions)) {
@@ -969,12 +988,12 @@ export default function Wealth() {
 
       // 4. Search History
       if (Array.isArray(cloudSearchHistory)) {
-        setSearchHistory(prev => {
+        setSearchHistory((prev) => {
           const cloud = cloudSearchHistory;
           const newHistory = [...prev];
           let hasChanges = false;
 
-          cloud.forEach(item => {
+          cloud.forEach((item) => {
             if (!newHistory.includes(item)) {
               newHistory.push(item);
               hasChanges = true;
@@ -992,8 +1011,11 @@ export default function Wealth() {
 
   const handleSaveSearch = () => {
     if (searchQuery.trim().length > 0) {
-      setSearchHistory(prev => {
-        const newHistory = [searchQuery, ...prev.filter(s => s !== searchQuery)].slice(0, 10); // Keep last 10 unique
+      setSearchHistory((prev) => {
+        const newHistory = [
+          searchQuery,
+          ...prev.filter((s) => s !== searchQuery),
+        ].slice(0, 10); // Keep last 10 unique
         return newHistory;
       });
     }
@@ -1053,7 +1075,7 @@ export default function Wealth() {
 
   const handleTransactionAccountClick = (transaction) => {
     const matchedAccount = [...assets, ...liabilities].find(
-      (a) => a.name === transaction.bank
+      (a) => a.name === transaction.bank,
     );
     if (matchedAccount) {
       setViewingAccount(matchedAccount);
@@ -1129,7 +1151,9 @@ export default function Wealth() {
         results = results.filter(
           (t) =>
             t.location &&
-            !["Payment", "Interest", "Deposit", "Transfer"].includes(t.location)
+            !["Payment", "Interest", "Deposit", "Transfer"].includes(
+              t.location,
+            ),
         );
       } else if (activeFilter === "high_value") {
         results = results.filter((t) => t.amount > 1000);
@@ -1156,12 +1180,12 @@ export default function Wealth() {
       filtered = transactions.filter((t) => t.category === "Liabilities");
     } else if (selectedCategory !== "All Assets") {
       const categoryAssets = assets.filter(
-        (a) => a.category === selectedCategory
+        (a) => a.category === selectedCategory,
       );
       const assetNames = categoryAssets.map((a) => a.name);
 
       filtered = transactions.filter(
-        (t) => t.category === selectedCategory || assetNames.includes(t.bank)
+        (t) => t.category === selectedCategory || assetNames.includes(t.bank),
       );
     }
 
@@ -1192,7 +1216,7 @@ export default function Wealth() {
 
     if (confirmDialog.type === "single")
       setTransactions((prev) =>
-        prev.filter((t) => t.id !== confirmDialog.itemId)
+        prev.filter((t) => t.id !== confirmDialog.itemId),
       );
     else {
       setTransactions((prev) => prev.filter((t) => !selectedIds.has(t.id)));
@@ -1205,7 +1229,7 @@ export default function Wealth() {
     setSelectedIds(
       selectedIds.size === transactions.length
         ? new Set()
-        : new Set(transactions.map((t) => t.id))
+        : new Set(transactions.map((t) => t.id)),
     );
   const handleLongPress = (id) => {
     setIsSelecting(true);
@@ -1225,14 +1249,14 @@ export default function Wealth() {
     if (account.category === "Liabilities") {
       setLiabilities((prev) =>
         prev.map((l) =>
-          l.id === account.id ? { ...l, amount: newBalance } : l
-        )
+          l.id === account.id ? { ...l, amount: newBalance } : l,
+        ),
       );
     } else {
       setAssets((prev) =>
         prev.map((a) =>
-          a.id === account.id ? { ...a, amount: newBalance } : a
-        )
+          a.id === account.id ? { ...a, amount: newBalance } : a,
+        ),
       );
     }
 
@@ -1287,14 +1311,14 @@ export default function Wealth() {
         .filter((a) => a.category === "Savings")
         .map((a) => a.name);
       relevantTransactions = transactions.filter((t) =>
-        savingsBanks.includes(t.bank)
+        savingsBanks.includes(t.bank),
       );
     } else if (selectedCategory === "Investments") {
       const investmentBanks = assets
         .filter((a) => a.category === "Investments")
         .map((a) => a.name);
       relevantTransactions = transactions.filter((t) =>
-        investmentBanks.includes(t.bank)
+        investmentBanks.includes(t.bank),
       );
     } else if (selectedCategory === "Liabilities") {
       // Assuming liabilities logic (if transactions were linked, for now maybe just withdrawals?)
@@ -1349,7 +1373,7 @@ export default function Wealth() {
           <div
             className={clsx(
               "flex items-center justify-between mb-4",
-              isSearching ? "gap-2" : "mb-8"
+              isSearching ? "gap-2" : "mb-8",
             )}
           >
             {!isSearching ? (
@@ -1454,7 +1478,7 @@ export default function Wealth() {
                         "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-all",
                         activeFilter === filter.id
                           ? "bg-white text-[#1e3a2f] shadow-md shadow-black/10 scale-105"
-                          : "bg-white/10 text-white/80 hover:bg-white/15"
+                          : "bg-white/10 text-white/80 hover:bg-white/15",
                       )}
                     >
                       {filter.icon && <span>{filter.icon}</span>}
@@ -1479,7 +1503,7 @@ export default function Wealth() {
                   "text-[48px] font-bold tracking-tight",
                   displayedBalance >= 0
                     ? "bg-gradient-to-br from-[#86EFAC] to-[#22C55E] bg-clip-text text-transparent"
-                    : "text-[#FF6B6B]"
+                    : "text-[#FF6B6B]",
                 )}
               >
                 <RollingNumber
@@ -1551,7 +1575,7 @@ export default function Wealth() {
                         "px-4 py-2 rounded-lg text-[15px] font-semibold transition-colors",
                         selectedIds.size > 0
                           ? "bg-[#FF3B30] text-white"
-                          : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]"
+                          : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
                       )}
                     >
                       Delete
@@ -1596,9 +1620,9 @@ export default function Wealth() {
                       <div className="text-right">
                         <p className="text-[24px] font-bold text-white">
                           ₱
-                          {(liabilities
-                            .find((l) => l.isPriority)
-                            ?.amount || 0).toLocaleString()}
+                          {(
+                            liabilities.find((l) => l.isPriority)?.amount || 0
+                          ).toLocaleString()}
                         </p>
                         <p className="text-[12px] text-white/70">Outstanding</p>
                       </div>
@@ -1809,7 +1833,7 @@ export default function Wealth() {
                     item={transaction}
                     isSelecting={false}
                     isSelected={false}
-                    onSelect={() => { }}
+                    onSelect={() => {}}
                     onDelete={handleDeleteSingle}
                     onClick={() => setViewTransaction(transaction)}
                   />

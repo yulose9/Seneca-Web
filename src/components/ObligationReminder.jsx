@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Check, Clock, X } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
-import { getGlobalData, subscribeToGlobalData } from "../services/dataLogger";
+import { subscribeToGlobalData } from "../services/dataLogger";
 
 // LocalStorage key for snooze
 const SNOOZE_KEY = "obligation_reminder_snooze";
@@ -9,9 +9,17 @@ const SNOOZE_KEY = "obligation_reminder_snooze";
 // Snooze options (used by settings sheet in Wealth)
 const SNOOZE_OPTIONS = [
   { label: "Every app open", description: "Always remind me", ms: 0 },
-  { label: "3 Hours", description: "Snooze for 3 hours", ms: 3 * 60 * 60 * 1000 },
+  {
+    label: "3 Hours",
+    description: "Snooze for 3 hours",
+    ms: 3 * 60 * 60 * 1000,
+  },
   { label: "1 Day", description: "Snooze for 1 day", ms: 24 * 60 * 60 * 1000 },
-  { label: "3 Days", description: "Snooze for 3 days", ms: 3 * 24 * 60 * 60 * 1000 },
+  {
+    label: "3 Days",
+    description: "Snooze for 3 days",
+    ms: 3 * 24 * 60 * 60 * 1000,
+  },
 ];
 
 // Check if the reminder is currently snoozed
@@ -58,35 +66,42 @@ const getSnoozeInfo = () => {
 };
 
 // ─── Notification Popup (shows on app open) ─────────────────────────
+// Load liabilities instantly from localStorage (same key Wealth.jsx uses)
+const loadLiabilitiesLocal = () => {
+  try {
+    // Primary: Wealth page stores here
+    const saved = localStorage.getItem("wealth_liabilities");
+    if (saved) return JSON.parse(saved);
+    // Fallback: Firestore cache
+    const raw = localStorage.getItem("seneca_global_data");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.wealth?.liabilities) return parsed.wealth.liabilities;
+    }
+  } catch { /* ignore */ }
+  return [];
+};
+
 export default function ObligationReminder({ isOpen, onClose }) {
-  const [liabilities, setLiabilities] = useState([]);
+  // Load instantly from localStorage — no waiting for Firestore
+  const [liabilities, setLiabilities] = useState(loadLiabilitiesLocal);
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await getGlobalData("wealth");
-        if (data?.liabilities) setLiabilities(data.liabilities);
-      } catch {
-        try {
-          const raw = localStorage.getItem("seneca_global_data");
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed?.wealth?.liabilities) setLiabilities(parsed.wealth.liabilities);
-          }
-        } catch { /* ignore */ }
-      }
-    };
-    fetch();
-
+    // Also subscribe to Firestore for live updates
     const unsub = subscribeToGlobalData("wealth", (data) => {
       if (data?.liabilities) setLiabilities(data.liabilities);
     });
     return () => unsub();
   }, []);
 
-  const totalObligations = liabilities.reduce((sum, l) => sum + (l.amount || 0), 0);
+  const totalObligations = liabilities.reduce(
+    (sum, l) => sum + (l.amount || 0),
+    0,
+  );
   const kuyaLoan = liabilities.find((l) => l.id === "kuya" || l.isPriority);
-  const otherLoans = liabilities.filter((l) => l.id !== "kuya" && !l.isPriority);
+  const otherLoans = liabilities.filter(
+    (l) => l.id !== "kuya" && !l.isPriority,
+  );
   const otherTotal = otherLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
 
   const handleDismiss = () => {
@@ -132,8 +147,12 @@ export default function ObligationReminder({ isOpen, onClose }) {
                     <Bell size={20} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="text-[17px] font-bold text-white">Obligation Reminder</h3>
-                    <p className="text-[12px] text-white/70 font-medium">Total Outstanding</p>
+                    <h3 className="text-[17px] font-bold text-white">
+                      Obligation Reminder
+                    </h3>
+                    <p className="text-[12px] text-white/70 font-medium">
+                      Total Outstanding
+                    </p>
                   </div>
                 </div>
                 <p className="text-[32px] font-bold text-white tracking-tight">
@@ -168,7 +187,9 @@ export default function ObligationReminder({ isOpen, onClose }) {
                       <span className="text-2xl">🏦</span>
                       <div>
                         <p className="text-[15px] font-semibold text-black">
-                          {otherLoans.length === 1 ? otherLoans[0].name : "Other Loans"}
+                          {otherLoans.length === 1
+                            ? otherLoans[0].name
+                            : "Other Loans"}
                         </p>
                         <p className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
                           {otherLoans.length === 1
@@ -254,7 +275,9 @@ export function ReminderSettingsSheet({ visible, onClose }) {
               {/* Header */}
               <div className="px-6 pt-3 pb-4 flex items-center justify-between">
                 <div>
-                  <h3 className="text-[19px] font-bold text-black">Reminder Settings</h3>
+                  <h3 className="text-[19px] font-bold text-black">
+                    Reminder Settings
+                  </h3>
                   <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
                     {snoozeInfo.label}
                   </p>
@@ -278,10 +301,7 @@ export function ReminderSettingsSheet({ visible, onClose }) {
               {/* Options */}
               <div className="px-6 space-y-1">
                 {SNOOZE_OPTIONS.map((opt) => {
-                  const isActive =
-                    opt.ms === 0
-                      ? !snoozeInfo.snoozed
-                      : false; // Current selection indicator
+                  const isActive = opt.ms === 0 ? !snoozeInfo.snoozed : false; // Current selection indicator
 
                   return (
                     <motion.button
@@ -293,12 +313,28 @@ export function ReminderSettingsSheet({ visible, onClose }) {
                           ? "bg-[#007AFF]/8 border border-[#007AFF]/15"
                           : "bg-[rgba(120,120,128,0.04)] border border-transparent active:bg-[rgba(120,120,128,0.08)]"
                       }`}
-                      style={isActive ? { backgroundColor: "rgba(0,122,255,0.08)", borderColor: "rgba(0,122,255,0.15)" } : {}}
+                      style={
+                        isActive
+                          ? {
+                              backgroundColor: "rgba(0,122,255,0.08)",
+                              borderColor: "rgba(0,122,255,0.15)",
+                            }
+                          : {}
+                      }
                     >
                       <div className="flex items-center gap-3">
-                        <Clock size={18} className={isActive ? "text-[#007AFF]" : "text-[rgba(60,60,67,0.4)]"} />
+                        <Clock
+                          size={18}
+                          className={
+                            isActive
+                              ? "text-[#007AFF]"
+                              : "text-[rgba(60,60,67,0.4)]"
+                          }
+                        />
                         <div className="text-left">
-                          <p className={`text-[15px] font-semibold ${isActive ? "text-[#007AFF]" : "text-black"}`}>
+                          <p
+                            className={`text-[15px] font-semibold ${isActive ? "text-[#007AFF]" : "text-black"}`}
+                          >
                             {opt.label}
                           </p>
                           <p className="text-[12px] text-[rgba(60,60,67,0.5)]">
@@ -306,7 +342,9 @@ export function ReminderSettingsSheet({ visible, onClose }) {
                           </p>
                         </div>
                       </div>
-                      {isActive && <Check size={18} className="text-[#007AFF]" />}
+                      {isActive && (
+                        <Check size={18} className="text-[#007AFF]" />
+                      )}
                     </motion.button>
                   );
                 })}
@@ -315,7 +353,8 @@ export function ReminderSettingsSheet({ visible, onClose }) {
               {/* Info note */}
               <div className="px-6 pt-4">
                 <p className="text-[12px] text-[rgba(60,60,67,0.4)] text-center leading-relaxed">
-                  You can't turn off reminders completely. This ensures you stay on top of your obligations.
+                  You can't turn off reminders completely. This ensures you stay
+                  on top of your obligations.
                 </p>
               </div>
             </div>
@@ -355,5 +394,11 @@ export function useObligationReminder() {
     setShowTasksReminder(false);
   }, []);
 
-  return { showReminder, openReminder, closeReminder, showTasksReminder, closeTasksReminder };
+  return {
+    showReminder,
+    openReminder,
+    closeReminder,
+    showTasksReminder,
+    closeTasksReminder,
+  };
 }

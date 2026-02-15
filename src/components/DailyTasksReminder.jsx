@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Circle, ListChecks, X } from "lucide-react";
+import { ListChecks, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
+import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
-import { usePersonalGoals } from "../context/PersonalGoalsContext";
 
 // Helper to get today's date as YYYY-MM-DD in local tz
 const getTodayStr = () => {
@@ -32,7 +32,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
   const pendingItems = useMemo(() => {
     const items = [];
 
-    // Protocol tasks — gather undone tasks across all phases
+    // Protocol tasks — gather undone tasks across all phases (group under "Protocol")
     if (!allPhasesComplete) {
       phaseOrder.forEach((phaseId) => {
         const tasks = phaseTasks[phaseId] || [];
@@ -40,8 +40,10 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
           if (!task.done) {
             items.push({
               id: `protocol-${phaseId}-${task.id}`,
-              label: task.label,
-              category: phases[phaseId]?.label || phaseId,
+              label: task.title || task.label || "Task",
+              emoji: task.emoji || "📋",
+              group: "protocol",
+              category: "Protocol",
               categoryColor: getCategoryColor("protocol"),
               done: false,
             });
@@ -50,41 +52,56 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
       });
     }
 
-    // Study Goal
+    // Study Goal → Growth group
     if (activeStudyGoal && studiedToday !== true) {
       items.push({
         id: "study",
         label: `Study: ${activeStudyGoal.name}`,
-        category: "Study Goal",
-        categoryColor: getCategoryColor("study"),
+        emoji: "📚",
+        group: "growth",
+        category: "Growth",
+        categoryColor: getCategoryColor("growth"),
         done: false,
       });
     }
 
-    // No Porn
+    // No Porn → Growth group
     if (noPornToday !== true) {
       items.push({
         id: "noporn",
         label: "Stay clean today",
-        category: "No Porn",
-        categoryColor: getCategoryColor("noporn"),
+        emoji: "🛡️",
+        group: "growth",
+        category: "Growth",
+        categoryColor: getCategoryColor("growth"),
         done: false,
       });
     }
 
-    // Exercise
+    // Exercise → Growth group
     if (exerciseToday !== true) {
       items.push({
         id: "exercise",
         label: "Workout",
-        category: "Exercise",
-        categoryColor: getCategoryColor("exercise"),
+        emoji: "💪",
+        group: "growth",
+        category: "Growth",
+        categoryColor: getCategoryColor("growth"),
         done: false,
       });
     }
 
     return items;
-  }, [allPhasesComplete, phaseTasks, phaseOrder, phases, activeStudyGoal, studiedToday, noPornToday, exerciseToday]);
+  }, [
+    allPhasesComplete,
+    phaseTasks,
+    phaseOrder,
+    phases,
+    activeStudyGoal,
+    studiedToday,
+    noPornToday,
+    exerciseToday,
+  ]);
 
   // If nothing pending, don't show
   if (pendingItems.length === 0 && isOpen) {
@@ -93,7 +110,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
     return null;
   }
 
-  // Group by category
+  // Group by category (Protocol vs Growth)
   const grouped = useMemo(() => {
     const map = {};
     pendingItems.forEach((item) => {
@@ -102,7 +119,11 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
       }
       map[item.category].items.push(item);
     });
-    return map;
+    // Ensure Protocol comes first
+    const ordered = {};
+    if (map["Protocol"]) ordered["Protocol"] = map["Protocol"];
+    if (map["Growth"]) ordered["Growth"] = map["Growth"];
+    return ordered;
   }, [pendingItems]);
 
   const { totalDone, totalTasks } = (() => {
@@ -111,7 +132,10 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
       let total = tp.totalTasks;
       let done = tp.totalDone;
       // Add personal goals
-      if (activeStudyGoal) { total++; if (studiedToday === true) done++; }
+      if (activeStudyGoal) {
+        total++;
+        if (studiedToday === true) done++;
+      }
       total += 2; // noporn + exercise
       if (noPornToday === true) done++;
       if (exerciseToday === true) done++;
@@ -121,7 +145,8 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
     }
   })();
 
-  const completionPct = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : 0;
+  const completionPct =
+    totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : 0;
 
   return (
     <AnimatePresence>
@@ -162,7 +187,9 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                     <ListChecks size={20} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="text-[17px] font-bold text-white">Today's Remaining</h3>
+                    <h3 className="text-[17px] font-bold text-white">
+                      Today's Remaining
+                    </h3>
                     <p className="text-[12px] text-white/70 font-medium">
                       {totalDone}/{totalTasks} completed • {completionPct}%
                     </p>
@@ -194,10 +221,10 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                       {items.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-3 py-2 px-3 rounded-xl bg-[rgba(120,120,128,0.04)]"
+                          className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-[rgba(120,120,128,0.04)]"
                         >
-                          <Circle size={18} className="text-[rgba(120,120,128,0.25)] shrink-0" />
-                          <p className="text-[14px] text-black font-medium truncate">
+                          <span className="text-base shrink-0">{item.emoji}</span>
+                          <p className="text-[14px] text-[#1C1C1E] font-medium truncate">
                             {item.label}
                           </p>
                         </div>
@@ -236,10 +263,11 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
 
 function getCategoryColor(type) {
   switch (type) {
-    case "protocol": return "#FF9500";
-    case "study": return "#007AFF";
-    case "noporn": return "#8B5CF6";
-    case "exercise": return "#007AFF";
-    default: return "#8E8E93";
+    case "protocol":
+      return "#FF9500";
+    case "growth":
+      return "#34C759";
+    default:
+      return "#8E8E93";
   }
 }
