@@ -1,5 +1,5 @@
 import { motion, Reorder } from "framer-motion";
-import { Check, ChevronRight, GripVertical, LogOut, Pencil, X } from "lucide-react";
+import { ChevronRight, GripVertical, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
@@ -7,19 +7,19 @@ import { auth } from "../services/firebase";
 import ExportDataButton from "../components/ExportDataButton";
 import GsapText from "../components/GsapText";
 import PageTransition from "../components/PageTransition";
+import ProtocolCarousel from "../components/ProtocolCarousel";
 import SystemCard from "../components/SystemCard";
 import WeatherWidget from "../components/WeatherWidget";
 import { useProtocol } from "../context/ProtocolContext";
-import { useStudyGoal } from "../context/StudyGoalContext";
 import { getGlobalData, subscribeToGlobalData } from "../services/dataLogger";
 
-import HabitStreakGrid from "../components/HabitStreakGrid";
+
 
 // LocalStorage key for card order
 const CARD_ORDER_KEY = "home_card_order";
 
-// Default card order
-const DEFAULT_CARD_ORDER = ["focus", "protocol", "wealth", "journal"];
+// Default card order (focus + protocol are now in the carousel)
+const DEFAULT_CARD_ORDER = ["wealth", "journal"];
 
 // iOS 18 Progress Ring Component
 const ProgressRing = ({
@@ -151,9 +151,10 @@ const loadCardOrder = () => {
     const saved = localStorage.getItem(CARD_ORDER_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Validate that all cards are present
-      if (DEFAULT_CARD_ORDER.every((id) => parsed.includes(id))) {
-        return parsed;
+      // Filter to only cards that still exist, then validate
+      const filtered = parsed.filter((id) => DEFAULT_CARD_ORDER.includes(id));
+      if (DEFAULT_CARD_ORDER.every((id) => filtered.includes(id))) {
+        return filtered;
       }
     }
   } catch {
@@ -226,20 +227,10 @@ export default function Home() {
     }
   };
 
-  const {
-    completedCount,
-    totalCount,
-    progress,
-    getCurrentStatus,
-    allPhasesComplete,
-    markLearnStuffDone,
-  } = useProtocol();
-  const { activeStudyGoal, getStudiedToday, markStudiedToday, getStudyStreak } =
-    useStudyGoal();
+  const { progress } = useProtocol();
+
   const netWorth = wealthData.netWorth;
 
-  const studiedToday = getStudiedToday();
-  const studyStreak = getStudyStreak();
   const greeting = getTimeBasedGreeting(hasJournalToday, progress);
 
   // Check if user has a journal entry today
@@ -322,6 +313,11 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Protocol Carousel — swipeable goal cards */}
+      <div className="px-5 mb-3">
+        <ProtocolCarousel />
+      </div>
+
       {/* Reorderable Cards */}
       <Reorder.Group
         axis="y"
@@ -333,180 +329,6 @@ export default function Home() {
           // Render card content directly to avoid re-mounting component
           const getCardContent = () => {
             switch (cardId) {
-              case "focus":
-                return (
-                  <SystemCard
-                    onClick={isEditMode ? undefined : () => navigate("/growth")}
-                  >
-                    <motion.div layoutId="growth-hero-card">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[13px] font-semibold text-[#007AFF] uppercase tracking-wide">
-                          Focus
-                        </span>
-                        {!isEditMode && (
-                          <ChevronRight size={18} className="text-[#C7C7CC]" />
-                        )}
-                      </div>
-
-                      {activeStudyGoal ? (
-                        <>
-                          <div className="flex items-center justify-between mt-3">
-                            <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#007AFF]/10 to-[#5856D6]/10 flex items-center justify-center">
-                                <span className="text-3xl">📚</span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[17px] font-semibold text-black leading-tight truncate">
-                                  {activeStudyGoal.name}
-                                </p>
-                                <p className="text-[15px] text-[rgba(60,60,67,0.6)] mt-0.5">
-                                  {activeStudyGoal.target}
-                                </p>
-                              </div>
-                            </div>
-                            {studyStreak > 0 && (
-                              <div className="text-right">
-                                <p className="text-[20px] font-bold text-[#007AFF]">
-                                  {studyStreak}
-                                </p>
-                                <p className="text-[11px] text-[rgba(60,60,67,0.6)]">
-                                  day streak
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Did you study today? */}
-                          {!isEditMode && (
-                            <div className="mt-4 pt-4 border-t border-[rgba(60,60,67,0.12)]">
-                              <p className="text-[14px] font-medium text-center text-[rgba(60,60,67,0.8)] mb-3">
-                                Did you study today? 📖
-                              </p>
-                              <div
-                                className="flex gap-3"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <motion.button
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    markStudiedToday(true, markLearnStuffDone);
-                                  }}
-                                  className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${studiedToday === true
-                                    ? "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
-                                    : "bg-[#34C759]/10 text-[#34C759]"
-                                    }`}
-                                >
-                                  <Check size={18} strokeWidth={3} />
-                                  Yes
-                                </motion.button>
-                                <motion.button
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    markStudiedToday(false);
-                                  }}
-                                  className={`flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${studiedToday === false
-                                    ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
-                                    : "bg-[#FF3B30]/10 text-[#FF3B30]"
-                                    }`}
-                                >
-                                  <X size={18} strokeWidth={3} />
-                                  No
-                                </motion.button>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className="flex items-center justify-between mt-3">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[rgba(120,120,128,0.08)] to-[rgba(120,120,128,0.12)] flex items-center justify-center">
-                              <span className="text-3xl">🎯</span>
-                            </div>
-                            <div>
-                              <p className="text-[17px] font-semibold text-black leading-tight">
-                                No Study Goal
-                              </p>
-                              <p className="text-[15px] text-[rgba(60,60,67,0.6)] mt-0.5">
-                                Tap to select a certificate
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </motion.div>
-                  </SystemCard>
-                );
-
-              case "protocol":
-                return (
-                  <SystemCard
-                    onClick={
-                      isEditMode ? undefined : () => navigate("/protocol")
-                    }
-                  >
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[13px] font-semibold text-[#FF9500] uppercase tracking-wide">
-                        Protocol
-                      </span>
-                      {!isEditMode && (
-                        <ChevronRight size={18} className="text-[#C7C7CC]" />
-                      )}
-                    </div>
-
-                    {allPhasesComplete ? (
-                      <div className="flex items-center gap-4 mt-3">
-                        <div className="w-14 h-14 rounded-2xl bg-[#34C759]/10 flex items-center justify-center">
-                          <span className="text-3xl">🏆</span>
-                        </div>
-                        <div>
-                          <h4 className="text-[17px] font-bold text-[#34C759]">
-                            All Completed
-                          </h4>
-                          <p className="text-[15px] text-[rgba(60,60,67,0.6)]">
-                            17/17 Habits Done
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-3">
-                        <div className="flex justify-between items-end mb-3">
-                          <div>
-                            <h4 className="text-[17px] font-semibold text-black">
-                              {getCurrentStatus().phase}
-                            </h4>
-                            <p className="text-[15px] text-[rgba(60,60,67,0.6)] mt-0.5">
-                              {completedCount} of {totalCount} tasks
-                            </p>
-                          </div>
-                          <span className="text-[15px] font-bold text-[#FF9500]">
-                            {progress}%
-                          </span>
-                        </div>
-                        {/* iOS-style Progress Bar */}
-                        <div className="h-2 bg-[rgba(120,120,128,0.12)] rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full rounded-full"
-                            style={{ backgroundColor: "#FF9500" }}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${progress}%` }}
-                            transition={{
-                              duration: 0.8,
-                              ease: [0.19, 1, 0.22, 1],
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Habit Streak Calendar */}
-                    {!isEditMode && (
-                      <HabitStreakGrid className="mt-6 border-t border-[rgba(60,60,67,0.08)]" />
-                    )}
-                  </SystemCard>
-                );
-
               case "wealth":
                 return (
                   <SystemCard
