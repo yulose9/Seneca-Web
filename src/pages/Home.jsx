@@ -259,12 +259,18 @@ export default function Home() {
 
   // Check if user has a journal entry today
   useEffect(() => {
+    // Helper to get today's date in local timezone as YYYY-MM-DD
+    const getLocalToday = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+
     const checkJournal = () => {
       try {
         const saved = localStorage.getItem("journal_entries");
         if (saved) {
           const entries = JSON.parse(saved);
-          const today = new Date().toISOString().split("T")[0];
+          const today = getLocalToday();
           setHasJournalToday(entries.some((e) => e.isoDate === today));
         }
       } catch {
@@ -277,7 +283,7 @@ export default function Home() {
     // Also subscribe to global journal data for real-time updates
     const unsubscribe = subscribeToGlobalData("journal", (journalData) => {
       if (journalData?.entries) {
-        const today = new Date().toISOString().split("T")[0];
+        const today = getLocalToday();
         setHasJournalToday(
           journalData.entries.some((e) => e.isoDate === today),
         );
@@ -383,7 +389,7 @@ export default function Home() {
                           </p>
                           <p className="text-[13px] text-[rgba(60,60,67,0.6)]">
                             {wealthData.priorityLiability?.platform ||
-                              "Personal Loan"}
+                              "Priority"}
                           </p>
                         </div>
                       </div>
@@ -428,11 +434,10 @@ export default function Home() {
                     {!isEditMode && (
                       <motion.button
                         whileTap={{ scale: 0.97 }}
-                        className={`w-full py-3.5 rounded-xl font-semibold text-[15px] shadow-lg ${
-                          hasJournalToday
-                            ? "bg-[#34C759] text-white shadow-[#34C759]/25"
-                            : "bg-[#5856D6] text-white shadow-[#5856D6]/25"
-                        }`}
+                        className={`w-full py-3.5 rounded-xl font-semibold text-[15px] shadow-lg ${hasJournalToday
+                          ? "bg-[#34C759] text-white shadow-[#34C759]/25"
+                          : "bg-[#5856D6] text-white shadow-[#5856D6]/25"
+                          }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate("/journal");
@@ -454,9 +459,8 @@ export default function Home() {
               key={cardId}
               value={cardId}
               dragListener={isEditMode}
-              className={`relative ${
-                isEditMode ? "cursor-grab active:cursor-grabbing" : ""
-              }`}
+              className={`relative ${isEditMode ? "cursor-grab active:cursor-grabbing" : ""
+                }`}
             >
               {/* Drag Handle Overlay in Edit Mode */}
               {isEditMode && (

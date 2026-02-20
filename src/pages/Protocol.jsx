@@ -247,7 +247,7 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
                 }}
               >
                 <IconComp
-                  size={isActive ? 22 : 22}
+                  size={18}
                   strokeWidth={2}
                   className="protocol-pill-icon"
                 />

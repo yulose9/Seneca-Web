@@ -1280,7 +1280,7 @@ export function ProtocolProvider({ children }) {
       const status = getCurrentStatus();
       return status.total > 0
         ? Math.round((status.completed / status.total) * 100)
-        : 100;
+        : 0;
     },
     get isComplete() {
       return allPhasesComplete;

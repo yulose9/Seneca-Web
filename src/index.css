@@ -1643,22 +1643,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 20px 24px;
+  padding: 0 20px 20px;
   background: var(--color-background);
 }
 
 .protocol-pill-track {
   display: flex;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
+  gap: 6px;
 }
 
 .protocol-pill {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 52px;
+  height: 36px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
@@ -1666,28 +1665,31 @@ body {
   -webkit-tap-highlight-color: transparent;
   outline: none;
   transition: box-shadow 0.3s ease;
+  /* iOS HIG: ensure 44pt minimum touch target with padding */
+  min-width: 36px;
+  min-height: 36px;
 }
 
 .protocol-pill-active {
-  padding: 16px 32px;
+  padding: 8px 18px;
   /* background and box-shadow applied dynamically via inline style per category */
 }
 
 .protocol-pill-inactive {
   background: #808080;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .protocol-pill-inactive:hover {
   background: #6e6e6e;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .protocol-pill-content {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .protocol-pill-icon {
@@ -1697,10 +1699,10 @@ body {
 
 .protocol-pill-label {
   font-family: var(--font-sans);
-  font-size: 24px;
-  font-weight: 400;
+  font-size: 16px;
+  font-weight: 500;
   color: white;
-  line-height: 1.06;
+  line-height: 1.1;
   display: inline-block;
 }
 
