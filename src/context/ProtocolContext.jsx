@@ -765,8 +765,9 @@ export function ProtocolProvider({ children }) {
       // We need to look up valid current state first or just toggle it from history perspective.
       // Since setState is async, determining 'newDone' takes a moment.
       // Safer way: Read the *current* done state, invert it.
-      const currentPhaseData = phaseTasks[phaseId];
+      const currentPhaseData = phaseTasks[phaseId] || [];
       const task = currentPhaseData.find((t) => t.id === taskId);
+      if (!task) return prev;
       const nextDone = !task.done; // Inverting current state
 
       return {
@@ -990,17 +991,17 @@ export function ProtocolProvider({ children }) {
   // Reset all phases (for a new day)
   const resetAllPhases = () => {
     const categoryPhases = getPhasesForCategory(protocolCategory);
-    setActivePhase("morningIgnition");
+    const phaseOrder = getPhaseOrderForCategory(protocolCategory);
+    setActivePhase(phaseOrder[0] || "morningIgnition");
     setCompletedPhases([]);
-    setPhaseTasks({
-      morningIgnition: categoryPhases.morningIgnition.tasks.map((t) => ({
-        ...t,
-        done: false,
-      })),
-      arena: categoryPhases.arena.tasks.map((t) => ({ ...t, done: false })),
-      maintenance: categoryPhases.maintenance.tasks.map((t) => ({ ...t, done: false })),
-      shutdown: categoryPhases.shutdown.tasks.map((t) => ({ ...t, done: false })),
+    const resetTasks = {};
+    phaseOrder.forEach((phaseId) => {
+      const phase = categoryPhases[phaseId];
+      if (phase) {
+        resetTasks[phaseId] = phase.tasks.map((t) => ({ ...t, done: false }));
+      }
     });
+    setPhaseTasks(resetTasks);
   };
 
   // Get current status for Home screen - DYNAMIC based on actual task state

@@ -475,8 +475,8 @@ export default function Protocol() {
   useEffect(() => {
     phaseOrder.forEach((phaseId, index) => {
       const currentPhaseTasks = phaseTasks[phaseId];
-      // Skip empty phases - they shouldn't trigger auto-advance
-      if (currentPhaseTasks.length === 0) return;
+      // Skip undefined or empty phases - they shouldn't trigger auto-advance
+      if (!currentPhaseTasks || currentPhaseTasks.length === 0) return;
 
       const isComplete = currentPhaseTasks.every((t) => t.done);
       const wasComplete = prevCompletedRef.current[phaseId];
