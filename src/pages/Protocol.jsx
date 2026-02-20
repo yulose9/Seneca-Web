@@ -6,7 +6,7 @@ import {
   Reorder,
   useDragControls,
 } from "framer-motion";
-import { Bell, Check, ChevronRight, Plus, RotateCcw } from "lucide-react";
+import { Bell, Briefcase, Check, CheckCircle, ChevronRight, Plus, RotateCcw, User } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import AddTaskSheet from "../components/AddTaskSheet";
 import HabitDetailSheet from "../components/HabitDetailSheet";
@@ -194,6 +194,92 @@ const TaskRow = ({ task, onToggle, onClick, isLast }) => {
   );
 };
 
+// Category icon mapping
+const categoryIcons = {
+  personal: User,
+  work: Briefcase,
+  other: CheckCircle,
+};
+
+// Protocol Category Pill Selector (inspired by iPhone Mail app)
+const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) => {
+  return (
+    <div className="protocol-pill-container">
+      <div className="protocol-pill-track">
+        {categories.map((cat) => {
+          const isActive = cat.id === activeCategory;
+          const IconComp = categoryIcons[cat.id];
+          return (
+            <motion.button
+              key={cat.id}
+              onClick={() => onCategoryChange(cat.id)}
+              className={clsx(
+                "protocol-pill",
+                isActive ? "protocol-pill-active" : "protocol-pill-inactive",
+              )}
+              layout
+              transition={{
+                layout: { type: "spring", stiffness: 400, damping: 30 },
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <motion.div
+                className="protocol-pill-content"
+                layout
+                transition={{
+                  layout: { type: "spring", stiffness: 400, damping: 30 },
+                }}
+              >
+                <IconComp
+                  size={isActive ? 22 : 22}
+                  strokeWidth={2}
+                  className="protocol-pill-icon"
+                />
+                <AnimatePresence mode="wait">
+                  {isActive && (
+                    <motion.span
+                      key={`label-${cat.id}`}
+                      className="protocol-pill-label"
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: "auto", opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{
+                        width: { type: "spring", stiffness: 400, damping: 30 },
+                        opacity: { duration: 0.15 },
+                      }}
+                      style={{ overflow: "hidden", whiteSpace: "nowrap" }}
+                    >
+                      {cat.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Empty state for work/other categories
+const EmptyCategoryState = ({ categoryLabel }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      className="protocol-empty-state"
+    >
+      <div className="protocol-empty-icon">📋</div>
+      <h3 className="protocol-empty-title">No {categoryLabel} Tasks Yet</h3>
+      <p className="protocol-empty-subtitle">
+        Tap the <strong>+</strong> button above to add your first task.
+      </p>
+    </motion.div>
+  );
+};
+
 // Phase Section Component
 const PhaseSection = ({
   phaseId,
@@ -348,6 +434,9 @@ export default function Protocol() {
     reorderTasks,
     resetTaskOrder,
     isOrderCustomized,
+    protocolCategory,
+    protocolCategories,
+    switchCategory,
   } = useProtocol();
 
   const [expandedPhases, setExpandedPhases] = useState(["morningIgnition"]);
@@ -355,6 +444,15 @@ export default function Protocol() {
   const [addTaskSheetVisible, setAddTaskSheetVisible] = useState(false);
   const [tasksReminderSettings, setTasksReminderSettings] = useState(false);
   const [selectedHabit, setSelectedHabit] = useState(null);
+
+  // Check if current category has any tasks
+  const hasTasks = phaseOrder.some(
+    (phaseId) => phaseTasks[phaseId] && phaseTasks[phaseId].length > 0,
+  );
+
+  const activeCategoryLabel = protocolCategories.find(
+    (c) => c.id === protocolCategory,
+  )?.label || "";
 
   // Track previous completion state to trigger auto-advance
   const prevCompletedRef = useRef({});
@@ -457,25 +555,44 @@ export default function Protocol() {
         </div>
       </header>
 
+      {/* Category Pill Selector */}
+      <CategoryPillSelector
+        categories={protocolCategories}
+        activeCategory={protocolCategory}
+        onCategoryChange={switchCategory}
+      />
+
       {/* Phase Sections */}
-      <div>
-        {phaseOrder.map((phaseId) => (
-          <PhaseSection
-            key={phaseId}
-            phaseId={phaseId}
-            phase={phases[phaseId]}
-            tasks={phaseTasks[phaseId]}
-            isExpanded={expandedPhases.includes(phaseId)}
-            isUnlocked={isPhaseUnlocked(phaseId)}
-            onToggleTask={toggleTask}
-            onToggleExpand={handleToggleExpand}
-            onCompletePhase={handleCompletePhase}
-            onTaskPress={handleTaskPress}
-            onReorder={reorderTasks}
-            progress={getPhaseProgress(phaseId)}
-          />
-        ))}
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={protocolCategory}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        >
+          {hasTasks ? (
+            phaseOrder.map((phaseId) => (
+              <PhaseSection
+                key={phaseId}
+                phaseId={phaseId}
+                phase={phases[phaseId]}
+                tasks={phaseTasks[phaseId]}
+                isExpanded={expandedPhases.includes(phaseId)}
+                isUnlocked={isPhaseUnlocked(phaseId)}
+                onToggleTask={toggleTask}
+                onToggleExpand={handleToggleExpand}
+                onCompletePhase={handleCompletePhase}
+                onTaskPress={handleTaskPress}
+                onReorder={reorderTasks}
+                progress={getPhaseProgress(phaseId)}
+              />
+            ))
+          ) : (
+            <EmptyCategoryState categoryLabel={activeCategoryLabel} />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Habit Detail Sheet */}
       <HabitDetailSheet

@@ -1,6 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
@@ -56,7 +62,12 @@ export default function ProtocolCarousel() {
   const feedbackTimer = useRef(null);
 
   // Clear timer on unmount
-  useEffect(() => () => { if (feedbackTimer.current) clearTimeout(feedbackTimer.current); }, []);
+  useEffect(
+    () => () => {
+      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+    },
+    [],
+  );
 
   // Context hooks
   const {
@@ -132,18 +143,15 @@ export default function ProtocolCarousel() {
   }, []);
 
   // Trigger feedback animation, then fire the action after a brief delay
-  const triggerFeedback = useCallback(
-    (cardId, type, action) => {
-      setFeedback({ cardId, type });
-      // Fire the actual state-changing action after a short animation
-      feedbackTimer.current = setTimeout(() => {
-        action();
-        // The card will auto-remove from `cards` on next render
-        setFeedback(null);
-      }, 1400);
-    },
-    [],
-  );
+  const triggerFeedback = useCallback((cardId, type, action) => {
+    setFeedback({ cardId, type });
+    // Fire the actual state-changing action after a short animation
+    feedbackTimer.current = setTimeout(() => {
+      action();
+      // The card will auto-remove from `cards` on next render
+      setFeedback(null);
+    }, 1400);
+  }, []);
 
   // Nothing to show — all done for the day!
   if (cards.length === 0 && !feedback) {
@@ -175,8 +183,11 @@ export default function ProtocolCarousel() {
   }
 
   const currentCard = cards[safeIndex];
-  const showingFeedback = feedback && currentCard && feedback.cardId === currentCard.id;
-  const feedbackData = showingFeedback ? FEEDBACK[feedback.cardId]?.[feedback.type] : null;
+  const showingFeedback =
+    feedback && currentCard && feedback.cardId === currentCard.id;
+  const feedbackData = showingFeedback
+    ? FEEDBACK[feedback.cardId]?.[feedback.type]
+    : null;
 
   // Mark no porn / exercise for today
   const handleNoPornCheck = (value) => {
@@ -366,7 +377,9 @@ export default function ProtocolCarousel() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() =>
-                          triggerFeedback("study", "yes", () => markStudiedToday(true, markLearnStuffDone))
+                          triggerFeedback("study", "yes", () =>
+                            markStudiedToday(true, markLearnStuffDone),
+                          )
                         }
                         disabled={!!feedback}
                         className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#34C759]/10 text-[#34C759]"
@@ -376,7 +389,9 @@ export default function ProtocolCarousel() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() =>
-                          triggerFeedback("study", "no", () => markStudiedToday(false))
+                          triggerFeedback("study", "no", () =>
+                            markStudiedToday(false),
+                          )
                         }
                         disabled={!!feedback}
                         className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#FF3B30]/10 text-[#FF3B30]"
@@ -426,7 +441,9 @@ export default function ProtocolCarousel() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() =>
-                          triggerFeedback("noporn", "yes", () => handleNoPornCheck(true))
+                          triggerFeedback("noporn", "yes", () =>
+                            handleNoPornCheck(true),
+                          )
                         }
                         disabled={!!feedback}
                         className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#34C759]/10 text-[#34C759]"
@@ -436,7 +453,9 @@ export default function ProtocolCarousel() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() =>
-                          triggerFeedback("noporn", "no", () => handleNoPornCheck(false))
+                          triggerFeedback("noporn", "no", () =>
+                            handleNoPornCheck(false),
+                          )
                         }
                         disabled={!!feedback}
                         className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#FF3B30]/10 text-[#FF3B30]"
@@ -486,7 +505,9 @@ export default function ProtocolCarousel() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() =>
-                          triggerFeedback("exercise", "yes", () => handleExerciseCheck(true))
+                          triggerFeedback("exercise", "yes", () =>
+                            handleExerciseCheck(true),
+                          )
                         }
                         disabled={!!feedback}
                         className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#34C759]/10 text-[#34C759]"
@@ -496,7 +517,9 @@ export default function ProtocolCarousel() {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() =>
-                          triggerFeedback("exercise", "no", () => handleExerciseCheck(false))
+                          triggerFeedback("exercise", "no", () =>
+                            handleExerciseCheck(false),
+                          )
                         }
                         disabled={!!feedback}
                         className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#FF3B30]/10 text-[#FF3B30]"
@@ -535,7 +558,9 @@ export default function ProtocolCarousel() {
                           delay: 0.1,
                         }}
                       >
-                        <span className="text-[52px] block">{feedbackData.icon}</span>
+                        <span className="text-[52px] block">
+                          {feedbackData.icon}
+                        </span>
                       </motion.div>
                       <motion.div
                         initial={{ opacity: 0, y: 8 }}
