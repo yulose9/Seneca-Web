@@ -59,6 +59,15 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
   const [selectedPhase, setSelectedPhase] = useState("morningIgnition");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  // For work/other categories, phases are optional (default: unassigned = "general")
+  const isPersonal = protocolCategory === "personal";
+  const [phaseEnabled, setPhaseEnabled] = useState(isPersonal);
+
+  // Reset phaseEnabled when category changes
+  React.useEffect(() => {
+    setPhaseEnabled(isPersonal);
+  }, [isPersonal]);
+
   const handleSubmit = () => {
     if (!title.trim()) return;
 
@@ -72,7 +81,9 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
       isCustom: true,
     };
 
-    onAddTask(selectedPhase, newTask);
+    // For work/other: if no phase assigned, use "general"
+    const targetPhase = phaseEnabled ? selectedPhase : "general";
+    onAddTask(targetPhase, newTask);
 
     // Reset form
     setTitle("");
@@ -80,12 +91,18 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
     setDescription("");
     setSelectedEmoji("📝");
     setSelectedPhase("morningIgnition");
+    setPhaseEnabled(isPersonal);
     onClose();
   };
 
   const isValid = title.trim().length > 0;
 
   const selectedPhaseData = PHASE_OPTIONS.find((p) => p.id === selectedPhase);
+
+  // Category label for the title
+  const categoryTitle = protocolCategory === "personal"
+    ? "New Task"
+    : `New ${protocolCategory.charAt(0).toUpperCase() + protocolCategory.slice(1)} Task`;
 
   return (
     <AnimatePresence>
@@ -128,7 +145,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
 
               {/* Title */}
               <h2 className="text-[17px] font-semibold text-black">
-                New {protocolCategory === "personal" ? "" : `${protocolCategory.charAt(0).toUpperCase() + protocolCategory.slice(1)} `}Task
+                {categoryTitle}
               </h2>
 
               {/* Add Button */}
@@ -136,8 +153,8 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                 onClick={handleSubmit}
                 disabled={!isValid}
                 className={`absolute right-4 text-[17px] font-semibold transition-colors ${isValid
-                  ? "text-[#007AFF] active:opacity-50"
-                  : "text-[rgba(60,60,67,0.3)]"
+                    ? "text-[#007AFF] active:opacity-50"
+                    : "text-[rgba(60,60,67,0.3)]"
                   }`}
               >
                 Add
@@ -156,7 +173,9 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                   <div
                     className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-sm"
                     style={{
-                      backgroundColor: `${selectedPhaseData?.color}20`,
+                      backgroundColor: phaseEnabled
+                        ? `${selectedPhaseData?.color}20`
+                        : "rgba(120,120,128,0.12)",
                     }}
                   >
                     <span className="text-5xl">{selectedEmoji}</span>
@@ -218,43 +237,83 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                 </FormRow>
               </FormSection>
 
-              {/* Phase Selection */}
+              {/* Phase Selection - with toggle for non-personal categories */}
               <FormSection
-                header="Schedule"
-                footer="Choose when this task appears in your daily routine."
+                header={isPersonal ? "Schedule" : "Schedule (Optional)"}
+                footer={
+                  isPersonal
+                    ? "Choose when this task appears in your daily routine."
+                    : phaseEnabled
+                      ? "Assign this task to a time slot, or turn off to keep it unscheduled."
+                      : "This task will appear as an unscheduled item in your list."
+                }
               >
-                {PHASE_OPTIONS.map((phase, index) => (
-                  <motion.button
-                    key={phase.id}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedPhase(phase.id)}
-                    className={`w-full flex items-center justify-between min-h-[44px] px-4 ${index !== PHASE_OPTIONS.length - 1
-                      ? "border-b border-[rgba(60,60,67,0.12)]"
-                      : ""
-                      }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${phase.color}15` }}
-                      >
-                        <span className="text-lg">{phase.emoji}</span>
-                      </div>
-                      <span className="text-[17px] text-black">
-                        {phase.label}
-                      </span>
-                    </div>
-                    {selectedPhase === phase.id && (
+                {/* Toggle for non-personal categories */}
+                {!isPersonal && (
+                  <div className="flex items-center justify-between min-h-[44px] px-4 border-b border-[rgba(60,60,67,0.12)]">
+                    <span className="text-[17px] text-black">Assign to Phase</span>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setPhaseEnabled(!phaseEnabled)}
+                      className="relative w-[51px] h-[31px] rounded-full transition-colors duration-200"
+                      style={{
+                        backgroundColor: phaseEnabled ? "#34C759" : "rgba(120,120,128,0.16)",
+                      }}
+                    >
                       <motion.div
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", damping: 15 }}
-                      >
-                        <Check size={20} className="text-[#007AFF]" />
-                      </motion.div>
-                    )}
-                  </motion.button>
-                ))}
+                        className="absolute top-[2px] w-[27px] h-[27px] rounded-full bg-white shadow-sm"
+                        animate={{ left: phaseEnabled ? 22 : 2 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      />
+                    </motion.button>
+                  </div>
+                )}
+
+                {/* Phase options - shown only when enabled */}
+                <AnimatePresence>
+                  {phaseEnabled && (
+                    <motion.div
+                      initial={!isPersonal ? { height: 0, opacity: 0 } : false}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      {PHASE_OPTIONS.map((phase, index) => (
+                        <motion.button
+                          key={phase.id}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setSelectedPhase(phase.id)}
+                          className={`w-full flex items-center justify-between min-h-[44px] px-4 ${index !== PHASE_OPTIONS.length - 1
+                              ? "border-b border-[rgba(60,60,67,0.12)]"
+                              : ""
+                            }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-8 h-8 rounded-lg flex items-center justify-center"
+                              style={{ backgroundColor: `${phase.color}15` }}
+                            >
+                              <span className="text-lg">{phase.emoji}</span>
+                            </div>
+                            <span className="text-[17px] text-black">
+                              {phase.label}
+                            </span>
+                          </div>
+                          {selectedPhase === phase.id && (
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ type: "spring", damping: 15 }}
+                            >
+                              <Check size={20} className="text-[#007AFF]" />
+                            </motion.div>
+                          )}
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </FormSection>
 
               {/* Notes Section */}

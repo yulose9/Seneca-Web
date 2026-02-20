@@ -110,8 +110,16 @@ const PHASES = {
   },
 };
 
-// Work and Other categories start with empty phases (same structure, no default tasks)
+// Work and Other categories start with empty phases plus a "general" bucket
 const EMPTY_PHASES = {
+  general: {
+    id: "general",
+    title: "Tasks",
+    subtitle: "Your unscheduled tasks.",
+    emoji: "📋",
+    buttonText: "Done.",
+    tasks: [],
+  },
   morningIgnition: {
     id: "morningIgnition",
     title: "Morning Ignition",
@@ -153,6 +161,13 @@ const getPhasesForCategory = (category) => {
 };
 
 const PHASE_ORDER = ["morningIgnition", "arena", "maintenance", "shutdown"];
+const PHASE_ORDER_WITH_GENERAL = ["general", "morningIgnition", "arena", "maintenance", "shutdown"];
+
+// Get the phase order for a given category
+const getPhaseOrderForCategory = (category) => {
+  if (category === "personal") return PHASE_ORDER;
+  return PHASE_ORDER_WITH_GENERAL;
+};
 
 // Load custom tasks from localStorage
 const loadCustomTasks = (category = "personal") => {
@@ -162,9 +177,9 @@ const loadCustomTasks = (category = "personal") => {
     const parsed = saved ? JSON.parse(saved) : null;
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
       ? parsed
-      : { morningIgnition: [], arena: [], maintenance: [], shutdown: [] };
+      : { general: [], morningIgnition: [], arena: [], maintenance: [], shutdown: [] };
   } catch {
-    return { morningIgnition: [], arena: [], maintenance: [], shutdown: [] };
+    return { general: [], morningIgnition: [], arena: [], maintenance: [], shutdown: [] };
   }
 };
 
@@ -268,9 +283,12 @@ const buildInitialPhaseTasks = (category = "personal") => {
   const order = loadTaskOrder(category);
   const todayDone = loadTodayTasks(category);
   const initialTasks = {};
+  const phaseOrder = getPhaseOrderForCategory(category);
 
-  PHASE_ORDER.forEach((phaseId) => {
-    const defaultTasks = categoryPhases[phaseId].tasks;
+  phaseOrder.forEach((phaseId) => {
+    const phaseData = categoryPhases[phaseId];
+    if (!phaseData) return;
+    const defaultTasks = phaseData.tasks;
     const phaseCustomTasks = custom && custom[phaseId] ? custom[phaseId] : [];
     let allTasks = [...defaultTasks, ...phaseCustomTasks];
 
@@ -884,13 +902,13 @@ export function ProtocolProvider({ children }) {
     // Update custom tasks registry
     setCustomTasks((prev) => ({
       ...prev,
-      [phaseId]: [...prev[phaseId], task],
+      [phaseId]: [...(prev[phaseId] || []), task],
     }));
 
     // Add to phase tasks
     setPhaseTasks((prev) => ({
       ...prev,
-      [phaseId]: [...prev[phaseId], { ...task, done: false }],
+      [phaseId]: [...(prev[phaseId] || []), { ...task, done: false }],
     }));
   };
 
@@ -927,12 +945,12 @@ export function ProtocolProvider({ children }) {
 
   // Check if a phase is complete (all tasks done)
   const isPhaseComplete = (phaseId) => {
-    return phaseTasks[phaseId].every((task) => task.done);
+    return (phaseTasks[phaseId] || []).every((task) => task.done);
   };
 
   // Get completed count for a phase
   const getPhaseProgress = (phaseId) => {
-    const tasks = phaseTasks[phaseId];
+    const tasks = phaseTasks[phaseId] || [];
     const completed = tasks.filter((t) => t.done).length;
     return { completed, total: tasks.length };
   };
@@ -956,6 +974,7 @@ export function ProtocolProvider({ children }) {
 
   // Check if phase is unlocked
   const isPhaseUnlocked = (phaseId) => {
+    if (phaseId === "general") return true; // General is always unlocked
     const phaseIndex = PHASE_ORDER.indexOf(phaseId);
     if (phaseIndex === 0) return true; // First phase always unlocked
 
@@ -985,12 +1004,13 @@ export function ProtocolProvider({ children }) {
   };
 
   // Get current status for Home screen - DYNAMIC based on actual task state
+  const currentPhaseOrder = getPhaseOrderForCategory(protocolCategory);
   const getCurrentStatus = () => {
     const categoryPhases = getPhasesForCategory(protocolCategory);
     // Check all phases in order, find the first one that's not complete
-    for (const phaseId of PHASE_ORDER) {
+    for (const phaseId of currentPhaseOrder) {
       const tasks = phaseTasks[phaseId];
-      if (tasks.length === 0) continue; // Skip empty phases
+      if (!tasks || tasks.length === 0) continue; // Skip empty/missing phases
       const allDone = tasks.every((t) => t.done);
       if (!allDone) {
         const phase = categoryPhases[phaseId];
@@ -1008,22 +1028,22 @@ export function ProtocolProvider({ children }) {
 
   // Check if ALL tasks across ALL phases are done
   // IMPORTANT: Must have at least one task total — empty lists are NOT "complete"
-  const totalTaskCount = PHASE_ORDER.reduce(
-    (sum, phaseId) => sum + phaseTasks[phaseId].length,
+  const totalTaskCount = currentPhaseOrder.reduce(
+    (sum, phaseId) => sum + (phaseTasks[phaseId]?.length || 0),
     0,
   );
   const allPhasesComplete =
     totalTaskCount > 0 &&
-    PHASE_ORDER.every((phaseId) =>
-      phaseTasks[phaseId].every((task) => task.done),
+    currentPhaseOrder.every((phaseId) =>
+      (phaseTasks[phaseId] || []).every((task) => task.done),
     );
 
   // Calculate total progress across all phases
   const getTotalProgress = () => {
     let totalDone = 0;
     let totalTasks = 0;
-    PHASE_ORDER.forEach((phaseId) => {
-      const tasks = phaseTasks[phaseId];
+    currentPhaseOrder.forEach((phaseId) => {
+      const tasks = phaseTasks[phaseId] || [];
       totalDone += tasks.filter((t) => t.done).length;
       totalTasks += tasks.length;
     });
@@ -1065,9 +1085,10 @@ export function ProtocolProvider({ children }) {
         // Build phases data for LLM analysis
         const categoryPhases = getPhasesForCategory(protocolCategory);
         const phasesData = {};
-        PHASE_ORDER.forEach((phaseId) => {
+        const syncPhaseOrder = getPhaseOrderForCategory(protocolCategory);
+        syncPhaseOrder.forEach((phaseId) => {
           const phase = categoryPhases[phaseId];
-          const tasks = phaseTasks[phaseId];
+          const tasks = phaseTasks[phaseId] || [];
           const completed = tasks.filter((t) => t.done).length;
           const total = tasks.length;
 
@@ -1158,10 +1179,13 @@ export function ProtocolProvider({ children }) {
       setPhaseTasks((prev) => {
         const next = {};
 
-        PHASE_ORDER.forEach((phaseId) => {
+        const rebuildPhaseOrder = getPhaseOrderForCategory(protocolCategory);
+        rebuildPhaseOrder.forEach((phaseId) => {
           // A. Combine Tasks
           const categoryPhases = getPhasesForCategory(protocolCategory);
-          const defaultTasks = categoryPhases[phaseId].tasks;
+          const phaseData = categoryPhases[phaseId];
+          if (!phaseData) return;
+          const defaultTasks = phaseData.tasks;
           const phaseCustom = remoteCustomTasks[phaseId] || []; // Use remote custom tasks
 
           // Helper: Normalize task structure
@@ -1223,7 +1247,7 @@ export function ProtocolProvider({ children }) {
 
   const value = {
     phases: currentPhases,
-    phaseOrder: PHASE_ORDER,
+    phaseOrder: currentPhaseOrder,
     phaseTasks,
 
     // History

@@ -590,22 +590,30 @@ export default function Protocol() {
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
         >
           {hasTasks ? (
-            phaseOrder.map((phaseId) => (
-              <PhaseSection
-                key={phaseId}
-                phaseId={phaseId}
-                phase={phases[phaseId]}
-                tasks={phaseTasks[phaseId]}
-                isExpanded={expandedPhases.includes(phaseId)}
-                isUnlocked={isPhaseUnlocked(phaseId)}
-                onToggleTask={toggleTask}
-                onToggleExpand={handleToggleExpand}
-                onCompletePhase={handleCompletePhase}
-                onTaskPress={handleTaskPress}
-                onReorder={reorderTasks}
-                progress={getPhaseProgress(phaseId)}
-              />
-            ))
+            phaseOrder
+              .filter((phaseId) => {
+                // For non-personal: hide empty scheduled phases (but always show general if it has tasks)
+                if (protocolCategory !== "personal" && phaseId !== "general") {
+                  return phaseTasks[phaseId] && phaseTasks[phaseId].length > 0;
+                }
+                return true;
+              })
+              .map((phaseId) => (
+                <PhaseSection
+                  key={phaseId}
+                  phaseId={phaseId}
+                  phase={phases[phaseId]}
+                  tasks={phaseTasks[phaseId] || []}
+                  isExpanded={phaseId === "general" ? true : expandedPhases.includes(phaseId)}
+                  isUnlocked={phaseId === "general" ? true : isPhaseUnlocked(phaseId)}
+                  onToggleTask={toggleTask}
+                  onToggleExpand={handleToggleExpand}
+                  onCompletePhase={handleCompletePhase}
+                  onTaskPress={handleTaskPress}
+                  onReorder={reorderTasks}
+                  progress={getPhaseProgress(phaseId)}
+                />
+              ))
           ) : (
             <EmptyCategoryState categoryLabel={activeCategoryLabel} />
           )}

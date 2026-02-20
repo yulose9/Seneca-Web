@@ -897,25 +897,60 @@ export default function Growth() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-[11px] font-bold text-[#34C759] uppercase tracking-widest mb-2">
-                Overall Progress
+                {activeStudyGoal ? "Currently Studying" : "Overall Progress"}
               </p>
               <p className="text-2xl font-bold text-black tracking-tight">
-                Y1 Q3 Focus
+                {activeStudyGoal ? activeStudyGoal.name : "No Active Goal"}
               </p>
             </div>
             <ProgressRing
-              progress={32}
+              progress={(() => {
+                // Calculate actual cert completion %
+                let total = 0;
+                let done = 0;
+                domains.forEach((domain) => {
+                  if (domain.subcategories) {
+                    domain.subcategories.forEach((sub) => {
+                      sub.modules.forEach((m) => { total++; if (getEffectiveStatus(m) === "done") done++; });
+                    });
+                  } else if (domain.modules) {
+                    domain.modules.forEach((m) => { total++; if (getEffectiveStatus(m) === "done") done++; });
+                  }
+                });
+                customCertifications.forEach((c) => { total++; if (getEffectiveStatus(c) === "done") done++; });
+                return total > 0 ? Math.round((done / total) * 100) : 0;
+              })()}
               size={64}
               strokeWidth={5}
               color="#34C759"
             />
           </div>
 
-          <div className="mt-4 bg-[#34C759]/10 rounded-xl py-3 px-4">
-            <p className="text-[14px] font-semibold text-[#34C759] text-center">
-              Next Major Exam: RHCSA (Oct 24)
-            </p>
-          </div>
+          {activeStudyGoal && (
+            <div className="mt-4 bg-[#007AFF]/10 rounded-xl py-3 px-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px]">📚</span>
+                  <p className="text-[14px] font-semibold text-[#007AFF]">
+                    {activeStudyGoal.level} • Target: {activeStudyGoal.target}
+                  </p>
+                </div>
+                {activeStudyGoal.vendor && (
+                  <span className="text-[11px] font-bold uppercase px-2 py-0.5 rounded-md bg-[#007AFF]/15 text-[#007AFF]">
+                    {activeStudyGoal.vendor}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!activeStudyGoal && (
+            <div className="mt-4 bg-[#34C759]/10 rounded-xl py-3 px-4">
+              <p className="text-[14px] font-semibold text-[#34C759] text-center">
+                Tap a certification below to set your study goal
+              </p>
+            </div>
+          )}
         </motion.div>
       </div>
 
