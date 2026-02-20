@@ -1128,9 +1128,12 @@ export function ProtocolProvider({ children }) {
       )
         return;
 
-      if (!todayLog || !todayLog.protocol) return;
+      if (!todayLog) return;
 
-      const remoteProtocol = todayLog.protocol;
+      const logKey = protocolCategory === "personal" ? "protocol" : `protocol_${protocolCategory}`;
+      if (!todayLog[logKey]) return;
+
+      const remoteProtocol = todayLog[logKey];
 
       // PREPARE DATA SOURCES
       // 1. Custom Tasks
@@ -1213,7 +1216,7 @@ export function ProtocolProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [protocolCategory]);
 
   // Get phases for the current category
   const currentPhases = getPhasesForCategory(protocolCategory);

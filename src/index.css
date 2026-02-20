@@ -147,66 +147,36 @@ body {
 
   /* Complex Outer/Inner Shadows from Request */
   box-shadow:
-    inset 0 0 0 1px
-      color-mix(
-        in srgb,
-        var(--liquid-light) calc(var(--liquid-reflex-light) * 10%),
-        transparent
-      ),
-    inset 1.8px 3px 0px -2px
-      color-mix(
-        in srgb,
-        var(--liquid-light) calc(var(--liquid-reflex-light) * 90%),
-        transparent
-      ),
-    inset -2px -2px 0px -2px
-      color-mix(
-        in srgb,
-        var(--liquid-light) calc(var(--liquid-reflex-light) * 80%),
-        transparent
-      ),
-    inset -3px -8px 1px -6px
-      color-mix(
-        in srgb,
-        var(--liquid-light) calc(var(--liquid-reflex-light) * 60%),
-        transparent
-      ),
-    inset -0.3px -1px 4px 0px
-      color-mix(
-        in srgb,
-        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 12%),
-        transparent
-      ),
-    inset -1.5px 2.5px 0px -2px
-      color-mix(
-        in srgb,
-        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
-        transparent
-      ),
-    inset 0px 3px 4px -2px
-      color-mix(
-        in srgb,
-        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
-        transparent
-      ),
-    inset 2px -6.5px 1px -4px
-      color-mix(
-        in srgb,
-        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
-        transparent
-      ),
-    0px 1px 5px 0px
-      color-mix(
-        in srgb,
-        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
-        transparent
-      ),
-    0px 6px 16px 0px
-      color-mix(
-        in srgb,
-        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%),
-        transparent
-      );
+    inset 0 0 0 1px color-mix(in srgb,
+      var(--liquid-light) calc(var(--liquid-reflex-light) * 10%),
+      transparent),
+    inset 1.8px 3px 0px -2px color-mix(in srgb,
+      var(--liquid-light) calc(var(--liquid-reflex-light) * 90%),
+      transparent),
+    inset -2px -2px 0px -2px color-mix(in srgb,
+      var(--liquid-light) calc(var(--liquid-reflex-light) * 80%),
+      transparent),
+    inset -3px -8px 1px -6px color-mix(in srgb,
+      var(--liquid-light) calc(var(--liquid-reflex-light) * 60%),
+      transparent),
+    inset -0.3px -1px 4px 0px color-mix(in srgb,
+      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 12%),
+      transparent),
+    inset -1.5px 2.5px 0px -2px color-mix(in srgb,
+      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
+      transparent),
+    inset 0px 3px 4px -2px color-mix(in srgb,
+      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
+      transparent),
+    inset 2px -6.5px 1px -4px color-mix(in srgb,
+      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
+      transparent),
+    0px 1px 5px 0px color-mix(in srgb,
+      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
+      transparent),
+    0px 6px 16px 0px color-mix(in srgb,
+      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%),
+      transparent);
 
   transition: all 0.4s cubic-bezier(1, 0, 0.4, 1);
 }
@@ -262,48 +232,27 @@ body {
 
   /* Specific Active Shadows from Request */
   box-shadow:
-    inset 0 0 0 1px
-      color-mix(
-        in srgb,
-        var(--liquid-light) calc(var(--liquid-reflex-light) * 10%),
-        transparent
-      ),
-    inset 2px 1px 0px -1px
-      color-mix(
-        in srgb,
-        var(--liquid-light) calc(var(--liquid-reflex-light) * 90%),
-        transparent
-      ),
-    inset -1.5px -1px 0px -1px
-      color-mix(
-        in srgb,
-        var(--liquid-light) calc(var(--liquid-reflex-light) * 80%),
-        transparent
-      ),
-    inset -2px -6px 1px -5px
-      color-mix(
-        in srgb,
-        var(--liquid-light) calc(var(--liquid-reflex-light) * 60%),
-        transparent
-      ),
-    inset -1px 2px 3px -1px
-      color-mix(
-        in srgb,
-        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
-        transparent
-      ),
-    inset 0px -4px 1px -2px
-      color-mix(
-        in srgb,
-        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
-        transparent
-      ),
-    0px 3px 6px 0px
-      color-mix(
-        in srgb,
-        var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%),
-        transparent
-      );
+    inset 0 0 0 1px color-mix(in srgb,
+      var(--liquid-light) calc(var(--liquid-reflex-light) * 10%),
+      transparent),
+    inset 2px 1px 0px -1px color-mix(in srgb,
+      var(--liquid-light) calc(var(--liquid-reflex-light) * 90%),
+      transparent),
+    inset -1.5px -1px 0px -1px color-mix(in srgb,
+      var(--liquid-light) calc(var(--liquid-reflex-light) * 80%),
+      transparent),
+    inset -2px -6px 1px -5px color-mix(in srgb,
+      var(--liquid-light) calc(var(--liquid-reflex-light) * 60%),
+      transparent),
+    inset -1px 2px 3px -1px color-mix(in srgb,
+      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
+      transparent),
+    inset 0px -4px 1px -2px color-mix(in srgb,
+      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
+      transparent),
+    0px 3px 6px 0px color-mix(in srgb,
+      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%),
+      transparent);
 }
 
 .liquid-icon {
@@ -788,11 +737,9 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(
-    135deg,
-    var(--color-system-blue),
-    var(--color-system-indigo)
-  );
+  background: linear-gradient(135deg,
+      var(--color-system-blue),
+      var(--color-system-indigo));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1028,17 +975,12 @@ body {
   margin-bottom: 8px;
 }
 
-.rich-text-editor .ProseMirror ul[data-type="taskList"] li > label {
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li>label {
   flex-shrink: 0;
   user-select: none;
 }
 
-.rich-text-editor
-  .ProseMirror
-  ul[data-type="taskList"]
-  li
-  > label
-  input[type="checkbox"] {
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li>label input[type="checkbox"] {
   width: 18px;
   height: 18px;
   margin-top: 2px;
@@ -1046,15 +988,11 @@ body {
   cursor: pointer;
 }
 
-.rich-text-editor .ProseMirror ul[data-type="taskList"] li > div {
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li>div {
   flex: 1;
 }
 
-.rich-text-editor
-  .ProseMirror
-  ul[data-type="taskList"]
-  li[data-checked="true"]
-  > div {
+.rich-text-editor .ProseMirror ul[data-type="taskList"] li[data-checked="true"]>div {
   text-decoration: line-through;
   color: rgba(60, 60, 67, 0.5);
 }
@@ -1605,14 +1543,12 @@ body {
 /* Desktop background */
 @media (min-width: 768px) {
   body {
-    background: linear-gradient(
-      135deg,
-      #e8e8ed 0%,
-      #d2d2d7 25%,
-      #e0e0e5 50%,
-      #d6d6db 75%,
-      #eaeaef 100%
-    );
+    background: linear-gradient(135deg,
+        #e8e8ed 0%,
+        #d2d2d7 25%,
+        #e0e0e5 50%,
+        #d6d6db 75%,
+        #eaeaef 100%);
     background-attachment: fixed;
   }
 
@@ -1653,13 +1589,11 @@ body {
 /* Ultra-wide: subtle refinement */
 @media (min-width: 1440px) {
   body {
-    background: linear-gradient(
-      160deg,
-      #f0f0f5 0%,
-      #dcdce1 30%,
-      #e6e6eb 60%,
-      #d8d8dd 100%
-    );
+    background: linear-gradient(160deg,
+        #f0f0f5 0%,
+        #dcdce1 30%,
+        #e6e6eb 60%,
+        #d8d8dd 100%);
   }
 
   .desktop-app-frame {
@@ -1735,9 +1669,8 @@ body {
 }
 
 .protocol-pill-active {
-  background: #007AFF;
   padding: 16px 32px;
-  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+  /* background and box-shadow applied dynamically via inline style per category */
 }
 
 .protocol-pill-inactive {

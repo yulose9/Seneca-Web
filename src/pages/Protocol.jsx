@@ -201,6 +201,13 @@ const categoryIcons = {
   other: CheckCircle,
 };
 
+// Category active colors
+const categoryColors = {
+  personal: "#007AFF",
+  work: "#8DB600",
+  other: "#FF4E6B",
+};
+
 // Protocol Category Pill Selector (inspired by iPhone Mail app)
 const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) => {
   return (
@@ -209,6 +216,7 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
         {categories.map((cat) => {
           const isActive = cat.id === activeCategory;
           const IconComp = categoryIcons[cat.id];
+          const activeColor = categoryColors[cat.id];
           return (
             <motion.button
               key={cat.id}
@@ -217,6 +225,14 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
                 "protocol-pill",
                 isActive ? "protocol-pill-active" : "protocol-pill-inactive",
               )}
+              style={
+                isActive
+                  ? {
+                    backgroundColor: activeColor,
+                    boxShadow: `0 4px 16px ${activeColor}4D`,
+                  }
+                  : undefined
+              }
               layout
               transition={{
                 layout: { type: "spring", stiffness: 400, damping: 30 },
