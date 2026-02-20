@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CloudRain, Sun, Umbrella, Cloud } from 'lucide-react';
+import { CloudRain, Sun, Umbrella, Cloud, Clock } from 'lucide-react';
 import { getDetailedLocationSummary, getSmartWeatherSummary } from '../services/weatherService';
+
+const formatTimeAgo = (timestamp) => {
+    if (!timestamp) return 'Just now';
+    const diffSeconds = Math.floor((Date.now() - timestamp) / 1000);
+
+    if (diffSeconds < 60) return 'Updated just now';
+
+    const diffMins = Math.floor(diffSeconds / 60);
+    if (diffMins < 60) return `Updated ${diffMins}m ago`;
+
+    const diffHours = Math.floor(diffMins / 60);
+    const date = new Date(timestamp);
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `Updated at ${timeStr} (${diffHours}h ago)`;
+};
 
 export default function WeatherWidget() {
     const [weather, setWeather] = useState(null);
@@ -91,9 +106,17 @@ export default function WeatherWidget() {
                                     <p className="text-[14px] leading-snug text-[#1C1C1E]/80 font-medium">
                                         "{weather?.summary?.recommendation}"
                                     </p>
-                                    <p className="text-[10px] text-[#1C1C1E]/40 mt-1 font-medium">
-                                        Short summary - {weather?.summary?.model}
-                                    </p>
+                                    <div className="flex items-center justify-between mt-2">
+                                        <p className="text-[10px] text-[#1C1C1E]/40 font-medium border border-[#1C1C1E]/10 rounded-md px-1.5 py-0.5 inline-block bg-white/50">
+                                            AI Match • {weather?.summary?.model?.replace('Gemini ', '')}
+                                        </p>
+                                        {weather?.summary?.timestamp && (
+                                            <p className="text-[10px] text-[#007AFF]/80 font-medium flex items-center gap-1">
+                                                <Clock size={10} />
+                                                {formatTimeAgo(weather.summary.timestamp)}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -151,7 +174,20 @@ export default function WeatherWidget() {
                                                                 animate={{ opacity: 1, y: 0 }}
                                                                 className="bg-white rounded-lg p-3 border border-black/5 shadow-sm text-black/80"
                                                             >
-                                                                {summaries[loc.location]}
+                                                                <p className="leading-snug">
+                                                                    {summaries[loc.location]?.text || summaries[loc.location]}
+                                                                </p>
+                                                                {summaries[loc.location]?.timestamp && (
+                                                                    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-black/5">
+                                                                        <div className="flex items-center gap-1 text-[9px] text-black/40 font-semibold uppercase tracking-wider">
+                                                                            <Sun size={8} /> AI
+                                                                        </div>
+                                                                        <span className="text-[9px] text-[#007AFF]/80 font-medium flex items-center gap-1">
+                                                                            <Clock size={8} />
+                                                                            {formatTimeAgo(summaries[loc.location].timestamp)}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
                                                             </motion.div>
                                                         )}
                                                     </div>

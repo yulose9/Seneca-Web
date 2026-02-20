@@ -152,6 +152,7 @@ export const getSmartWeatherSummary = async () => {
       // 2. Age < 8 hours
       if (cachedDate === todayDate && age < AI_CACHE_DURATION) {
         aiSummary = parsed.data;
+        aiSummary.timestamp = parsed.timestamp;
         // console.log("Using cached AI Summary");
       }
     }
@@ -245,12 +246,13 @@ export const getSmartWeatherSummary = async () => {
       }
     }
 
-    // Cache the AI Result
+    const generatedTimestamp = Date.now();
     if (aiSummary) {
+      aiSummary.timestamp = generatedTimestamp;
       localStorage.setItem(
         AI_SUMMARY_CACHE_KEY,
         JSON.stringify({
-          timestamp: Date.now(),
+          timestamp: generatedTimestamp,
           data: aiSummary,
         }),
       );
@@ -259,7 +261,7 @@ export const getSmartWeatherSummary = async () => {
 
   // Default return if everything failed (prevents crash)
   if (!aiSummary) {
-    aiSummary = { pill: "Weather", recommendation: "Unable to load weather." };
+    aiSummary = { pill: "Weather", recommendation: "Unable to load weather.", timestamp: Date.now() };
   }
 
   return {
@@ -287,7 +289,7 @@ export const getDetailedLocationSummary = async (
       const age = Date.now() - parsed.timestamp;
       if (age < CACHE_DURATION_DETAIL) {
         console.log(`Using cached summary for ${locationName}`);
-        return parsed.data;
+        return { text: parsed.data, timestamp: parsed.timestamp, cached: true };
       }
     }
   } catch (e) {
@@ -347,11 +349,12 @@ export const getDetailedLocationSummary = async (
     const text = (response?.text || response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || (typeof response?.response?.text === 'function' ? response.response.text() : undefined))?.trim();
 
     if (text) {
+      const generatedTimestamp = Date.now();
       localStorage.setItem(
         cacheKey,
-        JSON.stringify({ timestamp: Date.now(), data: text }),
+        JSON.stringify({ timestamp: generatedTimestamp, data: text }),
       );
-      return text;
+      return { text, timestamp: generatedTimestamp, cached: false };
     }
   } catch (error) {
     console.warn(
@@ -371,11 +374,12 @@ export const getDetailedLocationSummary = async (
       });
       const text = (response?.text || response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || (typeof response?.response?.text === 'function' ? response.response.text() : undefined))?.trim();
       if (text) {
+        const generatedTimestamp = Date.now();
         localStorage.setItem(
           cacheKey,
-          JSON.stringify({ timestamp: Date.now(), data: text }),
+          JSON.stringify({ timestamp: generatedTimestamp, data: text }),
         );
-        return text;
+        return { text, timestamp: generatedTimestamp, cached: false };
       }
     } catch (fbError) {
       console.error("Gemini 1.5 Fallback Failed:", fbError);
@@ -393,16 +397,17 @@ export const getDetailedLocationSummary = async (
     cond.includes("rain") ||
     cond.includes("drizzle");
 
+  const fallbackTimestamp = Date.now();
   if (rainNow || rainForecast)
-    return "Rain detected or expected provided by OpenMeteo. Bring an umbrella! ☔";
+    return { text: "Rain detected or expected provided by OpenMeteo. Bring an umbrella! ☔", timestamp: fallbackTimestamp, cached: false };
   if (temp > 31)
-    return `It's ${Math.round(temp)}°C outside. Wear cool clothes and sunscreen! ☀️`;
+    return { text: `It's ${Math.round(temp)}°C outside. Wear cool clothes and sunscreen! ☀️`, timestamp: fallbackTimestamp, cached: false };
   if (cond.includes("cloud") || cond.includes("overcast"))
-    return "It's a bit cloudy, but should remain dry. ☁️";
+    return { text: "It's a bit cloudy, but should remain dry. ☁️", timestamp: fallbackTimestamp, cached: false };
   if (temp < 24)
-    return "Cooler weather today. A light jacket might be nice. 🧥";
+    return { text: "Cooler weather today. A light jacket might be nice. 🧥", timestamp: fallbackTimestamp, cached: false };
 
-  return "Skies look clear. Enjoy your day! 🌤️";
+  return { text: "Skies look clear. Enjoy your day! 🌤️", timestamp: fallbackTimestamp, cached: false };
 };
 
 // Smart offline fallback that generates a useful summary from raw weather data
