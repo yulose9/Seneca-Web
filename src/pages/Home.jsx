@@ -369,7 +369,13 @@ export default function Home() {
                     onClick={isEditMode ? undefined : () => navigate("/wealth")}
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-[13px] font-semibold text-[#FF3B30] uppercase tracking-wide">
+                      <span
+                        className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
+                        style={{
+                          backgroundColor: "rgba(255, 59, 48, 0.12)",
+                          color: "#FF3B30",
+                        }}
+                      >
                         Priority Payment
                       </span>
                       {!isEditMode && (
@@ -387,10 +393,16 @@ export default function Home() {
                             {wealthData.priorityLiability?.name ||
                               "Loan from Kuya"}
                           </p>
-                          <p className="text-[13px] text-[rgba(60,60,67,0.6)]">
+                          <span
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold mt-1"
+                            style={{
+                              backgroundColor: "rgba(255, 149, 0, 0.12)",
+                              color: "#FF9500",
+                            }}
+                          >
                             {wealthData.priorityLiability?.platform ||
                               "Priority"}
-                          </p>
+                          </span>
                         </div>
                       </div>
                       <div className="flex items-baseline justify-between">

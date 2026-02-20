@@ -1678,12 +1678,11 @@ body {
 .protocol-pill-inactive {
   background: #808080;
   padding: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  /* No shadow — only active pills get glow via inline style */
 }
 
 .protocol-pill-inactive:hover {
   background: #6e6e6e;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .protocol-pill-content {

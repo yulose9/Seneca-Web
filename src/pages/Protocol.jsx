@@ -225,17 +225,15 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
                 "protocol-pill",
                 isActive ? "protocol-pill-active" : "protocol-pill-inactive",
               )}
-              style={
-                isActive
-                  ? {
-                    backgroundColor: activeColor,
-                    boxShadow: `0 4px 16px ${activeColor}4D`,
-                  }
-                  : undefined
-              }
+              style={{
+                backgroundColor: isActive ? activeColor : "#808080",
+                boxShadow: isActive
+                  ? `0 3px 12px ${activeColor}40`
+                  : "none",
+              }}
               layout
               transition={{
-                layout: { type: "spring", stiffness: 400, damping: 30 },
+                layout: { type: "spring", stiffness: 500, damping: 35 },
               }}
               whileTap={{ scale: 0.95 }}
             >
@@ -243,7 +241,7 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
                 className="protocol-pill-content"
                 layout
                 transition={{
-                  layout: { type: "spring", stiffness: 400, damping: 30 },
+                  layout: { type: "spring", stiffness: 500, damping: 35 },
                 }}
               >
                 <IconComp
@@ -251,19 +249,20 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
                   strokeWidth={2}
                   className="protocol-pill-icon"
                 />
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="popLayout">
                   {isActive && (
                     <motion.span
                       key={`label-${cat.id}`}
                       className="protocol-pill-label"
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{ width: "auto", opacity: 1 }}
-                      exit={{ width: 0, opacity: 0 }}
+                      initial={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
+                      animate={{ maxWidth: 120, opacity: 1, marginLeft: 4 }}
+                      exit={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
                       transition={{
-                        width: { type: "spring", stiffness: 400, damping: 30 },
-                        opacity: { duration: 0.15 },
+                        maxWidth: { type: "spring", stiffness: 500, damping: 35 },
+                        opacity: { duration: 0.15, delay: 0.05 },
+                        marginLeft: { type: "spring", stiffness: 500, damping: 35 },
                       }}
-                      style={{ overflow: "hidden", whiteSpace: "nowrap" }}
+                      style={{ overflow: "hidden", whiteSpace: "nowrap", display: "inline-block" }}
                     >
                       {cat.label}
                     </motion.span>
