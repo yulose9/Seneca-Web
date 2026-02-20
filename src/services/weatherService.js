@@ -44,8 +44,8 @@ const getWeatherCondition = (code) => {
 const RAW_CACHE_KEY = "weather_raw_v5";
 const RAW_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
-const AI_SUMMARY_CACHE_KEY = "weather_ai_summary_docs_v5";
-const AI_CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+const AI_SUMMARY_CACHE_KEY = "weather_ai_summary_docs_v6";
+const AI_CACHE_DURATION = 8 * 60 * 60 * 1000; // 8 hours (3 times a day)
 
 export const getSmartWeatherSummary = async () => {
   let rawWeatherData = null;
@@ -149,7 +149,7 @@ export const getSmartWeatherSummary = async () => {
 
       // Use cache if:
       // 1. Same day AND
-      // 2. Age < 4 hours
+      // 2. Age < 8 hours
       if (cachedDate === todayDate && age < AI_CACHE_DURATION) {
         aiSummary = parsed.data;
         // console.log("Using cached AI Summary");
@@ -269,8 +269,8 @@ export const getSmartWeatherSummary = async () => {
   };
 };
 
-const CACHE_KEY_DETAIL_PREFIX = "weather_detail_cache_v5_"; // Version 5
-const CACHE_DURATION_DETAIL = 2 * 60 * 60 * 1000; // 2 hours
+const CACHE_KEY_DETAIL_PREFIX = "weather_detail_cache_v6_"; // Version 6
+const CACHE_DURATION_DETAIL = 8 * 60 * 60 * 1000; // 8 hours (3 times a day)
 
 export const getDetailedLocationSummary = async (
   locationName,
