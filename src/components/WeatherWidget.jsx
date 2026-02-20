@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CloudRain, Sun, Umbrella, Cloud, Clock } from 'lucide-react';
+import { CloudRain, Sun, Umbrella, Cloud, Clock, CloudLightning, Wind } from 'lucide-react';
 import { getDetailedLocationSummary, getSmartWeatherSummary } from '../services/weatherService';
 
 const formatTimeAgo = (timestamp) => {
@@ -100,7 +100,13 @@ export default function WeatherWidget() {
                         <div className="bg-gradient-to-br from-[#007AFF]/10 to-[#5856D6]/10 rounded-xl p-3 mb-4">
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-white rounded-full shadow-sm">
-                                    <Umbrella size={16} className="text-[#007AFF]" />
+                                    {weather?.summary?.icon === 'sun' && <Sun size={16} className="text-[#FF9500]" />}
+                                    {weather?.summary?.icon === 'cloud-sun' && <Cloud size={16} className="text-[#FF9500]" />}
+                                    {(weather?.summary?.icon === 'cloud' || !weather?.summary?.icon) && <Cloud size={16} className="text-[#8E8E93]" />}
+                                    {weather?.summary?.icon === 'cloud-rain' && <CloudRain size={16} className="text-[#007AFF]" />}
+                                    {weather?.summary?.icon === 'umbrella' && <Umbrella size={16} className="text-[#007AFF]" />}
+                                    {weather?.summary?.icon === 'cloud-lightning' && <CloudLightning size={16} className="text-[#5856D6]" />}
+                                    {weather?.summary?.icon === 'wind' && <Wind size={16} className="text-[#34C759]" />}
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-[14px] leading-snug text-[#1C1C1E]/80 font-medium">
@@ -205,7 +211,7 @@ export default function WeatherWidget() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }
 

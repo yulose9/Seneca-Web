@@ -58,7 +58,7 @@ const getWeatherCondition = (code) => {
 const RAW_CACHE_KEY = "weather_raw_v5";
 const RAW_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
-const AI_SUMMARY_CACHE_KEY = "weather_ai_summary_docs_v6";
+const AI_SUMMARY_CACHE_KEY = "weather_ai_summary_docs_v7";
 const AI_CACHE_DURATION = 8 * 60 * 60 * 1000; // 8 hours (3 times a day)
 
 export const getSmartWeatherSummary = async () => {
@@ -193,14 +193,15 @@ export const getSmartWeatherSummary = async () => {
     
             TASKS:
             1. "pill": A very short status (max 4 words) e.g., "Rainy Day ☔" or "Clear Skies ☀️".
-            2. "recommendation": A straight-to-the-point sentence combining the summary and action. 
+            2. "icon": Provide exactly ONE of these string values representing the best overall icon: "sun", "cloud-sun", "cloud", "cloud-rain", "cloud-lightning", "umbrella", "wind".
+            3. "recommendation": A straight-to-the-point sentence combining the summary and action. 
                - Example: "Rain expected across all locations later today, definitely bring an umbrella! ☔"
                - Example: "Scorching hot at home and work today, dress light and stay hydrated! 🥤"
                - Example: "Overcast but dry everywhere today, comfortable weather for commuting. ☁️"
                Make it maximum 15 words. NO fluff.
     
             Output strictly valid JSON:
-            { "pill": "...", "recommendation": "..." }
+            { "pill": "...", "icon": "...", "recommendation": "..." }
         `;
 
     try {
@@ -444,6 +445,7 @@ const generateOfflineSummary = (locationData) => {
   if (rainNow) {
     return {
       pill: "Raining Now 🌧️",
+      icon: "cloud-rain",
       recommendation:
         "It's raining outside. Grab an umbrella before heading out! ☔",
     };
@@ -451,47 +453,55 @@ const generateOfflineSummary = (locationData) => {
   if (rainComing) {
     return {
       pill: "Rain Expected 🌦️",
+      icon: "umbrella",
       recommendation: "Rain is expected later. Keep an umbrella handy! ☂️",
     };
   }
   if (isHot) {
     return {
       pill: "Hot Weather ☀️",
+      icon: "sun",
       recommendation: `It's ${temp ? Math.round(temp) + "°C" : "hot"}. Stay hydrated and wear light clothing! 🥤`,
     };
   }
   if (isFoggy) {
     return {
       pill: "Foggy 🌫️",
+      icon: "cloud",
       recommendation: "Visibility is low with fog. Drive carefully! 🌫️",
     };
   }
   if (isCloudy && isWarm) {
     return {
       pill: "Warm & Cloudy ⛅",
+      icon: "cloud-sun",
       recommendation: `${temp ? Math.round(temp) + "°C" : "Warm"} with clouds. Comfortable weather, no umbrella needed. 👍`,
     };
   }
   if (isCloudy) {
     return {
       pill: "Overcast ☁️",
+      icon: "cloud",
       recommendation: "Cloudy skies today. Should stay dry though! ☁️",
     };
   }
   if (isCool) {
     return {
       pill: "Cool Weather 🧥",
+      icon: "wind",
       recommendation: `Cooler at ${temp ? Math.round(temp) + "°C" : "low temps"}. A light jacket would be nice! 🧥`,
     };
   }
   if (temp !== undefined) {
     return {
       pill: "Clear Skies ☀️",
+      icon: "sun",
       recommendation: `${Math.round(temp)}°C with clear skies. Great weather to be outside! 🌤️`,
     };
   }
   return {
     pill: "Weather ⛅",
+    icon: "cloud",
     recommendation:
       "Couldn't reach the forecast. Check outside before heading out! 👀",
   };
