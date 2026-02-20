@@ -195,9 +195,7 @@ export const getSmartWeatherSummary = async () => {
         config: { responseMimeType: "application/json" },
       });
 
-      const fullText =
-        result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        result?.response?.text?.();
+      const fullText = result?.text || result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || (typeof result?.response?.text === 'function' ? result.response.text() : undefined);
 
       if (fullText) {
         console.log("Gemini 2.0 Flash Output:", fullText);
@@ -221,9 +219,7 @@ export const getSmartWeatherSummary = async () => {
           contents: [{ role: "user", parts: [{ text: promptText }] }],
           config: { responseMimeType: "application/json" },
         });
-        const text =
-          result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-          result?.response?.text?.();
+        const text = result?.text || result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || (typeof result?.response?.text === 'function' ? result.response.text() : undefined);
         if (text) {
           aiSummary = JSON.parse(
             text
@@ -336,9 +332,7 @@ export const getDetailedLocationSummary = async (
       config: { temperature: 0.9 },
     });
 
-    const text =
-      response?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-      response?.response?.text?.()?.trim();
+    const text = (response?.text || response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || (typeof response?.response?.text === 'function' ? response.response.text() : undefined))?.trim();
 
     if (text) {
       localStorage.setItem(
@@ -363,9 +357,7 @@ export const getDetailedLocationSummary = async (
         contents: [{ role: "user", parts: [{ text: promptText }] }],
         config: { temperature: 0.7 },
       });
-      const text =
-        response?.response?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-        response?.response?.text?.()?.trim();
+      const text = (response?.text || response?.response?.candidates?.[0]?.content?.parts?.[0]?.text || (typeof response?.response?.text === 'function' ? response.response.text() : undefined))?.trim();
       if (text) {
         localStorage.setItem(
           cacheKey,
