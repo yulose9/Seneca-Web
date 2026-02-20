@@ -19,26 +19,40 @@ async function fetchRawWeather(lat, lng) {
   }
 }
 
-// Get readable condition from WMO code
+// Get readable condition from WMO code localized for the Philippines
 const getWeatherCondition = (code) => {
+  // WMO weather interpretation codes tailored to PH context
   const codes = {
-    0: "Clear sky ☀️",
-    1: "Mainly clear 🌤️",
-    2: "Partly cloudy ⛅",
-    3: "Overcast ☁️",
-    45: "Fog 🌫️",
-    48: "Fog 🌫️",
-    51: "Drizzle 🌧️",
-    53: "Drizzle 🌧️",
-    55: "Drizzle 🌧️",
-    61: "Rain 🌧️",
-    63: "Rain 🌧️",
-    65: "Heavy Rain ⛈️",
-    80: "Showers 🌦️",
-    81: "Showers 🌦️",
-    82: "Violent Showers ⛈️",
+    0: "Tirik ang Araw ☀️", // Clear sky
+    1: "Maaraw 🌤️", // Mainly clear
+    2: "Medyo Maulap ⛅", // Partly cloudy
+    3: "Makulimlim ☁️", // Overcast
+    45: "Hamon ng Hamog 🌫️", // Fog
+    48: "Makapal na Hamog 🌫️", // Depositing rime fog
+    51: "Umaambon 🌧️", // Light drizzle
+    53: "Umaambon 🌧️", // Moderate drizzle
+    55: "Umaambon nang Malakas 🌧️", // Dense drizzle
+    56: "Malamig na Ambon 🌧️", // Light freezing drizzle (Amihan vibes)
+    57: "Malamig na Ambon 🌧️", // Dense freezing drizzle
+    61: "Umuulan 🌧️", // Slight rain
+    63: "Lakas ng Ulan 🌧️", // Moderate rain
+    65: "Malakas na Ulan ⛈️", // Heavy rain
+    66: "Malamig na Ulan 🌧️", // Light freezing rain
+    67: "Malamig na Ulan 🌧️", // Heavy freezing rain
+    71: "Nagniniyebe? (Imposible) ❄️", // Slight snow fall 
+    73: "Nagniniyebe? (Imposible) ❄️", // Moderate snow fall
+    75: "Nagniniyebe? (Imposible) ❄️", // Heavy snow fall
+    77: "Yelo? ❄️", // Snow grains
+    80: "Paulan-ulan 🌦️", // Slight rain showers
+    81: "Paulan-ulan 🌦️", // Moderate rain showers
+    82: "Buhos ng Ulan ⛈️", // Violent rain showers (Habagat level)
+    85: "Snow Showers? ❄️", // Slight snow showers
+    86: "Snow Showers? ❄️", // Heavy snow showers
+    95: "May Pagkulog at Pagkidlat 🌩️", // Thunderstorm: Slight or moderate
+    96: "Bagyo! 🌀", // Thunderstorm with slight hail (PH context: severe storm)
+    99: "Bagyo! 🌀", // Thunderstorm with heavy hail
   };
-  return codes[code] || "Unknown";
+  return codes[code] || "Hindi matukoy 🤔";
 };
 
 const RAW_CACHE_KEY = "weather_raw_v5";
