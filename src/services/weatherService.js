@@ -41,10 +41,10 @@ const getWeatherCondition = (code) => {
   return codes[code] || "Unknown";
 };
 
-const RAW_CACHE_KEY = "weather_raw_v4";
+const RAW_CACHE_KEY = "weather_raw_v5";
 const RAW_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
-const AI_SUMMARY_CACHE_KEY = "weather_ai_summary_docs_v4";
+const AI_SUMMARY_CACHE_KEY = "weather_ai_summary_docs_v5";
 const AI_CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 
 export const getSmartWeatherSummary = async () => {
@@ -165,19 +165,24 @@ export const getSmartWeatherSummary = async () => {
             Current Date/Time: ${new Date().toLocaleString("en-PH")}
             
             You are a helpful, witty personal assistant.
-            Here is the comprehensive weather data for my locations (Home, Work, Metro Manila):
-            ${JSON.stringify(rawWeatherData)}
+            Here is the comprehensive weather data for my locations:
+            - Home: Imus, Cavite
+            - Work: Salcedo Village, Makati
+            - Metro: Metro Manila
+            
+            Data: ${JSON.stringify(rawWeatherData)}
     
-            Based on the "current", "hourlyForecast" (next 24h), and "tomorrow" data:
-            1. Analyze the likelihood of RAIN or EXTREME HEAT.
-            2. Formulate a specific recommendation (e.g., "Bring an umbrella", "Wear sunscreen", "Bring a jacket", "Stay dry").
+            Based on the "current", "hourlyForecast" (next 24h), and "tomorrow" data for ALL THREE locations above:
+            1. Summarize the overall weather outlook across these areas in just ONE SHARP, CONCISE sentence.
+            2. Tell me whether to bring an umbrella, a jacket, or just a general practical suggestion based on the overview.
     
             TASKS:
             1. "pill": A very short status (max 4 words) e.g., "Rainy Day ☔" or "Clear Skies ☀️".
-            2. "recommendation": A conversational sentence telling me what to do/bring. 
-               - If rainy: "Bring an umbrella, it's likely to rain later."
-               - If hot: "It's scorching outside, don't forget sunscreen!"
-               - If clear: "Great weather for a walk today."
+            2. "recommendation": A straight-to-the-point sentence combining the summary and action. 
+               - Example: "Rain expected across all locations later today, definitely bring an umbrella! ☔"
+               - Example: "Scorching hot at home and work today, dress light and stay hydrated! 🥤"
+               - Example: "Overcast but dry everywhere today, comfortable weather for commuting. ☁️"
+               Make it maximum 15 words. NO fluff.
     
             Output strictly valid JSON:
             { "pill": "...", "recommendation": "..." }
@@ -264,7 +269,7 @@ export const getSmartWeatherSummary = async () => {
   };
 };
 
-const CACHE_KEY_DETAIL_PREFIX = "weather_detail_cache_v3_"; // Version 3
+const CACHE_KEY_DETAIL_PREFIX = "weather_detail_cache_v5_"; // Version 5
 const CACHE_DURATION_DETAIL = 2 * 60 * 60 * 1000; // 2 hours
 
 export const getDetailedLocationSummary = async (
@@ -300,23 +305,30 @@ export const getDetailedLocationSummary = async (
     })),
   };
 
+  const locationMapping = {
+    "Home": "Imus, Cavite",
+    "Work": "Salcedo Village, Makati",
+    "Metro": "Metro Manila"
+  };
+  const actualLocation = locationMapping[locationName] || locationName;
+
   const promptText = `
         Current Time: ${new Date().toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" })}.
-        Location: ${locationName}
-        Official API Data: ${JSON.stringify(minimalData)}
+        Location: ${actualLocation}
+        API Data: ${JSON.stringify(minimalData)}
 
         Task: You are a smart weather assistant. 
-        1. Search current weather for ${locationName}, Philippines to verify the API data.
-        2. Combine specific API details (rain %, temp) with your search insights.
-        3. Give 1 sentence of PRACTICAL ADVICE (wear/bring).
+        Give me a completely straight-to-the-point, ultra-short summary (max 1-2 SHORT sentences).
+        State the vibe (e.g. humid, rainy, clear) and ONE piece of practical advice (wear/bring).
+        NO fluff. No introductory filler like "Alright, checking...". Just the facts + advice.
         
         Style: Casual, witty, helpful.
         Emoji: Required.
         
         Examples:
         - "Cloudy with a chance of meatballs—jk, but do bring a brolly! ☔"
-        - "It's 34°C! Wear breathable fabrics and stay hydrated. 🥤"
-        - "Clear skies tonight, perfect for a run. 🏃"
+        - "34°C and extremely humid! Wear breathable fabrics and stay hydrated. 🥤"
+        - "Clear skies tonight in ${actualLocation}, perfect for a run. 🏃"
     `;
 
   try {
