@@ -986,12 +986,14 @@ export function ProtocolProvider({ children }) {
 
   // Get current status for Home screen - DYNAMIC based on actual task state
   const getCurrentStatus = () => {
+    const categoryPhases = getPhasesForCategory(protocolCategory);
     // Check all phases in order, find the first one that's not complete
     for (const phaseId of PHASE_ORDER) {
       const tasks = phaseTasks[phaseId];
+      if (tasks.length === 0) continue; // Skip empty phases
       const allDone = tasks.every((t) => t.done);
       if (!allDone) {
-        const phase = PHASES[phaseId];
+        const phase = categoryPhases[phaseId];
         const completed = tasks.filter((t) => t.done).length;
         return {
           phase: phase.title,
@@ -1005,9 +1007,16 @@ export function ProtocolProvider({ children }) {
   };
 
   // Check if ALL tasks across ALL phases are done
-  const allPhasesComplete = PHASE_ORDER.every((phaseId) =>
-    phaseTasks[phaseId].every((task) => task.done),
+  // IMPORTANT: Must have at least one task total — empty lists are NOT "complete"
+  const totalTaskCount = PHASE_ORDER.reduce(
+    (sum, phaseId) => sum + phaseTasks[phaseId].length,
+    0,
   );
+  const allPhasesComplete =
+    totalTaskCount > 0 &&
+    PHASE_ORDER.every((phaseId) =>
+      phaseTasks[phaseId].every((task) => task.done),
+    );
 
   // Calculate total progress across all phases
   const getTotalProgress = () => {

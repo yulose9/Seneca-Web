@@ -24,9 +24,8 @@ const PHASE_OPTIONS = [
 // iOS-style Form Row Component
 const FormRow = ({ label, children, isLast = false }) => (
   <div
-    className={`flex items-center min-h-[44px] px-4 ${
-      !isLast ? "border-b border-[rgba(60,60,67,0.12)]" : ""
-    }`}
+    className={`flex items-center min-h-[44px] px-4 ${!isLast ? "border-b border-[rgba(60,60,67,0.12)]" : ""
+      }`}
   >
     {label && (
       <span className="text-[17px] text-black w-24 shrink-0">{label}</span>
@@ -52,7 +51,7 @@ const FormSection = ({ header, footer, children }) => (
   </div>
 );
 
-export default function AddTaskSheet({ visible, onClose, onAddTask }) {
+export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCategory = "personal" }) {
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
@@ -128,17 +127,18 @@ export default function AddTaskSheet({ visible, onClose, onAddTask }) {
               </button>
 
               {/* Title */}
-              <h2 className="text-[17px] font-semibold text-black">New Task</h2>
+              <h2 className="text-[17px] font-semibold text-black">
+                New {protocolCategory === "personal" ? "" : `${protocolCategory.charAt(0).toUpperCase() + protocolCategory.slice(1)} `}Task
+              </h2>
 
               {/* Add Button */}
               <button
                 onClick={handleSubmit}
                 disabled={!isValid}
-                className={`absolute right-4 text-[17px] font-semibold transition-colors ${
-                  isValid
-                    ? "text-[#007AFF] active:opacity-50"
-                    : "text-[rgba(60,60,67,0.3)]"
-                }`}
+                className={`absolute right-4 text-[17px] font-semibold transition-colors ${isValid
+                  ? "text-[#007AFF] active:opacity-50"
+                  : "text-[rgba(60,60,67,0.3)]"
+                  }`}
               >
                 Add
               </button>
@@ -228,11 +228,10 @@ export default function AddTaskSheet({ visible, onClose, onAddTask }) {
                     key={phase.id}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setSelectedPhase(phase.id)}
-                    className={`w-full flex items-center justify-between min-h-[44px] px-4 ${
-                      index !== PHASE_OPTIONS.length - 1
-                        ? "border-b border-[rgba(60,60,67,0.12)]"
-                        : ""
-                    }`}
+                    className={`w-full flex items-center justify-between min-h-[44px] px-4 ${index !== PHASE_OPTIONS.length - 1
+                      ? "border-b border-[rgba(60,60,67,0.12)]"
+                      : ""
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div

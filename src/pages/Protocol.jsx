@@ -460,6 +460,9 @@ export default function Protocol() {
   useEffect(() => {
     phaseOrder.forEach((phaseId, index) => {
       const currentPhaseTasks = phaseTasks[phaseId];
+      // Skip empty phases - they shouldn't trigger auto-advance
+      if (currentPhaseTasks.length === 0) return;
+
       const isComplete = currentPhaseTasks.every((t) => t.done);
       const wasComplete = prevCompletedRef.current[phaseId];
 
@@ -484,7 +487,7 @@ export default function Protocol() {
   }, [phaseTasks, phaseOrder]);
 
   useEffect(() => {
-    if (allPhasesComplete) {
+    if (allPhasesComplete && hasTasks) {
       confetti({
         particleCount: 100,
         spread: 70,
@@ -492,7 +495,7 @@ export default function Protocol() {
         colors: ["#007AFF", "#34C759", "#FF9500", "#5856D6"],
       });
     }
-  }, [allPhasesComplete]);
+  }, [allPhasesComplete, hasTasks]);
 
   const handleTaskPress = (phaseId, task) => {
     setSelectedHabit({ ...task, phaseId });
@@ -609,6 +612,7 @@ export default function Protocol() {
         visible={addTaskSheetVisible}
         onClose={() => setAddTaskSheetVisible(false)}
         onAddTask={addCustomTask}
+        protocolCategory={protocolCategory}
       />
 
       {/* Tasks Reminder Settings */}
