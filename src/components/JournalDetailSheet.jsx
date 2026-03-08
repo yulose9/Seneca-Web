@@ -635,7 +635,8 @@ export default function JournalDetailSheet({
                       stiffness: 300,
                       damping: 30,
                     }}
-                    className="max-w-none px-6 py-8"
+                    className="max-w-none px-6 py-8 cursor-text"
+                    onDoubleClick={() => setIsEditing(true)}
                   >
                     <div className="mb-8">
                       <div className="flex items-start gap-4 mb-4">

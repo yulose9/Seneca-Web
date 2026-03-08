@@ -485,12 +485,11 @@ export default function Protocol() {
       if (isComplete && !wasComplete) {
         const nextPhaseId = phaseOrder[index + 1];
 
-        // Don't auto-collapse - let the user see the completed state
-        // Only auto-expand the next phase
+        // Auto-collapse the completed phase and expand the next phase
         setExpandedPhases((prev) => {
-          let newState = [...prev];
+          let newState = prev.filter(p => p !== phaseId); // Collapse current
           if (nextPhaseId && !newState.includes(nextPhaseId)) {
-            newState = [...newState, nextPhaseId];
+            newState = [...newState, nextPhaseId]; // Expand next
           }
           return newState;
         });
