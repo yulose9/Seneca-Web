@@ -41,3 +41,15 @@ tmpclaude-*
 .firebase/hosting.*
 .firebase/hosting.ZGlzdA.cache
 .firebase/hosting.ZGlzdA.cache
+
+# Agent Skills (installed locally per machine — all editor variants)
+# Covers: .agents/, .agent/, .kiro/, .claude/, .cursor/, .github/copilot-skills/, etc.
+.agent/skills/
+.agents/skills/
+.kiro/skills/
+.cursor/skills/
+.github/copilot-skills/
+.claude/skills/
+
+.agents
+

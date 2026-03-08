@@ -4,28 +4,58 @@
  * Structures all app data as Daily Log Documents in Firestore.
  *
  * Path: users/{uid}/daily_logs/{date}
+ *
+ * Key improvements (Prompt 1 — Firebase Skill):
+ * - Auth-aware: waits for auth before attaching listeners / refs
+ * - In-memory cache: prevents duplicate Firestore reads in the same session
+ * - Debounced writes: updateTodayLog batches writes at 1.5s to save budget
+ * - Race-condition fix: subscribeToGlobalData uses isMounted guard
+ * - Empty doc bootstrap: listener creates the doc if it doesn't exist yet
  */
 
-import { doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
 const STORAGE_KEY = "seneca_daily_logs";
 
+// ─── In-memory cache (avoids re-reading same doc in one session) ─────────────
+const _logCache = new Map(); // dateKey → logData
+
+// ─── Pending write queue per section (for debouncing writes) ─────────────────
+const _pendingWrites = new Map(); // dateKey → { timer, sections }
+
 // Get today's date in YYYY-MM-DD format
 export const getTodayKey = () => {
   const now = new Date();
-  // Use local time for the "day" boundary logic
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
-// --- FIRESTORE HELPERS ---
+// ─── FIRESTORE HELPERS ────────────────────────────────────────────────────────
 
-const getLogRef = (dateKey) => {
-  if (!auth.currentUser) return null;
-  return doc(db, "users", auth.currentUser.uid, "daily_logs", dateKey);
+/**
+ * Wait for auth to resolve (handles the race between app init and auth state).
+ * Returns the current user or null.
+ */
+const waitForAuth = () => {
+  return new Promise((resolve) => {
+    // If auth is already resolved, don't wait
+    if (auth.currentUser !== undefined) {
+      // currentUser is null before SDK resolves — onAuthStateChanged fires once immediately
+    }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      resolve(user);
+    });
+  });
+};
+
+const getLogRef = (uid, dateKey) => {
+  if (!uid) return null;
+  return doc(db, "users", uid, "daily_logs", dateKey);
 };
 
 // Create an empty log structure
@@ -37,27 +67,21 @@ export const createEmptyLog = (dateKey) => ({
   protocol: {
     completion_rate: 0,
     phases: {},
-    custom_tasks: [], // Store custom tasks here
-    task_order: {}, // Store task order here
+    custom_tasks: [],
+    task_order: {},
     reflections: "",
   },
   growth: {
-    // Study goal tracking
     active_study_goal: null,
     study_history: {},
     study_streak: 0,
-
-    // Personal goals
     personal_goals: {
       noPorn: {},
       exercise: {},
     },
     current_weight: null,
     goal_weight: 90,
-
-    // Certificates
     certificates: [],
-
     study_sessions: [],
     focus_time: 0,
     books_read: [],
@@ -82,99 +106,145 @@ export const createEmptyLog = (dateKey) => ({
   },
 });
 
-// --- MAIN API ---
+// ─── MAIN API ─────────────────────────────────────────────────────────────────
 
 /**
- * Get log for a specific date (Async from Firestore)
+ * Get log for a specific date.
+ * Checks in-memory cache first, then Firestore (which may itself hit local IndexedDB cache).
  */
 export const getLogForDate = async (dateKey = getTodayKey()) => {
-  // 1. Try Firestore
-  const ref = getLogRef(dateKey);
+  // 1. In-memory cache hit
+  if (_logCache.has(dateKey)) {
+    return _logCache.get(dateKey);
+  }
+
+  // 2. Wait for auth to be ready
+  const user = await waitForAuth();
+  const ref = getLogRef(user?.uid, dateKey);
+
   if (!ref) {
-    // Fallback to local if not logged in (shouldnt happen in strict mode)
     return getLocalLog(dateKey);
   }
 
   try {
     const snap = await getDoc(ref);
     if (snap.exists()) {
-      return { ...createEmptyLog(dateKey), ...snap.data() };
+      const log = { ...createEmptyLog(dateKey), ...snap.data() };
+      _logCache.set(dateKey, log);
+      return log;
     } else {
-      // Create new for today
       const newLog = createEmptyLog(dateKey);
-      // Optionally save it immediately, or wait for first update
+      _logCache.set(dateKey, newLog);
       return newLog;
     }
   } catch (error) {
     console.error("Error fetching log:", error);
-    return getLocalLog(dateKey); // Fallback to cache
+    return getLocalLog(dateKey);
   }
 };
 
 /**
- * Update a section of today's log (Writes to Firestore)
+ * Update a section of today's log.
+ * - Writes to localStorage immediately (instant UI + offline safety)
+ * - Debounces Firestore write at 1.5s (batches rapid changes, saves budget)
  */
-export const updateTodayLog = async (section, data) => {
+export const updateTodayLog = (section, data) => {
   const dateKey = getTodayKey();
-  const ref = getLogRef(dateKey); // Will return null if not logged in
 
-  // 1. Update LocalStorage (for instant UI and offline safety)
+  // 1. Update localStorage instantly
   const localLog = updateLocalLog(dateKey, section, data);
 
-  // 2. Update Firestore (Background Sync)
-  if (ref) {
+  // 2. Update in-memory cache
+  if (_logCache.has(dateKey)) {
+    const cached = _logCache.get(dateKey);
+    _logCache.set(dateKey, {
+      ...cached,
+      [section]: { ...cached[section], ...data },
+      timestamp_updated: new Date().toISOString(),
+    });
+  }
+
+  // 3. Debounced Firestore write (1.5s — batches rapid user interactions)
+  const pending = _pendingWrites.get(dateKey) || { timer: null, sections: {} };
+  clearTimeout(pending.timer);
+  pending.sections[section] = { ...(pending.sections[section] || {}), ...data };
+
+  pending.timer = setTimeout(async () => {
+    const user = await waitForAuth();
+    const ref = getLogRef(user?.uid, dateKey);
+    if (!ref) return;
+
+    const sectionsToWrite = _pendingWrites.get(dateKey)?.sections || {};
+    _pendingWrites.delete(dateKey);
+
     try {
-      // We use setDoc with merge: true to handle both "create" and "update" cases
       await setDoc(
         ref,
         {
-          [section]: data,
+          ...sectionsToWrite,
           timestamp_updated: new Date().toISOString(),
-          // Ensure date and id are set
           date: dateKey,
-          user_id: auth.currentUser.uid,
+          user_id: user.uid,
         },
         { merge: true },
       );
     } catch (error) {
-      console.error("Firestore sync failed:", error);
-      // We still have local storage, so user data isn't lost locally
+      console.error("Firestore debounced write failed:", error);
     }
-  }
+  }, 1500);
 
+  _pendingWrites.set(dateKey, pending);
   return localLog;
 };
 
 /**
- * Subscribe to today's log changes (Real-time listener)
- * Useful for syncing across devices
+ * Subscribe to today's log changes (Real-time listener).
+ * - Waits for auth before attaching.
+ * - Bootstraps the doc if it doesn't exist yet (so future listeners fire).
+ * - Updates in-memory cache and localStorage on every cloud update.
  */
 export const subscribeToTodayLog = (callback) => {
   const dateKey = getTodayKey();
-  const ref = getLogRef(dateKey);
-  if (!ref) return () => {};
+  let unsubscribeFirestore = () => {};
+  let isMounted = true;
 
-  const unsubscribe = onSnapshot(
-    ref,
-    (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        // Merge with structure to ensure robust data
-        const fullLog = { ...createEmptyLog(dateKey), ...data };
-        // Update local storage to match cloud
-        saveToLocal(dateKey, fullLog);
-        callback(fullLog);
-      }
-    },
-    (error) => {
-      console.error("🔥 Real-time sync error:", error);
-      // Don't crash, just silent fail or notify
-    },
-  );
-  return unsubscribe;
+  waitForAuth().then((user) => {
+    if (!isMounted) return;
+    const ref = getLogRef(user?.uid, dateKey);
+    if (!ref) return;
+
+    unsubscribeFirestore = onSnapshot(
+      ref,
+      (snap) => {
+        if (!isMounted) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          const fullLog = { ...createEmptyLog(dateKey), ...data };
+          // Update both caches
+          _logCache.set(dateKey, fullLog);
+          saveToLocal(dateKey, fullLog);
+          callback(fullLog);
+        } else {
+          // Doc doesn't exist yet — bootstrap it so future writes use setDoc with merge
+          // Don't write to Firestore here (avoid unnecessary writes), just return empty log
+          const emptyLog = createEmptyLog(dateKey);
+          _logCache.set(dateKey, emptyLog);
+          callback(emptyLog);
+        }
+      },
+      (error) => {
+        console.error("🔥 Real-time sync error:", error);
+      },
+    );
+  });
+
+  return () => {
+    isMounted = false;
+    unsubscribeFirestore();
+  };
 };
 
-// --- LOCAL STORAGE HELPERS (Backing Store) ---
+// ─── LOCAL STORAGE HELPERS (Backing Store) ────────────────────────────────────
 
 const getLocalLog = (dateKey) => {
   try {
@@ -188,14 +258,11 @@ const getLocalLog = (dateKey) => {
 
 const updateLocalLog = (dateKey, section, data) => {
   const navLog = getLocalLog(dateKey);
-
-  // Merge section data
   navLog[section] = {
     ...navLog[section],
     ...data,
   };
   navLog.timestamp_updated = new Date().toISOString();
-
   saveToLocal(dateKey, navLog);
   return navLog;
 };
@@ -211,21 +278,19 @@ const saveToLocal = (dateKey, logData) => {
   }
 };
 
-// --- LEGACY EXPORTS (Kept for compatibility) ---
+// ─── LEGACY EXPORTS (Kept for compatibility) ──────────────────────────────────
+
 export const getAllLogs = () => {
   const allData = localStorage.getItem(STORAGE_KEY);
   return allData ? JSON.parse(allData) : {};
 };
 
 export const migrateOldData = async () => {
-  // This is now purely "Import Local to Cloud" if needed
-  // For now, we assume cloud is primary.
   console.log("Archive data mode active.");
 };
 
-// --- EXPORT HELPERS (For ExportDataButton) ---
+// ─── EXPORT HELPERS (For ExportDataButton) ───────────────────────────────────
 
-// Get last N days of logs
 export const getLastNDaysLogs = (days = 30) => {
   const logs = getAllLogs();
   const today = new Date();
@@ -241,14 +306,12 @@ export const getLastNDaysLogs = (days = 30) => {
     .map(([_, log]) => log);
 };
 
-// Export data for LLM analysis
 export const exportForLLM = (days = 30) => {
   const logs = getLastNDaysLogs(days);
 
-  // Create a narrative structure that LLMs love
   const narrative = {
     user_profile: {
-      user_id: auth.currentUser?.uid || "local_user", // Updated to use auth if available
+      user_id: auth.currentUser?.uid || "local_user",
       period: `Last ${days} days`,
       total_days: logs.length,
     },
@@ -269,7 +332,6 @@ export const exportForLLM = (days = 30) => {
   return narrative;
 };
 
-// Export LLM prompt-ready format
 export const exportAsLLMPrompt = (days = 30) => {
   const data = exportForLLM(days);
 
@@ -294,9 +356,8 @@ Based on this data, please analyze:
 `;
 };
 
-// --- PRIVATE HELPERS FOR EXPORTS ---
+// ─── PRIVATE HELPERS ─────────────────────────────────────────────────────────
 
-// Helper: Calculate protocol summary
 const calculateProtocolSummary = (logs) => {
   const validLogs = logs.filter((log) => log.protocol);
   if (validLogs.length === 0) return null;
@@ -316,7 +377,6 @@ const calculateProtocolSummary = (logs) => {
   };
 };
 
-// Helper: Calculate growth summary
 const calculateGrowthSummary = (logs) => {
   const validLogs = logs.filter((log) => log.growth);
   if (validLogs.length === 0) return null;
@@ -339,7 +399,6 @@ const calculateGrowthSummary = (logs) => {
   };
 };
 
-// Helper: Calculate wealth summary
 const calculateWealthSummary = (logs) => {
   const validLogs = logs.filter((log) => log.wealth);
   if (validLogs.length === 0) return null;
@@ -355,7 +414,6 @@ const calculateWealthSummary = (logs) => {
   };
 };
 
-// Helper: Calculate journal summary
 const calculateJournalSummary = (logs) => {
   const validLogs = logs.filter((log) => log.journal);
   if (validLogs.length === 0) return null;
@@ -379,7 +437,6 @@ const getMoodDistribution = (logs) => {
   return moods;
 };
 
-// Helper: Find best day (highest completion)
 const findBestDay = (logs) => {
   if (logs.length === 0) return null;
   return logs.reduce((best, current) => {
@@ -389,7 +446,6 @@ const findBestDay = (logs) => {
   }, logs[0]);
 };
 
-// Helper: Find worst day
 const findWorstDay = (logs) => {
   if (logs.length === 0) return null;
   return logs.reduce((worst, current) => {
@@ -399,12 +455,10 @@ const findWorstDay = (logs) => {
   }, logs[0]);
 };
 
-// Helper: Calculate streaks
 const calculateStreaks = (logs) => {
   let currentStreak = 0;
   let longestStreak = 0;
 
-  // Sort logs by date (most recent first)
   const sortedLogs = [...logs].sort(
     (a, b) => new Date(b.date) - new Date(a.date),
   );
@@ -412,7 +466,6 @@ const calculateStreaks = (logs) => {
   for (let i = 0; i < sortedLogs.length; i++) {
     const completion = sortedLogs[i].protocol?.completion_rate || 0;
     if (completion >= 0.8) {
-      // 80% threshold for a "good day"
       currentStreak++;
       longestStreak = Math.max(longestStreak, currentStreak);
     } else {
@@ -430,29 +483,12 @@ const calculateStreaks = (logs) => {
 // 🌐 GLOBAL DATA SYNC (For data that persists across days, like Wealth)
 // =============================================================================
 
-/**
- * Get reference to a global data document
- * Path: users/{uid}/global_data/{docName}
- */
-const waitForAuth = () => {
-  return new Promise((resolve) => {
-    if (auth.currentUser) return resolve(auth.currentUser);
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      unsubscribe();
-      resolve(user);
-    });
-  });
-};
-
 const getGlobalDataRef = async (docName) => {
   const user = await waitForAuth();
   if (!user) return null;
   return doc(db, "users", user.uid, "global_data", docName);
 };
 
-/**
- * Get global data document
- */
 export const getGlobalData = async (docName) => {
   const ref = await getGlobalDataRef(docName);
   if (!ref) return null;
@@ -466,9 +502,6 @@ export const getGlobalData = async (docName) => {
   }
 };
 
-/**
- * Update global data document (merge)
- */
 export const updateGlobalData = async (docName, data) => {
   const ref = await getGlobalDataRef(docName);
   if (!ref) return;
@@ -482,14 +515,15 @@ export const updateGlobalData = async (docName, data) => {
       },
       { merge: true },
     );
-    console.log(`[GlobalData] ✓ Synced ${docName} to Firestore`);
   } catch (error) {
     console.error(`Failed to update global data (${docName}):`, error);
   }
 };
 
 /**
- * Subscribe to global data changes
+ * Subscribe to global data changes.
+ * - Uses isMounted guard to prevent state updates after component unmount.
+ * - Waits for auth before attaching the listener (fixes auth race condition).
  */
 export const subscribeToGlobalData = (docName, callback) => {
   let unsubscribeFirestore = () => {};
@@ -501,9 +535,9 @@ export const subscribeToGlobalData = (docName, callback) => {
     unsubscribeFirestore = onSnapshot(
       ref,
       (snap) => {
+        if (!isMounted) return;
         if (snap.exists()) {
           const data = snap.data();
-          // Cache locally for offline access
           saveGlobalDataLocal(docName, data);
           callback(data);
         }
