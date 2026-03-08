@@ -474,8 +474,8 @@ const ClickableStreakGrid = ({
           let bgStyle = {};
           let glowStyle = {};
 
-          if (isFailed) {
-            // Failed day - dark gray
+          if (isFailed || hasNoData) {
+            // Failed or missed day - dark gray
             bgStyle = { backgroundColor: "#2C2C2E" };
           } else if (isComplete) {
             // Complete - solid color with glow
@@ -483,9 +483,6 @@ const ClickableStreakGrid = ({
             glowStyle = {
               boxShadow: `0 0 12px ${color}80, 0 2px 8px ${color}60`,
             };
-          } else if (hasNoData) {
-            // No data yet - light gray
-            bgStyle = { backgroundColor: "rgba(120,120,128,0.08)" };
           } else {
             // Partial (fallback)
             bgStyle = { backgroundColor: color, opacity: 0.5 };

@@ -413,7 +413,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle }) => {
                         height: BOX_SIZE,
                         backgroundColor: isDone
                           ? color
-                          : "rgba(120,120,128,0.06)",
+                          : "#2C2C2E",
                         border:
                           isToday && !isDone ? `2px solid ${color}` : "none",
                         boxShadow: isDone ? `0 2px 8px ${color}40` : "none",
@@ -423,7 +423,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle }) => {
                       <span
                         className={clsx(
                           "text-[13px] font-bold",
-                          isDone ? "text-white" : "text-[rgba(60,60,67,0.3)]",
+                          isDone ? "text-white" : "text-[rgba(255,255,255,0.4)]",
                           isToday && !isDone ? "text-[color:var(--color)]" : "",
                         )}
                         style={{
@@ -454,7 +454,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle }) => {
         </p>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[rgba(120,120,128,0.1)]" />
+            <div className="w-3 h-3 rounded-full bg-[#2C2C2E]" />
             <span className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
               Missed
             </span>
