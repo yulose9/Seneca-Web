@@ -411,6 +411,7 @@ export function ProtocolProvider({ children }) {
   const mountTimestamp = useRef(Date.now());
   const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds grace period after mount
   const initialFetchDone = useRef(false); // Track if initial fetch completed
+  const hasReceivedServerSyncRef = useRef(false); // Tracks if we've received an authoritative server payload
 
   // 🔄 INITIAL CLOUD FETCH on mount - Get global Protocol data AND today's tasks
   useEffect(() => {
@@ -1072,6 +1073,14 @@ export function ProtocolProvider({ children }) {
       );
       return; // User hasn't toggled anything yet
     }
+    
+    // 🛡️ FATAL OVERWRITE PROTECTION
+    // If we're magically online but haven't received a validated cloud payload yet, PREVENT the sync!
+    // If we push our current "default" state before the cloud state arrives, we will literally erase the user's data from the cloud!
+    if (navigator.onLine && !hasReceivedServerSyncRef.current) {
+       console.log("[Protocol] Blocked Firestore Write: Waiting for authoritative Server Data to prevent overwriting cloud state.");
+       return;
+    }
 
     // Debounce timer to prevent excessive writes
     const syncTimer = setTimeout(() => {
@@ -1136,19 +1145,25 @@ export function ProtocolProvider({ children }) {
   // 🚀 REAL-TIME CLOUD SYNC (Listen for changes from other devices)
   useEffect(() => {
     // 1. Subscribe to Firestore updates for today
-    const unsubscribe = subscribeToTodayLog((todayLog) => {
-      // 🛡️ MOUNT PROTECTION: Skip cloud updates for first 3 seconds after page load
-      const timeSinceMount = Date.now() - mountTimestamp.current;
-      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-        console.log("[Protocol] Mount protection active, skipping cloud sync");
+    const unsubscribe = subscribeToTodayLog((todayLog, meta) => {
+      // Allow the cloud data to populate the app, immediately. 
+      // Do NOT skip based on MOUNT_PROTECTION_DURATION, or else the app stays empty.
+
+      const isFromServer = meta?.exists && !meta?.fromCache;
+      const isFirstServerSync = isFromServer && !hasReceivedServerSyncRef.current;
+      
+      if (isFromServer) {
+        hasReceivedServerSyncRef.current = true;
+      }
+
+      // Throttle: Ignore cloud updates if user just interacted locally (<2s) OR is actively dragging
+      // UNLESS this is our very first real server sync, which we MUST process to avoid data loss.
+      if (
+        (Date.now() - lastLocalInteraction.current < 2000 || isDragging.current) &&
+        !isFirstServerSync
+      ) {
         return;
       }
-      // Throttle: Ignore cloud updates if user just interacted locally (<2s) OR is actively dragging
-      if (
-        Date.now() - lastLocalInteraction.current < 2000 ||
-        isDragging.current
-      )
-        return;
 
       if (!todayLog) return;
 

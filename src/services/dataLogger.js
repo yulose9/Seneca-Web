@@ -242,13 +242,13 @@ export const subscribeToTodayLog = (callback) => {
           // Update both caches
           _logCache.set(dateKey, fullLog);
           saveToLocal(dateKey, fullLog);
-          callback(fullLog);
+          callback(fullLog, { fromCache: snap.metadata.fromCache, exists: true });
         } else {
           // Doc doesn't exist yet — bootstrap it so future writes use setDoc with merge
           // Don't write to Firestore here (avoid unnecessary writes), just return empty log
           const emptyLog = createEmptyLog(dateKey);
           _logCache.set(dateKey, emptyLog);
-          callback(emptyLog);
+          callback(emptyLog, { fromCache: snap.metadata.fromCache, exists: false });
         }
       },
       (error) => {
