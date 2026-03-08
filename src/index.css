@@ -97,6 +97,8 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Prevent bounce scrolling on the entire page to feel like a native app */
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -107,6 +109,8 @@ body {
   color: var(--color-label);
   line-height: 1.5;
   overflow-x: hidden;
+  /* Smooth scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ============================================
@@ -178,7 +182,8 @@ body {
       var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%),
       transparent);
 
-  transition: all 0.4s cubic-bezier(1, 0, 0.4, 1);
+  /* Performance: Removed 'transition: all' which causes iOS layout trashing. Targeting specific properties only. */
+  transition: transform 0.4s cubic-bezier(1, 0, 0.4, 1), background-color 0.4s cubic-bezier(1, 0, 0.4, 1), box-shadow 0.4s cubic-bezier(1, 0, 0.4, 1);
 }
 
 .liquid-nav-item {

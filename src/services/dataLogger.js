@@ -21,9 +21,28 @@ const STORAGE_KEY = "seneca_daily_logs";
 
 // ─── In-memory cache (avoids re-reading same doc in one session) ─────────────
 const _logCache = new Map(); // dateKey → logData
+const _globalCache = new Map(); // collection → globalData
+
+// Clear caches on logout to prevent stale state across sessions (Fix for Prompt 6)
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    _logCache.clear();
+    _globalCache.clear();
+    // Also clear pending writes to prevent writing to a logged out user's path
+    _pendingWrites.clear();
+    _pendingGlobalWrites.clear();
+    
+    // Wipe local storage caches so another user logging in on the same device 
+    // doesn't see the previous user's data before Firestore syncs
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("seneca_global_data");
+    localStorage.removeItem("journal_entries");
+  }
+});
 
 // ─── Pending write queue per section (for debouncing writes) ─────────────────
 const _pendingWrites = new Map(); // dateKey → { timer, sections }
+const _pendingGlobalWrites = new Map(); // collection → { timer, updates }
 
 // Get today's date in YYYY-MM-DD format
 export const getTodayKey = () => {

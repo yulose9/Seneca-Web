@@ -8,13 +8,29 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+  <!-- Viewport: allow user zoom (accessibility) but keep safe area support -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- iOS PWA -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Seneca">
-  <meta name="theme-color" content="#ffffff" />
+
+  <!-- Color scheme: tells iOS Safari / Chrome which mode we support -->
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F2F7" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1C1C1E" />
+
+  <!-- SEO -->
+  <meta name="description" content="Seneca — your personal daily operating system for protocol, growth, wealth, and journaling." />
+
+  <!-- Preconnect for Firebase/Firestore to reduce latency on first sync -->
+  <link rel="preconnect" href="https://firestore.googleapis.com" />
+  <link rel="preconnect" href="https://www.googleapis.com" />
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
+
   <title>Seneca</title>
 </head>
 

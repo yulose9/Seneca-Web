@@ -1246,7 +1246,7 @@ export function ProtocolProvider({ children }) {
   // Get phases for the current category
   const currentPhases = getPhasesForCategory(protocolCategory);
 
-  const value = {
+  const value = React.useMemo(() => ({
     phases: currentPhases,
     phaseOrder: currentPhaseOrder,
     phaseTasks,
@@ -1310,7 +1310,40 @@ export function ProtocolProvider({ children }) {
     get isComplete() {
       return allPhasesComplete;
     },
-  };
+  }), [
+    // Core Dependencies
+    currentPhases,
+    currentPhaseOrder,
+    phaseTasks,
+    taskHistory,
+    activePhase,
+    completedPhases,
+    allPhasesComplete,
+    isOrderCustomized,
+    protocolCategory,
+    PROTOCOL_CATEGORIES, // This is a constant, but included for completeness if it were dynamic
+    customTasks,
+    
+    // Functions (stable references are important)
+    toggleTaskHistory,
+    getTaskHistory,
+    toggleTask,
+    switchCategory,
+    reorderTasks,
+    completePhase,
+    resetAllPhases,
+    markLearnStuffDone,
+    isLearnStuffDone,
+    addCustomTask,
+    removeCustomTask,
+    getCustomTaskInfo,
+    isPhaseComplete,
+    isPhaseUnlocked,
+    isPhaseActive,
+    getPhaseProgress,
+    getCurrentStatus,
+    getTotalProgress
+  ]);
 
   return (
     <ProtocolContext.Provider value={value}>

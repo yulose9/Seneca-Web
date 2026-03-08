@@ -65,10 +65,31 @@ export default function App() {
 function AppShell() {
   const { showReminder, closeReminder, showTasksReminder, closeTasksReminder } =
     useObligationReminder();
+  
+  // Prompt 9: Network Connection Handling
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   return (
     <>
-      <div className="font-sans antialiased text-[#1C1C1E] selection:bg-[#2E5C8A]/30 desktop-shell">
+      <div className="font-sans antialiased text-[#1C1C1E] selection:bg-[#2E5C8A]/30 desktop-shell relative">
+        {!isOnline && (
+          <div className="absolute top-0 inset-x-0 z-[999] bg-orange-500/90 text-white text-[13px] font-medium py-1.5 flex items-center justify-center gap-2 backdrop-blur-md">
+            <span>You are offline. Changes will save automatically when reconnected.</span>
+          </div>
+        )}
         <div className="desktop-app-frame">
           <AnimatedRoutes />
         </div>

@@ -134,7 +134,7 @@ export function PreferencesProvider({ children }) {
         setPreferences(updated);
     }, []);
 
-    const value = {
+    const value = React.useMemo(() => ({
         preferences,
         isLoading,
 
@@ -162,7 +162,16 @@ export function PreferencesProvider({ children }) {
             const updated = await updateUserPreferences(section, data);
             setPreferences(updated);
         },
-    };
+    }), [
+        preferences,
+        isLoading,
+        saveDraft,
+        clearDraft,
+        setTheme,
+        setLastViewedTab,
+        incrementAnalytic,
+        updatePersonalization
+    ]);
 
     return (
         <PreferencesContext.Provider value={value}>

@@ -211,7 +211,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
     editorProps: {
       attributes: {
         class: clsx(
-          "prose prose-sm max-w-none focus:outline-none min-h-[120px] px-4 py-8 text-[17px] text-black prose-img:rounded-lg",
+          "prose prose-base max-w-none focus:outline-none min-h-[120px] px-4 py-8 text-[17px] text-black prose-img:rounded-lg",
           className,
         ),
       },
