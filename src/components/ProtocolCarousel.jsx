@@ -77,6 +77,7 @@ export default function ProtocolCarousel() {
     getCurrentStatus,
     allPhasesComplete,
     markLearnStuffDone,
+    markWorkoutDone,
   } = useProtocol();
 
   const { activeStudyGoal, getStudiedToday, markStudiedToday, getStudyStreak } =
@@ -209,6 +210,9 @@ export default function ProtocolCarousel() {
   };
 
   const handleExerciseCheck = (value) => {
+    // Notify ProtocolContext (clears the Protocol task visually but sets actual history bool for streaks)
+    markWorkoutDone(value);
+
     const current = goalHistory?.exercise?.[today];
     if (value === true && current !== true) {
       toggleGoalDate("exercise", today);

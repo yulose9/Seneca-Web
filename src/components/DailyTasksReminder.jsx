@@ -66,7 +66,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
     }
 
     // No Porn → Growth group
-    if (noPornToday !== true) {
+    if (noPornToday == null) {
       items.push({
         id: "noporn",
         label: "Stay clean today",
@@ -79,7 +79,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
     }
 
     // Exercise → Growth group
-    if (exerciseToday !== true) {
+    if (exerciseToday == null) {
       items.push({
         id: "exercise",
         label: "Workout",

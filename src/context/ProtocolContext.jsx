@@ -845,9 +845,38 @@ export function ProtocolProvider({ children }) {
     }));
   };
 
+  // Mark Workout as complete on the UI task list (to clear it out), 
+  // but logically record true/false based on actual workout success for streaks.
+  const markWorkoutDone = (isSuccess) => {
+    const phaseId = "arena";
+    const taskId = 5; // "Workout" task
+
+    // Visually mark it as done so the user doesn't see it hanging around
+    setPhaseTasks((prev) => ({
+      ...prev,
+      [phaseId]: prev[phaseId].map((task) =>
+        task.id === taskId ? { ...task, done: true } : task, // Always checked visually
+      ),
+    }));
+
+    // But log the ACTUAL success/failure to the streak/history database
+    const today = formatLocalDate(new Date());
+    const key = getTaskKey(phaseId, taskId);
+    setTaskHistory((prev) => {
+      const taskHistoryData = prev[key] || {};
+      return {
+        ...prev,
+        [key]: {
+          ...taskHistoryData,
+          [today]: isSuccess === true, // Strict boolean pass/fail
+        },
+      };
+    });
+  };
+
   // Check if Learn Stuff is done today
   const isLearnStuffDone = () => {
-    const task = phaseTasks.arena.find((t) => t.id === 4);
+    const task = phaseTasks.arena?.find((t) => t.id === 4);
     return task?.done || false;
   };
 
@@ -1289,6 +1318,7 @@ export function ProtocolProvider({ children }) {
     resetAllPhases,
     markLearnStuffDone,
     isLearnStuffDone,
+    markWorkoutDone,
 
     // Custom tasks
     customTasks,
@@ -1349,6 +1379,7 @@ export function ProtocolProvider({ children }) {
     resetAllPhases,
     markLearnStuffDone,
     isLearnStuffDone,
+    markWorkoutDone,
     addCustomTask,
     removeCustomTask,
     getCustomTaskInfo,
