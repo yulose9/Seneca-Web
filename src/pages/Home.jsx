@@ -348,17 +348,18 @@ export default function Home() {
       </header>
 
       {/* Protocol Carousel — swipeable goal cards */}
-      <div className="px-5 mb-3">
+      <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="px-5 mb-3">
         <ProtocolCarousel />
-      </div>
+      </motion.div>
 
       {/* Reorderable Cards */}
-      <Reorder.Group
-        axis="y"
-        values={cardOrder}
-        onReorder={setCardOrder}
-        className="px-5 space-y-3"
-      >
+      <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }}>
+        <Reorder.Group
+          axis="y"
+          values={cardOrder}
+          onReorder={setCardOrder}
+          className="px-5 space-y-3"
+        >
         {cardOrder.map((cardId) => {
           // Render card content directly to avoid re-mounting component
           const getCardContent = () => {
@@ -498,9 +499,10 @@ export default function Home() {
           );
         })}
       </Reorder.Group>
+      </motion.div>
 
       {/* Logout Button */}
-      <div className="px-5 mt-6 mb-8">
+      <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="px-5 mt-6 mb-8">
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={async () => {
@@ -514,7 +516,7 @@ export default function Home() {
           <LogOut size={18} />
           Log Out
         </motion.button>
-      </div>
+      </motion.div>
 
       {/* Export Data Button (floating) */}
       <ExportDataButton />
