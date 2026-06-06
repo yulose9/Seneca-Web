@@ -1,5 +1,6 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -17,6 +18,7 @@ import {
   updateGlobalData,
   updateTodayLog,
 } from "../services/dataLogger";
+import { getPhDateKey, msUntilMidnightPH } from "../utils/timeUtils";
 
 /**
  * Protocol Context - Daily Habits System
@@ -206,14 +208,8 @@ const loadTaskOrder = (category = "personal") => {
   }
 };
 
-// Helper: Get today's date in local time (consistent with dataLogger)
-const getLocalDateKey = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+// Helper: Get today's date key in Philippine Standard Time
+const getLocalDateKey = () => getPhDateKey();
 
 // Load today's task done states from localStorage
 // Returns { phaseId: { taskId: boolean } } or null
@@ -729,13 +725,17 @@ export function ProtocolProvider({ children }) {
   // Helper to get task key
   const getTaskKey = (phaseId, taskId) => `${phaseId}-${taskId}`;
 
-  // Helper to format date as YYYY-MM-DD using LOCAL timezone
-  const formatLocalDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
+  // Helper to format date as YYYY-MM-DD using Philippine timezone (PST = UTC+8)
+  const formatLocalDate = useCallback((date) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const get = (type) => parts.find((p) => p.type === type)?.value ?? "00";
+    return `${get("year")}-${get("month")}-${get("day")}`;
+  }, []);
 
   // Interaction timestamp to prevent "Cloud Echo" overwrites
   const lastLocalInteraction = useRef(0);
@@ -903,28 +903,39 @@ export function ProtocolProvider({ children }) {
     }));
   };
 
-  // Auto-check "Reflect on your day" when a journal entry exists for today
+  // Auto-check "Reflect on your day" when a journal entry exists for today.
+  // Uses a ref to avoid re-running on every arena task change (which caused a state loop
+  // where markReflectDone triggered a sync, which retriggered this effect).
+  const reflectMarkedForDate = useRef(null);
   useEffect(() => {
     const unsubscribe = subscribeToGlobalData("journal", (journalData) => {
       if (!journalData || !journalData.entries) return;
 
-      const today = formatLocalDate(new Date());
-      const hasTodayEntry = journalData.entries.some((entry) => {
-        // Check isoDate field (used by Journal page)
-        return entry.isoDate === today;
-      });
+      const today = getPhDateKey();
+
+      // Guard: only mark once per calendar day to prevent loops
+      if (reflectMarkedForDate.current === today) return;
+
+      const hasTodayEntry = journalData.entries.some(
+        (entry) => entry.isoDate === today
+      );
 
       if (hasTodayEntry) {
-        // Only mark done if not already done (avoid unnecessary state updates)
         const reflectTask = phaseTasks.arena?.find((t) => t.id === 1);
         if (reflectTask && !reflectTask.done) {
+          reflectMarkedForDate.current = today; // mark before calling to prevent double-fire
           markReflectDone();
+        } else if (reflectTask?.done) {
+          // Already done — record that we've handled today
+          reflectMarkedForDate.current = today;
         }
       }
     });
 
     return () => unsubscribe();
-  }, [phaseTasks.arena]);
+  // Only re-subscribe when the category changes — NOT on every arena task change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [protocolCategory]);
 
   // Add a custom task to a phase
   const addCustomTask = (phaseId, task) => {
@@ -1285,6 +1296,62 @@ export function ProtocolProvider({ children }) {
     });
 
     return () => unsubscribe();
+  }, [protocolCategory]);
+
+  // ─── MIDNIGHT DAY-ROLLOVER ────────────────────────────────────────────────────
+  // When the Philippine day changes while the app is open, we need to:
+  // 1. Reset all task done-states to false (fresh day).
+  // 2. Clear the localStorage "today tasks" cache so stale data isn't restored.
+  // 3. Re-attach the Firestore real-time listener to the NEW day's document.
+  // 4. Reset the reflect-marked guard so journal syncing works for the new day.
+  useEffect(() => {
+    const scheduleReset = () => {
+      const msLeft = msUntilMidnightPH();
+      console.log(`[Protocol] Day rollover in ${Math.round(msLeft / 60000)} min (PH midnight)`);
+
+      const timer = setTimeout(() => {
+        console.log("[Protocol] 🌅 Philippine midnight — resetting tasks for new day");
+
+        // Clear localStorage today-task cache for all categories
+        ["personal", "work", "other"].forEach((cat) => {
+          const keys = getStorageKeys(cat);
+          localStorage.removeItem(keys.TODAY_TASKS);
+        });
+
+        // Reset all task done-states
+        const categoryPhases = getPhasesForCategory(protocolCategory);
+        const phaseOrderArr = getPhaseOrderForCategory(protocolCategory);
+        const freshTasks = {};
+        phaseOrderArr.forEach((phaseId) => {
+          const phase = categoryPhases[phaseId];
+          if (!phase) return;
+          const phaseCustom = customTasks[phaseId] || [];
+          freshTasks[phaseId] = [
+            ...phase.tasks.map((t) => ({ ...t, done: false })),
+            ...phaseCustom.map((t) => ({ ...t, done: false })),
+          ];
+        });
+        setPhaseTasks(freshTasks);
+        setActivePhase(phaseOrderArr[0] || "morningIgnition");
+        setCompletedPhases([]);
+
+        // Reset guards so next-day logic fires clean
+        reflectMarkedForDate.current = null;
+        hasReceivedServerSyncRef.current = false;
+        lastLocalInteraction.current = 0;
+        mountTimestamp.current = Date.now();
+        initialFetchDone.current = false;
+
+        // Schedule the NEXT day's reset (recurse)
+        scheduleReset();
+      }, msLeft + 500); // +500ms buffer to land after midnight
+
+      return timer;
+    };
+
+    const timer = scheduleReset();
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [protocolCategory]);
 
   // Get phases for the current category

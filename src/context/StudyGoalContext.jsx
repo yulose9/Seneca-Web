@@ -14,6 +14,7 @@ import {
   subscribeToGlobalData,
   getGlobalData,
 } from "../services/dataLogger";
+import { getPhDateKey } from "../utils/timeUtils";
 
 // LocalStorage keys
 const STORAGE_KEYS = {
@@ -21,12 +22,16 @@ const STORAGE_KEYS = {
   STUDY_HISTORY: "study_goal_history",
 };
 
-// Helper to format date as YYYY-MM-DD using LOCAL timezone
+// Helper to format date as YYYY-MM-DD using Philippine Standard Time (UTC+8)
 const formatLocalDate = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}`;
 };
 
 const StudyGoalContext = createContext(null);

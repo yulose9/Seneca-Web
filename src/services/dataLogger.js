@@ -16,6 +16,7 @@
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
+import { getPhDateKey } from "../utils/timeUtils";
 
 const STORAGE_KEY = "seneca_daily_logs";
 
@@ -44,14 +45,11 @@ onAuthStateChanged(auth, (user) => {
 const _pendingWrites = new Map(); // dateKey → { timer, sections }
 const _pendingGlobalWrites = new Map(); // collection → { timer, updates }
 
-// Get today's date in YYYY-MM-DD format
-export const getTodayKey = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+/**
+ * Get today's date as YYYY-MM-DD pinned to Philippine Standard Time (UTC+8).
+ * This ensures the day resets at midnight Manila time on all devices.
+ */
+export const getTodayKey = () => getPhDateKey();
 
 // ─── FIRESTORE HELPERS ────────────────────────────────────────────────────────
 
@@ -217,13 +215,13 @@ export const updateTodayLog = (section, data) => {
 };
 
 /**
- * Subscribe to today's log changes (Real-time listener).
+ * Subscribe to a specific date's log changes (Real-time listener).
  * - Waits for auth before attaching.
  * - Bootstraps the doc if it doesn't exist yet (so future listeners fire).
  * - Updates in-memory cache and localStorage on every cloud update.
+ * - dateKey defaults to today (PH timezone) but can be overridden for day-rollover reconnects.
  */
-export const subscribeToTodayLog = (callback) => {
-  const dateKey = getTodayKey();
+export const subscribeToTodayLog = (callback, dateKey = getTodayKey()) => {
   let unsubscribeFirestore = () => {};
   let isMounted = true;
 
@@ -244,8 +242,7 @@ export const subscribeToTodayLog = (callback) => {
           saveToLocal(dateKey, fullLog);
           callback(fullLog, { fromCache: snap.metadata.fromCache, exists: true });
         } else {
-          // Doc doesn't exist yet — bootstrap it so future writes use setDoc with merge
-          // Don't write to Firestore here (avoid unnecessary writes), just return empty log
+          // Doc doesn't exist yet — return empty log (will be created on first write)
           const emptyLog = createEmptyLog(dateKey);
           _logCache.set(dateKey, emptyLog);
           callback(emptyLog, { fromCache: snap.metadata.fromCache, exists: false });
