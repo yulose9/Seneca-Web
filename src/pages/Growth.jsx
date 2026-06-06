@@ -27,108 +27,105 @@ const INITIAL_DOMAINS = [
     // Organized by vendor/technology with prerequisite chains
     subcategories: [
       {
-        name: "Infrastructure as Code",
-        icon: "🏗️",
-        modules: [
-          {
-            name: "HashiCorp Certified: Terraform Associate",
-            level: "Intermediate",
-            target: "PASSED (Mar 3, 2025)",
-            status: "done",
-            vendor: "HashiCorp",
-          },
-        ],
-      },
-      {
         name: "Amazon Web Services (AWS)",
         icon: "☁️",
         modules: [
-          // AWS Learning Path: Practitioner → Associate → Professional
-          {
-            name: "AWS Cloud Practitioner",
-            level: "Foundational",
-            target: "Y1 Q3-Q4",
-            status: "progress",
-            vendor: "AWS",
-            prereq: null,
-          },
-          {
-            name: "AWS Solutions Architect - Associate",
-            level: "Associate",
-            target: "Y1 Q3-Q4",
-            status: "progress",
-            vendor: "AWS",
-            prereq: "AWS Cloud Practitioner",
-          },
-          {
-            name: "AWS Developer - Associate",
-            level: "Associate",
-            target: "Y2 Q2",
-            status: "locked",
-            vendor: "AWS",
-            prereq: "AWS Cloud Practitioner",
-          },
-          {
-            name: "AWS Solutions Architect - Professional",
-            level: "Professional",
-            target: "Y1 Q4",
-            status: "locked",
-            vendor: "AWS",
-            prereq: "AWS Solutions Architect - Associate",
-          },
-          {
-            name: "AWS DevOps Engineer - Professional",
-            level: "Professional",
-            target: "Y2 Q3",
-            status: "locked",
-            vendor: "AWS",
-            prereq: "AWS Developer - Associate",
-          },
+          { name: "AWS Certified Cloud Practitioner", level: "Foundational", target: "Y1", status: "done", vendor: "AWS" },
+          { name: "AWS Certified Developer - Associate", level: "Associate", target: "Y1", status: "locked", vendor: "AWS" },
+          { name: "AWS Certified Solutions Architect - Associate", level: "Associate", target: "Y1", status: "locked", vendor: "AWS" },
+          { name: "AWS Certified SysOps Administrator - Associate", level: "Associate", target: "Y1", status: "locked", vendor: "AWS" },
+          { name: "AWS Certified Solutions Architect - Professional", level: "Professional", target: "Y2", status: "locked", vendor: "AWS" },
+          { name: "AWS Certified DevOps Engineer - Professional", level: "Professional", target: "Y2", status: "locked", vendor: "AWS" },
+          { name: "AWS Certified AI Practitioner", level: "Foundational", target: "Y1", status: "locked", vendor: "AWS" },
+          { name: "AWS Certified Machine Learning - Specialty", level: "Specialty", target: "Y2", status: "locked", vendor: "AWS" },
+          { name: "AWS Certified Advanced Networking - Specialty", level: "Specialty", target: "Y2", status: "locked", vendor: "AWS" },
+          { name: "AWS Certified Security - Specialty", level: "Specialty", target: "Y2", status: "locked", vendor: "AWS" },
         ],
       },
       {
-        name: "Red Hat Linux & OpenShift",
-        icon: "🎩",
+        name: "Microsoft Azure",
+        icon: "🔷",
         modules: [
-          // Red Hat Path: RHCSA → RHCE → OpenShift
-          {
-            name: "Red Hat Certified Systems Administrator (EX200)",
-            level: "Associate",
-            target: "Oct 24, 2025",
-            status: "progress",
-            vendor: "Red Hat",
-            prereq: null,
-          },
-          {
-            name: "Red Hat Certified Engineer (EX294)",
-            level: "Professional",
-            target: "Y1 Q2-Q3",
-            status: "locked",
-            vendor: "Red Hat",
-            prereq: "RHCSA (EX200)",
-          },
-          {
-            name: "Red Hat OpenShift Admin (EX280)",
-            level: "Professional",
-            target: "Sep 17, 2025",
-            status: "locked",
-            vendor: "Red Hat",
-            prereq: "RHCSA (EX200)",
-          },
+          { name: "Microsoft Certified: Azure Fundamentals (AZ-900)", level: "Foundational", target: "Y1", status: "done", vendor: "Azure" },
+          { name: "Microsoft Certified: Azure Administrator Associate (AZ-104)", level: "Associate", target: "Y1", status: "locked", vendor: "Azure" },
+          { name: "Microsoft Certified: DevOps Engineer Expert (AZ-400)", level: "Expert", target: "Y2", status: "locked", vendor: "Azure" },
         ],
       },
       {
-        name: "DevOps & Version Control",
+        name: "Linux & System Administration",
+        icon: "🐧",
+        modules: [
+          { name: "Ubuntu System Administrator Certificate", level: "Associate", target: "Y1", status: "locked", vendor: "Linux" },
+          { name: "Red Hat Certified System Administrator (RHCSA)", level: "Associate", target: "Oct 24, 2025", status: "progress", vendor: "Red Hat" },
+          { name: "Red Hat Certified Engineer (RHCE)", level: "Professional", target: "Y1 Q2-Q3", status: "locked", vendor: "Red Hat" },
+          { name: "Red Hat Certified Specialist in Containers", level: "Specialty", target: "Y1", status: "locked", vendor: "Red Hat" },
+          { name: "Red Hat Certified Specialist in OpenShift Administration", level: "Specialty", target: "Sep 17, 2025", status: "locked", vendor: "Red Hat" },
+          { name: "Linux Foundation Certified System Administrator (LFCS)", level: "Associate", target: "Y1", status: "locked", vendor: "Linux" },
+          { name: "CompTIA Linux+", level: "Foundational", target: "Y1", status: "locked", vendor: "CompTIA" },
+        ],
+      },
+      {
+        name: "Networking & Security",
+        icon: "🌐",
+        modules: [
+          { name: "CompTIA Network+", level: "Foundational", target: "Y1", status: "locked", vendor: "CompTIA" },
+          { name: "CompTIA Security+", level: "Foundational", target: "Y1", status: "locked", vendor: "CompTIA" },
+          { name: "Cisco CCNA", level: "Associate", target: "Y1", status: "locked", vendor: "Cisco" },
+          { name: "Cisco CCNP Enterprise", level: "Professional", target: "Y2", status: "locked", vendor: "Cisco" },
+        ],
+      },
+      {
+        name: "Version Control & CI/CD",
         icon: "🔄",
         modules: [
-          {
-            name: "GitHub Foundations",
-            level: "Foundational",
-            target: "Y2 Q3-Q4",
-            status: "locked",
-            vendor: "GitHub",
-            prereq: null,
-          },
+          { name: "GitHub Foundations", level: "Foundational", target: "Y1", status: "locked", vendor: "GitHub" },
+          { name: "GitHub Copilot", level: "Associate", target: "Y1", status: "locked", vendor: "GitHub" },
+          { name: "GitHub Actions", level: "Associate", target: "Y1", status: "locked", vendor: "GitHub" },
+          { name: "GitHub Administration", level: "Associate", target: "Y1", status: "locked", vendor: "GitHub" },
+          { name: "GitHub Advanced Security", level: "Associate", target: "Y1", status: "locked", vendor: "GitHub" },
+          { name: "GitHub Agentic AI (beta)", level: "Specialty", target: "Y1", status: "locked", vendor: "GitHub" },
+          { name: "GitLab Fundamentals Associate", level: "Foundational", target: "Y1", status: "locked", vendor: "GitLab" },
+          { name: "GitLab CI/CD Associate", level: "Associate", target: "Y1", status: "locked", vendor: "GitLab" },
+          { name: "GitLab Security Associate", level: "Associate", target: "Y1", status: "locked", vendor: "GitLab" },
+          { name: "Agile Portfolio Management Associate", level: "Associate", target: "Y1", status: "locked", vendor: "GitLab" },
+          { name: "Duo Agent Platform Associate", level: "Associate", target: "Y1", status: "locked", vendor: "GitLab" },
+          { name: "Certified Jenkins Engineer (CJE)", level: "Professional", target: "Y1", status: "locked", vendor: "Jenkins" },
+          { name: "CloudBees CI Essentials", level: "Foundational", target: "Y1", status: "locked", vendor: "Jenkins" },
+        ],
+      },
+      {
+        name: "Infrastructure as Code",
+        icon: "🏗️",
+        modules: [
+          { name: "HashiCorp Certified: Terraform Associate", level: "Associate", target: "PASSED (Mar 3, 2025)", status: "done", vendor: "HashiCorp" },
+          { name: "Terraform Authoring and Operations Professional", level: "Professional", target: "Y2", status: "locked", vendor: "HashiCorp" },
+          { name: "Vault Associate", level: "Associate", target: "Y1", status: "locked", vendor: "HashiCorp" },
+          { name: "Vault Operations Professional", level: "Professional", target: "Y2", status: "locked", vendor: "HashiCorp" },
+          { name: "Consul Associate", level: "Associate", target: "Y1", status: "locked", vendor: "HashiCorp" },
+        ],
+      },
+      {
+        name: "Programming Languages",
+        icon: "💻",
+        modules: [
+          { name: "PCEP™ - Certified Entry-Level Python Programmer", level: "Foundational", target: "Y1", status: "locked", vendor: "Python Institute" },
+          { name: "JSE™ - Certified Entry-Level JavaScript Programmer", level: "Foundational", target: "Y1", status: "locked", vendor: "JS Institute" },
+          { name: "Oracle Certified Associate - Java SE 8 Programmer", level: "Associate", target: "Y1", status: "locked", vendor: "Oracle" },
+        ],
+      },
+      {
+        name: "Observability & Monitoring",
+        icon: "📊",
+        modules: [
+          { name: "Prometheus Certified Associate (PCA)", level: "Associate", target: "Y1", status: "locked", vendor: "Linux Foundation" },
+          { name: "Certified Grafana Associate", level: "Associate", target: "Y1", status: "locked", vendor: "Grafana" },
+        ],
+      },
+      {
+        name: "Government / Civil",
+        icon: "🏛️",
+        modules: [
+          { name: "Civil Service Professional", level: "Professional", target: "Y1", status: "locked", vendor: "Gov" },
         ],
       },
     ],
@@ -732,14 +729,51 @@ export default function Growth() {
   // Domains State (Single Source of Truth)
   const [domains, setDomains] = useState(() => {
     const saved = localStorage.getItem("seneca_domains");
-    if (saved) return JSON.parse(saved);
+    
+    // Always start with INITIAL_DOMAINS to ensure new certs are picked up
+    const migrated = JSON.parse(JSON.stringify(INITIAL_DOMAINS));
+    
+    // If we have saved domains or legacy statuses, merge their statuses into the fresh list
+    if (saved) {
+      const parsedSaved = JSON.parse(saved);
+      const savedStatusMap = {};
+      
+      // Extract all saved statuses into a flat map by cert name
+      parsedSaved.forEach((domain) => {
+        if (domain.subcategories) {
+          domain.subcategories.forEach((sub) => {
+            sub.modules.forEach((mod) => {
+              savedStatusMap[mod.name] = mod.status;
+            });
+          });
+        } else {
+          domain.modules.forEach((mod) => {
+            savedStatusMap[mod.name] = mod.status;
+          });
+        }
+      });
+
+      // Apply the saved statuses back onto the fresh migrated list
+      migrated.forEach((domain) => {
+        if (domain.subcategories) {
+          domain.subcategories.forEach((sub) => {
+            sub.modules.forEach((mod) => {
+              if (savedStatusMap[mod.name]) mod.status = savedStatusMap[mod.name];
+            });
+          });
+        } else {
+          domain.modules.forEach((mod) => {
+            if (savedStatusMap[mod.name]) mod.status = savedStatusMap[mod.name];
+          });
+        }
+      });
+      return migrated;
+    }
 
     // Migration: Apply legacy statuses if no saved domains yet
     const legacyStatuses = JSON.parse(
       localStorage.getItem("seneca_certification_statuses") || "{}"
     );
-    // Deep copy INITIAL_DOMAINS
-    const migrated = JSON.parse(JSON.stringify(INITIAL_DOMAINS));
 
     // Apply overrides
     migrated.forEach((domain) => {
