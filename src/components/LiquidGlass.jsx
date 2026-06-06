@@ -10,6 +10,7 @@ export default function LiquidGlass({
   tint = "rgba(255, 255, 255, 0.4)", // Fallback/overlay color
   enabled = true,
   layout = false,
+  as: Component = "div",
   style = {},
   ...props
 }) {
@@ -31,15 +32,12 @@ export default function LiquidGlass({
   }, [baseId]);
 
   if (!enabled) {
-    const Component = layout ? motion.div : "div";
     return (
       <Component className={className} layout={layout || undefined} style={style} {...props}>
         {children}
       </Component>
     );
   }
-
-  const Component = layout ? motion.div : "div";
 
   return (
     <>

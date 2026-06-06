@@ -66,6 +66,7 @@ export default function GlassTabBar() {
 
     return (
         <LiquidGlass
+            as={motion.nav}
             tint="transparent"
             className="liquid-nav"
             initial={{ y: 100, opacity: 0, x: "-50%" }}
