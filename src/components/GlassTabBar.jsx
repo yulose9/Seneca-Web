@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Home, Flame, Trophy, Landmark, BookOpen } from 'lucide-react';
 import clsx from 'clsx';
+import LiquidGlass from './LiquidGlass';
 
 const tabs = [
     { path: "/", icon: Home, label: "Home" },
@@ -64,7 +65,8 @@ export default function GlassTabBar() {
     }, [activeIndex, prevIndex, pillControls]);
 
     return (
-        <motion.nav
+        <LiquidGlass
+            layout
             className="liquid-nav"
             initial={{ y: 100, opacity: 0, x: "-50%" }}
             animate={{ y: 0, opacity: 1, x: "-50%" }}
@@ -154,6 +156,6 @@ export default function GlassTabBar() {
                     </motion.div>
                 );
             })}
-        </motion.nav>
+        </LiquidGlass>
     );
 }

@@ -161,16 +161,7 @@ body {
     color-mix(in srgb, var(--liquid-glass) 18%, transparent) 100%
   );
 
-  backdrop-filter:
-    blur(var(--liquid-blur))
-    saturate(var(--liquid-saturation))
-    brightness(1.08)
-    contrast(1.04);
-  -webkit-backdrop-filter:
-    blur(var(--liquid-blur))
-    saturate(var(--liquid-saturation))
-    brightness(1.08)
-    contrast(1.04);
+  /* Backdrop filter is now handled dynamically by LiquidGlass.jsx SVG injection */
 
   /*
    * RIM LIGHTING STACK

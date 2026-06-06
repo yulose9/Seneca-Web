@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
+import LiquidGlass from "./LiquidGlass";
 
 // Feedback messages for yes/no actions per card type
 const FEEDBACK = {
@@ -229,7 +230,7 @@ export default function ProtocolCarousel() {
   return (
     <div className="relative">
       {/* Card Container */}
-      <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="overflow-hidden rounded-2xl bg-white/80 backdrop-blur-xl border border-[rgba(0,0,0,0.04)] shadow-sm">
+      <LiquidGlass layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="overflow-hidden rounded-2xl border border-[rgba(0,0,0,0.04)] shadow-sm">
         {/* Header with dots + arrows */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           {/* Left arrow */}
@@ -592,7 +593,7 @@ export default function ProtocolCarousel() {
             </motion.div>
           </AnimatePresence>
         </div>
-      </motion.div>
+      </LiquidGlass>
     </div>
   );
 }
