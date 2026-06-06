@@ -229,7 +229,7 @@ export default function ProtocolCarousel() {
   return (
     <div className="relative">
       {/* Card Container */}
-      <div className="overflow-hidden rounded-2xl bg-white/80 backdrop-blur-xl border border-[rgba(0,0,0,0.04)] shadow-sm">
+      <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="overflow-hidden rounded-2xl bg-white/80 backdrop-blur-xl border border-[rgba(0,0,0,0.04)] shadow-sm">
         {/* Header with dots + arrows */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           {/* Left arrow */}
@@ -277,7 +277,7 @@ export default function ProtocolCarousel() {
 
         {/* Swipeable content area */}
         <div className="relative min-h-[140px]">
-          <AnimatePresence initial={false} custom={direction} mode="wait">
+          <AnimatePresence initial={false} custom={direction} mode="popLayout">
             <motion.div
               key={currentCard.id}
               custom={direction}
@@ -592,7 +592,7 @@ export default function ProtocolCarousel() {
             </motion.div>
           </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
