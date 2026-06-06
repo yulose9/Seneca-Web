@@ -118,14 +118,16 @@ body {
    ============================================ */
 
 :root {
-  /* Liquid Variables */
-  --liquid-glass: #bbbbbc;
+  /* Liquid Glass Variables */
+  --liquid-glass: #c8c8cc;
   --liquid-light: #ffffff;
   --liquid-dark: #000000;
   --liquid-action: #007aff;
   --liquid-reflex-dark: 1;
   --liquid-reflex-light: 1;
-  --liquid-saturation: 150%;
+  --liquid-saturation: 180%;
+  --liquid-blur: 40px;
+  --liquid-pill-blur: 24px;
 }
 
 .liquid-nav {
@@ -137,53 +139,92 @@ body {
 
   display: flex;
   align-items: center;
-  /* gap: 4px; Mobile optimization: reduced gap slightly for 5 items */
   gap: 4px;
 
   height: 80px;
   padding: 8px 10px;
   border-radius: 99em;
 
-  /* Glass Base */
-  background-color: color-mix(in srgb, var(--liquid-glass) 12%, transparent);
-  backdrop-filter: blur(16px) saturate(var(--liquid-saturation));
-  -webkit-backdrop-filter: blur(16px) saturate(var(--liquid-saturation));
+  /*
+   * LIQUID GLASS BODY
+   * The bar is a thick frosted lens sitting above the page.
+   * We layer four things:
+   *  1. Semi-opaque white fill (the "glass mass")
+   *  2. Strong backdrop-filter for blur + hue/saturation shift
+   *  3. SVG-based chromatic fringe using a pseudo-element
+   *  4. Multi-layer inset box-shadow for rim lighting & depth
+   */
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--liquid-light) 28%, transparent) 0%,
+    color-mix(in srgb, var(--liquid-glass) 22%, transparent) 40%,
+    color-mix(in srgb, var(--liquid-glass) 18%, transparent) 100%
+  );
 
-  /* Complex Outer/Inner Shadows from Request */
+  backdrop-filter:
+    blur(var(--liquid-blur))
+    saturate(var(--liquid-saturation))
+    brightness(1.08)
+    contrast(1.04);
+  -webkit-backdrop-filter:
+    blur(var(--liquid-blur))
+    saturate(var(--liquid-saturation))
+    brightness(1.08)
+    contrast(1.04);
+
+  /*
+   * RIM LIGHTING STACK
+   * Top-left: bright specular highlight (catches the "light source")
+   * Top-right: secondary specular
+   * Bottom: dark rim (glass edge refraction)
+   * Outer glow: soft ambient shadow grounding the element
+   */
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb,
-      var(--liquid-light) calc(var(--liquid-reflex-light) * 10%),
-      transparent),
-    inset 1.8px 3px 0px -2px color-mix(in srgb,
-      var(--liquid-light) calc(var(--liquid-reflex-light) * 90%),
-      transparent),
-    inset -2px -2px 0px -2px color-mix(in srgb,
-      var(--liquid-light) calc(var(--liquid-reflex-light) * 80%),
-      transparent),
-    inset -3px -8px 1px -6px color-mix(in srgb,
-      var(--liquid-light) calc(var(--liquid-reflex-light) * 60%),
-      transparent),
-    inset -0.3px -1px 4px 0px color-mix(in srgb,
-      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 12%),
-      transparent),
-    inset -1.5px 2.5px 0px -2px color-mix(in srgb,
-      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
-      transparent),
-    inset 0px 3px 4px -2px color-mix(in srgb,
-      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
-      transparent),
-    inset 2px -6.5px 1px -4px color-mix(in srgb,
-      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
-      transparent),
-    0px 1px 5px 0px color-mix(in srgb,
-      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
-      transparent),
-    0px 6px 16px 0px color-mix(in srgb,
-      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%),
-      transparent);
+    /* Outer ambient depth */
+    0px 8px 32px 0px rgba(0, 0, 0, 0.18),
+    0px 2px 8px 0px rgba(0, 0, 0, 0.10),
+    0px 0px 0px 0.5px rgba(0, 0, 0, 0.08),
+    /* Top-left bright specular rim */
+    inset 1.5px 2.5px 0px -1px rgba(255, 255, 255, 0.88),
+    /* Right-bottom specular secondary */
+    inset -1px -1.5px 0px -0.5px rgba(255, 255, 255, 0.55),
+    /* Global thin outer border */
+    inset 0 0 0 0.75px rgba(255, 255, 255, 0.35),
+    /* Inner dark refraction groove at top */
+    inset 0px 1.5px 3px -1px rgba(0, 0, 0, 0.14),
+    /* Bottom dark rim */
+    inset 0px -1.5px 2px -0.5px rgba(0, 0, 0, 0.12),
+    /* Diagonal caustic flash */
+    inset -2px 4px 8px -4px rgba(255, 255, 255, 0.40);
 
-  /* Performance: Removed 'transition: all' which causes iOS layout trashing. Targeting specific properties only. */
-  transition: transform 0.4s cubic-bezier(1, 0, 0.4, 1), background-color 0.4s cubic-bezier(1, 0, 0.4, 1), box-shadow 0.4s cubic-bezier(1, 0, 0.4, 1);
+  transition:
+    transform 0.4s cubic-bezier(1, 0, 0.4, 1),
+    background 0.4s cubic-bezier(1, 0, 0.4, 1),
+    box-shadow 0.4s cubic-bezier(1, 0, 0.4, 1);
+
+  /* Subtle refraction fringe — a light prismatic shimmer at the top edge */
+  position: fixed; /* re-declare to ensure stacking */
+  isolation: isolate;
+}
+
+/* Chromatic top-edge fringe (prismatic light split) */
+.liquid-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.08) 18%,
+    transparent 40%
+  );
+  /* Subtle RGB fringe on the very top edge */
+  box-shadow:
+    inset 0 1.5px 0 0 rgba(255, 180, 180, 0.28),
+    inset 0 0.5px 0 0 rgba(180, 220, 255, 0.28);
 }
 
 .liquid-nav-item {
@@ -194,70 +235,103 @@ body {
   justify-content: center;
 
   width: 68px;
-  /* Increased width */
   height: 100%;
 
   border-radius: 99em;
   cursor: pointer;
   z-index: 2;
-  /* Above the active pill */
 
-  color: #666;
+  color: rgba(60, 60, 67, 0.70);
   transition:
     color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.15s ease-out;
 
-  /* Disable tap highlight */
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
 
 .liquid-nav-item:hover:not(.active) {
-  color: color-mix(in srgb, var(--liquid-action) 70%, #666);
+  color: color-mix(in srgb, var(--liquid-action) 70%, rgba(60,60,67,0.7));
 }
 
 .liquid-nav-item.active {
   color: var(--liquid-action);
 }
 
-/* The "Liquid" Active Background */
+/*
+ * LIQUID ACTIVE PILL
+ * A thick glass lens that sits under the active icon.
+ * It has its own refraction stack so it looks physically "raised".
+ */
 .liquid-active-tab {
   position: absolute;
-  /* Positioning is now handled in JS for the single pill */
-
   border-radius: 99em;
-  background-color: color-mix(in srgb, var(--liquid-glass) 36%, transparent);
-  z-index: 1;
-  /* Behind items */
 
-  /* GPU acceleration for smooth animations */
+  /*
+   * Pill glass body: slightly more opaque than the nav bar itself
+   * to give it physical presence as a raised lens.
+   */
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--liquid-light) 52%, transparent) 0%,
+    color-mix(in srgb, var(--liquid-glass) 38%, transparent) 50%,
+    color-mix(in srgb, var(--liquid-glass) 28%, transparent) 100%
+  );
+
+  backdrop-filter:
+    blur(var(--liquid-pill-blur))
+    saturate(200%)
+    brightness(1.12);
+  -webkit-backdrop-filter:
+    blur(var(--liquid-pill-blur))
+    saturate(200%)
+    brightness(1.12);
+
+  box-shadow:
+    /* Outer soft glow */
+    0 4px 16px 0 rgba(0, 122, 255, 0.14),
+    0 2px 6px 0 rgba(0, 0, 0, 0.10),
+    0 0 0 0.5px rgba(0, 0, 0, 0.07),
+    /* Top-left specular – the defining "glass" look */
+    inset 1.5px 2px 0px -1px rgba(255, 255, 255, 0.95),
+    /* Global thin inner border */
+    inset 0 0 0 0.75px rgba(255, 255, 255, 0.45),
+    /* Bottom dark refraction groove */
+    inset 0px -1.5px 2px -0.5px rgba(0, 0, 0, 0.14),
+    /* Diagonal caustic inside */
+    inset -1.5px 3px 6px -3px rgba(255, 255, 255, 0.55);
+
+  z-index: 1;
   will-change: transform, width;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  isolation: isolate;
+}
 
-  /* Specific Active Shadows from Request */
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb,
-      var(--liquid-light) calc(var(--liquid-reflex-light) * 10%),
-      transparent),
-    inset 2px 1px 0px -1px color-mix(in srgb,
-      var(--liquid-light) calc(var(--liquid-reflex-light) * 90%),
-      transparent),
-    inset -1.5px -1px 0px -1px color-mix(in srgb,
-      var(--liquid-light) calc(var(--liquid-reflex-light) * 80%),
-      transparent),
-    inset -2px -6px 1px -5px color-mix(in srgb,
-      var(--liquid-light) calc(var(--liquid-reflex-light) * 60%),
-      transparent),
-    inset -1px 2px 3px -1px color-mix(in srgb,
-      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 20%),
-      transparent),
-    inset 0px -4px 1px -2px color-mix(in srgb,
-      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 10%),
-      transparent),
-    0px 3px 6px 0px color-mix(in srgb,
-      var(--liquid-dark) calc(var(--liquid-reflex-dark) * 8%),
-      transparent);
+/* Shimmer sweep on the active pill */
+.liquid-active-tab::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    120deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  background-position: -100% 0;
+  animation: liquidShimmer 3.5s ease-in-out infinite;
+}
+
+@keyframes liquidShimmer {
+  0%   { background-position: -100% 0; opacity: 0; }
+  20%  { opacity: 1; }
+  50%  { background-position: 200% 0; }
+  51%  { opacity: 0; }
+  100% { background-position: 200% 0; opacity: 0; }
 }
 
 .liquid-icon {
@@ -270,16 +344,19 @@ body {
 
 .liquid-nav-item.active .liquid-icon {
   transform: translateY(-2px) scale(1.1);
+  /* Subtle icon glow matching the action color */
+  filter: drop-shadow(0 2px 6px rgba(0, 122, 255, 0.30));
 }
 
 .liquid-label {
   font-size: 11px;
   font-weight: 600;
   margin-top: 4px;
-  opacity: 0.8;
+  opacity: 0.65;
   transition:
     opacity 0.2s ease,
     font-weight 0.2s ease;
+  letter-spacing: -0.01em;
 }
 
 .liquid-nav-item.active .liquid-label {

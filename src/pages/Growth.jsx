@@ -12,6 +12,10 @@ import CalendarViewSheet from "../components/CalendarViewSheet";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
+import {
+  updateGlobalData,
+  subscribeToGlobalData,
+} from "../services/dataLogger";
 
 
 const INITIAL_DOMAINS = [
@@ -754,18 +758,55 @@ export default function Growth() {
     return migrated;
   });
 
-  // Persist domains
+  // Persist domains — localStorage + Firestore
   useEffect(() => {
     localStorage.setItem("seneca_domains", JSON.stringify(domains));
+    // Debounced cloud sync (avoid thrashing on rapid status changes)
+    const timer = setTimeout(() => {
+      updateGlobalData("certifications", { domains });
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [domains]);
 
-  // Persist custom certifications
+  // Persist custom certifications — localStorage + Firestore
   useEffect(() => {
     localStorage.setItem(
       "seneca_custom_certifications",
       JSON.stringify(customCertifications)
     );
+    const timer = setTimeout(() => {
+      updateGlobalData("certifications", { customCertifications });
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [customCertifications]);
+
+  // Subscribe to Firestore cert changes (syncs from other devices)
+  useEffect(() => {
+    const unsubscribe = subscribeToGlobalData("certifications", (cloudData) => {
+      if (!cloudData) return;
+
+      if (Array.isArray(cloudData.domains) && cloudData.domains.length > 0) {
+        setDomains((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(cloudData.domains)) return prev;
+          // Also update localStorage so next init picks it up
+          localStorage.setItem("seneca_domains", JSON.stringify(cloudData.domains));
+          return cloudData.domains;
+        });
+      }
+
+      if (Array.isArray(cloudData.customCertifications)) {
+        setCustomCertifications((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(cloudData.customCertifications)) return prev;
+          localStorage.setItem(
+            "seneca_custom_certifications",
+            JSON.stringify(cloudData.customCertifications)
+          );
+          return cloudData.customCertifications;
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Extract current values from context
   const currentWeight = goals.exercise?.currentWeight || 120;
