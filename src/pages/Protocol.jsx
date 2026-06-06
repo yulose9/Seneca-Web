@@ -173,11 +173,14 @@ const TaskRow = ({ task, onToggle, onClick, isLast }) => {
     <div
       onClick={onClick}
       className={clsx(
-        "flex items-center py-4 px-4 cursor-pointer bg-white transition-colors",
+        "flex items-center min-h-[52px] py-3 px-4 cursor-pointer bg-white transition-colors",
         !isLast && "border-b border-[rgba(60,60,67,0.12)]",
       )}
     >
-      <Checkbox done={task.done} onClick={onToggle} />
+      {/* overflow-visible so the ::before hit-slop isn't clipped by the row */}
+      <div className="overflow-visible flex-shrink-0">
+        <Checkbox done={task.done} onClick={onToggle} />
+      </div>
       <span className="text-2xl mx-3 select-none">{task.emoji}</span>
       <span
         className={clsx(

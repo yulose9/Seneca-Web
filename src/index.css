@@ -603,6 +603,21 @@ body {
   cursor: pointer;
   transition: all 0.2s var(--spring-bounce);
   flex-shrink: 0;
+  /* Ensure the ::before hit-slop expands outside this element */
+  overflow: visible;
+}
+
+/*
+ * INVISIBLE HIT SLOP — expands the tap area to 44×44px
+ * without changing the visual 24×24px circle at all.
+ * The negative inset = (44 - 24) / 2 = -10px on each side.
+ */
+.ios-checkbox::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  /* Completely invisible — just expands the touch surface */
 }
 
 .ios-checkbox.checked {
