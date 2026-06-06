@@ -901,21 +901,30 @@ export default function Journal() {
         {pastEntries.length > 0 ? (
           <>
             <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              {pastEntries.slice(0, visiblePastCount).map((item, index) => (
-                <EntryRow
-                  key={item.id}
-                  item={item}
-                  isLast={
-                    index === Math.min(visiblePastCount, pastEntries.length) - 1
-                  }
-                  isSelecting={isSelecting}
-                  isSelected={selectedIds.has(item.id)}
-                  onSelect={handleSelect}
-                  onDelete={handleDeleteSingle}
-                  onClick={setViewEntry}
-                  onLongPress={handleLongPress}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {pastEntries.slice(0, visiblePastCount).map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                  >
+                    <EntryRow
+                      item={item}
+                      isLast={
+                        index === Math.min(visiblePastCount, pastEntries.length) - 1
+                      }
+                      isSelecting={isSelecting}
+                      isSelected={selectedIds.has(item.id)}
+                      onSelect={handleSelect}
+                      onDelete={handleDeleteSingle}
+                      onClick={setViewEntry}
+                      onLongPress={handleLongPress}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
             {visiblePastCount < pastEntries.length && (
               <motion.button
