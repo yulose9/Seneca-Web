@@ -66,7 +66,7 @@ export default function GlassTabBar() {
 
     return (
         <LiquidGlass
-            layout
+            tint="transparent"
             className="liquid-nav"
             initial={{ y: 100, opacity: 0, x: "-50%" }}
             animate={{ y: 0, opacity: 1, x: "-50%" }}
