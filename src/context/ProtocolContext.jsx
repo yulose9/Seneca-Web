@@ -409,6 +409,57 @@ export function ProtocolProvider({ children }) {
   const initialFetchDone = useRef(false); // Track if initial fetch completed
   const hasReceivedServerSyncRef = useRef(false); // Tracks if we've received an authoritative server payload
 
+  // 🛡️ DAY ROLLOVER (Midnight Reset)
+  // Tracks the date the app currently thinks it is
+  const currentDateRef = useRef(getPhDateKey());
+
+  const resetForNewDay = useCallback(() => {
+    console.log(`[Protocol:${protocolCategory}] 🌙 Midnight Rollover detected! Resetting tasks for new day.`);
+    setPhaseTasks((prev) => {
+      const next = {};
+      Object.keys(prev).forEach((phaseId) => {
+        next[phaseId] = prev[phaseId].map(task => ({ ...task, done: false }));
+      });
+      return next;
+    });
+    // Update the ref to the new date so we don't reset again
+    currentDateRef.current = getPhDateKey();
+    
+    // The existing useEffect will naturally save the new phaseTasks to localStorage with today's date!
+    // And the debounce sync will push it to the new day's Firestore log.
+  }, [protocolCategory]);
+
+  useEffect(() => {
+    // 1. Midnight Timer
+    let timeoutId;
+    const scheduleNextReset = () => {
+      const msToMidnight = msUntilMidnightPH();
+      console.log(`[Protocol:${protocolCategory}] ⏲️ Scheduling day reset in ${Math.round(msToMidnight/1000/60)} minutes.`);
+      timeoutId = setTimeout(() => {
+        resetForNewDay();
+        scheduleNextReset(); // Schedule for the *next* midnight
+      }, msToMidnight + 1000); // Add 1s buffer to ensure date has fully rolled over
+    };
+    scheduleNextReset();
+
+    // 2. Visibility Listener (Wake from sleep/tab focus)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const actualToday = getPhDateKey();
+        if (actualToday !== currentDateRef.current) {
+          console.log(`[Protocol:${protocolCategory}] ☀️ Woke up on a new day. Old: ${currentDateRef.current}, New: ${actualToday}`);
+          resetForNewDay();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [resetForNewDay, protocolCategory]);
+
   // 🔄 INITIAL CLOUD FETCH on mount - Get global Protocol data AND today's tasks
   useEffect(() => {
     const fetchGlobalProtocol = async () => {
