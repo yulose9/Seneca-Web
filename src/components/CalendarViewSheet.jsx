@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
 import React, { useMemo, useRef, useLayoutEffect, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
 // Helper to determine quarter from target string
 const getQuarterFromTarget = (target) => {
@@ -46,6 +47,7 @@ export default function CalendarViewSheet({
   domains,
   customCertifications,
 }) {
+  const haptic = useWebHaptics();
   // Aggregate and group all certifications
   const groupedCerts = useMemo(() => {
     const allCerts = [];
@@ -136,7 +138,10 @@ export default function CalendarViewSheet({
                 Certification Roadmap
               </h2>
               <button
-                onClick={onClose}
+                onClick={() => {
+                  haptic.trigger("light");
+                  onClose();
+                }}
                 className="absolute right-4 w-7 h-7 bg-[#EEE] rounded-full flex items-center justify-center text-[#8E8E93]"
               >
                 <span className="text-sm font-bold">✕</span>

@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Download, FileJson } from "lucide-react";
 import React, { useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import {
   exportAsLLMPrompt,
   exportForLLM,
@@ -12,6 +13,7 @@ import {
  * Allows you to view and export your data for LLM analysis
  */
 export default function ExportDataButton() {
+  const haptic = useWebHaptics();
   const [showModal, setShowModal] = useState(false);
   const [exportType, setExportType] = useState("json");
   const [days, setDays] = useState(30);
@@ -42,6 +44,7 @@ export default function ExportDataButton() {
     a.click();
     URL.revokeObjectURL(url);
 
+    haptic.trigger("success");
     setShowModal(false);
   };
 
@@ -52,7 +55,10 @@ export default function ExportDataButton() {
       {/* Trigger Button */}
       <motion.button
         whileTap={{ scale: 0.95 }}
-        onClick={() => setShowModal(true)}
+        onClick={() => {
+          haptic.trigger("medium");
+          setShowModal(true);
+        }}
         className="fixed bottom-20 right-5 z-40 w-14 h-14 rounded-full bg-[#5856D6] flex items-center justify-center shadow-lg"
       >
         <FileJson size={24} className="text-white" />

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Check, Clock, X } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import { subscribeToGlobalData } from "../services/dataLogger";
 
 // LocalStorage keys for snooze
@@ -150,6 +151,7 @@ const findLastPayment = (transactions, liability) => {
 };
 
 export default function ObligationReminder({ isOpen, onClose }) {
+  const haptic = useWebHaptics();
   // Load instantly from localStorage — no waiting for Firestore
   const [liabilities, setLiabilities] = useState(loadLiabilitiesLocal);
   const [transactions, setTransactions] = useState(loadTransactionsLocal);
@@ -173,6 +175,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
   );
 
   const handleDismiss = () => {
+    haptic.trigger("warning");
     onClose?.();
   };
 
@@ -204,7 +207,10 @@ export default function ObligationReminder({ isOpen, onClose }) {
                 {/* Close button */}
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={handleDismiss}
+                  onClick={() => {
+                    haptic.trigger("medium");
+                    handleDismiss();
+                  }}
                   className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"
                 >
                   <X size={16} className="text-white" />
@@ -372,6 +378,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
 
 // ─── Obligation Reminder Settings Sheet (for Wealth bell icon) ──────
 export function ReminderSettingsSheet({ visible, onClose }) {
+  const haptic = useWebHaptics();
   const [snoozeInfo, setSnoozeInfo] = useState(getObligationSnoozeInfo);
 
   const handleSetSnooze = (ms) => {
@@ -446,7 +453,10 @@ export function ReminderSettingsSheet({ visible, onClose }) {
                     <motion.button
                       key={opt.label}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => handleSetSnooze(opt.ms)}
+                      onClick={() => {
+                        haptic.trigger("selection");
+                        handleSetSnooze(opt.ms);
+                      }}
                       className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
                         isActive
                           ? "bg-[#007AFF]/8 border border-[#007AFF]/15"
@@ -552,6 +562,7 @@ export function useObligationReminder() {
 
 // ─── Tasks Reminder Settings Sheet (for Protocol bell icon) ─────────
 export function TasksReminderSettingsSheet({ visible, onClose }) {
+  const haptic = useWebHaptics();
   const [snoozeInfo, setSnoozeInfo] = useState(getTasksSnoozeInfo);
 
   const handleSetSnooze = (ms) => {
@@ -619,7 +630,10 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
                     <motion.button
                       key={opt.label}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => handleSetSnooze(opt.ms)}
+                      onClick={() => {
+                        haptic.trigger("selection");
+                        handleSetSnooze(opt.ms);
+                      }}
                       className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
                         isActive
                           ? "bg-[#FF9500]/8 border border-[#FF9500]/15"

@@ -2,6 +2,7 @@ import EmojiPicker from "emoji-picker-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import React, { useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
 // Preset colors for goals
 const COLOR_OPTIONS = [
@@ -61,15 +62,20 @@ export default function AddGoalSheet({
     editingGoal?.color || "#8B5CF6"
   );
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const haptic = useWebHaptics();
 
   const isEditing = !!editingGoal;
   const isDefaultGoal =
     editingGoal?.id === "noPorn" || editingGoal?.id === "exercise";
 
   const handleSubmit = () => {
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      haptic.trigger("error");
+      return;
+    }
 
     onAddGoal(selectedEmoji, title.trim(), selectedColor);
+    haptic.trigger("success");
 
     // Reset form
     setTitle("");
@@ -80,12 +86,14 @@ export default function AddGoalSheet({
 
   const handleDelete = () => {
     if (editingGoal && onDeleteGoal) {
+      haptic.trigger("warning");
       onDeleteGoal(editingGoal.id);
       onClose();
     }
   };
 
   const handleClose = () => {
+    haptic.trigger("medium");
     setTitle("");
     setSelectedEmoji("🎯");
     setSelectedColor("#8B5CF6");

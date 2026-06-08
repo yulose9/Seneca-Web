@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useWebHaptics } from 'web-haptics/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Home, Flame, Trophy, Landmark, BookOpen } from 'lucide-react';
@@ -19,6 +20,7 @@ export default function GlassTabBar() {
     const [activeIndex, setActiveIndex] = useState(0);
     const [prevIndex, setPrevIndex] = useState(0);
     const pillControls = useAnimation();
+    const haptic = useWebHaptics();
 
     // Constants for positioning
     const PADDING_LEFT = 10;
@@ -114,7 +116,10 @@ export default function GlassTabBar() {
                 return (
                     <motion.div
                         key={tab.path}
-                        onClick={() => navigate(tab.path)}
+                        onClick={() => {
+                            if (!isActive) haptic.trigger('selection');
+                            navigate(tab.path);
+                        }}
                         className={clsx("liquid-nav-item", isActive && "active")}
                         whileTap={{ scale: 0.95 }}
                         transition={{ duration: 0.1 }}

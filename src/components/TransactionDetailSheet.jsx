@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { ArrowDownLeft, ArrowUpRight, Copy, Share, Tag, Calendar, MapPin, CreditCard } from 'lucide-react';
+import { useWebHaptics } from "web-haptics/react";
 
 const SystemColors = {
     green: '#34C759',
@@ -12,6 +13,7 @@ const SystemColors = {
 
 export default function TransactionDetailSheet({ visible, onClose, transaction, onAccountClick }) {
     const [cachedTransaction, setCachedTransaction] = useState(transaction);
+    const haptic = useWebHaptics();
 
     useEffect(() => {
         if (transaction) setCachedTransaction(transaction);
@@ -43,7 +45,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={onClose}
+                        onClick={() => { haptic.trigger("medium"); onClose(); }}
                         className="ios-sheet-backdrop"
                     />
 
@@ -58,7 +60,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                         {/* Handle */}
                         <div
                             className="flex justify-center pt-3 pb-2 cursor-pointer"
-                            onClick={onClose}
+                            onClick={() => { haptic.trigger("medium"); onClose(); }}
                         >
                             <div className="ios-sheet-handle w-12 h-1.5" />
                         </div>
@@ -147,7 +149,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
 
                             <motion.button
                                 whileTap={{ scale: 0.98 }}
-                                onClick={onClose}
+                                onClick={() => { haptic.trigger("medium"); onClose(); }}
                                 className="w-full h-[52px] bg-[rgba(120,120,128,0.08)] text-black rounded-xl font-semibold text-[17px] flex items-center justify-center"
                             >
                                 Close

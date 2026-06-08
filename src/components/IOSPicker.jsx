@@ -1,5 +1,6 @@
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
 const ITEM_HEIGHT = 44; // Standard iOS height
 const VISIBLE_ITEMS = 5; // How many items to show in the viewport
@@ -7,6 +8,7 @@ const VISIBLE_ITEMS = 5; // How many items to show in the viewport
 export default function IOSPicker({ items, value, onChange, label }) {
     const containerRef = useRef(null);
     const scrollY = useSpring(0, { stiffness: 400, damping: 90 }); // Smooth the scroll reading
+    const haptic = useWebHaptics();
 
     // Initialize scroll position based on value
     useEffect(() => {
@@ -25,6 +27,7 @@ export default function IOSPicker({ items, value, onChange, label }) {
         const index = Math.round(e.target.scrollTop / ITEM_HEIGHT);
         const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
         if (items[clampedIndex] !== value) {
+            haptic.trigger('selection');
             onChange(items[clampedIndex]);
         }
     };

@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useWebHaptics } from "web-haptics/react";
 import {
   AnimatePresence,
   animate,
@@ -674,6 +675,7 @@ export default function Wealth() {
   const mountTimestamp = useRef(Date.now());
   const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds
 
+  const haptic = useWebHaptics();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get("category") || "All Assets";
 
@@ -1093,11 +1095,13 @@ export default function Wealth() {
   const [highlightTransactionId, setHighlightTransactionId] = useState(null);
 
   const handleAssetClick = (asset) => {
+    haptic.trigger("light");
     setViewingAccount(asset);
     setHighlightTransactionId(null);
   };
 
   const handleLiabilityClick = (liability) => {
+    haptic.trigger("light");
     setViewingAccount(liability);
     setHighlightTransactionId(null);
   };
@@ -1408,14 +1412,14 @@ export default function Wealth() {
                 <CategoryDropdown
                   selected={selectedCategory}
                   options={categories}
-                  onSelect={setSelectedCategory}
+                  onSelect={(cat) => { haptic.trigger("selection"); setSelectedCategory(cat); }}
                   isOpen={isDropdownOpen}
                   setIsOpen={setIsDropdownOpen}
                 />
                 <div className="flex items-center gap-3">
                   <motion.button
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setShowAddSheet(true)}
+                    onClick={() => { haptic.trigger("medium"); setShowAddSheet(true); }}
                     className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
                   >
                     <Plus size={20} className="text-white" />
@@ -1785,7 +1789,7 @@ export default function Wealth() {
                       onSelect={handleSelect}
                       onDelete={handleDeleteSingle}
                       onLongPress={handleLongPress}
-                      onClick={() => setViewTransaction(transaction)}
+                      onClick={() => { haptic.trigger("light"); setViewTransaction(transaction); }}
                       onAccountClick={handleTransactionAccountClick}
                     />
                   ))}

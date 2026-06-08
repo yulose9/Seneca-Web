@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import React, { useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
 // Level options
 const LEVEL_OPTIONS = [
@@ -168,10 +169,15 @@ export default function AddCertificationSheet({
   const [showCategorySelector, setShowCategorySelector] = useState(false);
   const [showVendorSelector, setShowVendorSelector] = useState(false);
 
+  const haptic = useWebHaptics();
+
   const isValid = name.trim().length > 0 && target.trim().length > 0;
 
   const handleSubmit = () => {
-    if (!isValid) return;
+    if (!isValid) {
+      haptic.trigger("error");
+      return;
+    }
 
     const newCert = {
       id: `cert-${Date.now()}`,
@@ -186,6 +192,7 @@ export default function AddCertificationSheet({
     };
 
     onAddCertification(newCert);
+    haptic.trigger("success");
 
     // Reset form
     setName("");
@@ -197,6 +204,7 @@ export default function AddCertificationSheet({
   };
 
   const handleClose = () => {
+    haptic.trigger("medium");
     setName("");
     setTarget("");
     setSelectedLevel(LEVEL_OPTIONS[0]);
@@ -295,7 +303,7 @@ export default function AddCertificationSheet({
                 </FormRow>
                 <FormRow
                   label="Level"
-                  onClick={() => setShowLevelSelector(true)}
+                  onClick={() => { haptic.trigger("light"); setShowLevelSelector(true); }}
                   isLast={selectedCategory.id !== "technical"}
                 >
                   <span
@@ -308,7 +316,7 @@ export default function AddCertificationSheet({
                 {selectedCategory.id === "technical" && (
                   <FormRow
                     label="Vendor"
-                    onClick={() => setShowVendorSelector(true)}
+                    onClick={() => { haptic.trigger("light"); setShowVendorSelector(true); }}
                     isLast
                   >
                     <span className="text-[17px] text-[rgba(60,60,67,0.6)]">
@@ -322,7 +330,7 @@ export default function AddCertificationSheet({
               <FormSection header="Category">
                 <FormRow
                   label="Domain"
-                  onClick={() => setShowCategorySelector(true)}
+                  onClick={() => { haptic.trigger("light"); setShowCategorySelector(true); }}
                   isLast
                 >
                   <div className="flex items-center gap-2">

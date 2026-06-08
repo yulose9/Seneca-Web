@@ -2,6 +2,7 @@ import EmojiPicker from "emoji-picker-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check } from "lucide-react";
 import React, { useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
 // Phase options with colors matching the app theme
 const PHASE_OPTIONS = [
@@ -58,6 +59,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
   const [selectedEmoji, setSelectedEmoji] = useState("📝");
   const [selectedPhase, setSelectedPhase] = useState("morningIgnition");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const haptic = useWebHaptics();
 
   // For work/other categories, phases are optional (default: unassigned = "general")
   const isPersonal = protocolCategory === "personal";
@@ -84,6 +86,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
     // For work/other: if no phase assigned, use "general"
     const targetPhase = phaseEnabled ? selectedPhase : "general";
     onAddTask(targetPhase, newTask);
+    haptic.trigger("success");
 
     // Reset form
     setTitle("");
@@ -113,7 +116,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => { haptic.trigger("medium"); onClose(); }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
           />
 
@@ -128,7 +131,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
             {/* Drag Handle */}
             <div
               className="flex justify-center pt-3 pb-2 cursor-pointer"
-              onClick={onClose}
+              onClick={() => { haptic.trigger("medium"); onClose(); }}
             >
               <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
             </div>
@@ -137,7 +140,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
             <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)]">
               {/* Cancel Button */}
               <button
-                onClick={onClose}
+                onClick={() => { haptic.trigger("medium"); onClose(); }}
                 className="absolute left-4 text-[17px] text-[#007AFF] font-normal active:opacity-50"
               >
                 Cancel
@@ -254,7 +257,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                     <span className="text-[17px] text-black">Assign to Phase</span>
                     <motion.button
                       whileTap={{ scale: 0.9 }}
-                      onClick={() => setPhaseEnabled(!phaseEnabled)}
+                      onClick={() => { haptic.trigger("selection"); setPhaseEnabled(!phaseEnabled); }}
                       className="relative w-[51px] h-[31px] rounded-full transition-colors duration-200"
                       style={{
                         backgroundColor: phaseEnabled ? "#34C759" : "rgba(120,120,128,0.16)",
@@ -283,7 +286,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                         <motion.button
                           key={phase.id}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => setSelectedPhase(phase.id)}
+                          onClick={() => { haptic.trigger("selection"); setSelectedPhase(phase.id); }}
                           className={`w-full flex items-center justify-between min-h-[44px] px-4 ${index !== PHASE_OPTIONS.length - 1
                               ? "border-b border-[rgba(60,60,67,0.12)]"
                               : ""

@@ -1,4 +1,5 @@
 import { signOut } from "firebase/auth";
+import { useWebHaptics } from "web-haptics/react";
 import { motion, Reorder } from "framer-motion";
 import { ChevronRight, GripVertical, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -174,6 +175,7 @@ const loadCardOrder = () => {
 
 export default function Home() {
   const navigate = useNavigate();
+  const haptic = useWebHaptics();
   const [profileImage, setProfileImage] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [cardOrder, setCardOrder] = useState(loadCardOrder);
@@ -302,7 +304,7 @@ export default function Home() {
           <p className="ios-nav-date">{formatDate()}</p>
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => setIsEditMode(!isEditMode)}
+            onClick={() => { haptic.trigger("light"); setIsEditMode(!isEditMode); }}
             className="text-[17px] font-normal text-[#007AFF] active:opacity-60"
           >
             {isEditMode ? "Done" : "Edit"}
@@ -367,7 +369,7 @@ export default function Home() {
               case "wealth":
                 return (
                   <SystemCard
-                    onClick={isEditMode ? undefined : () => navigate("/wealth")}
+                    onClick={isEditMode ? undefined : () => { haptic.trigger("light"); navigate("/wealth"); }}
                   >
                     <div className="flex justify-between items-center mb-1">
                       <span
@@ -425,7 +427,7 @@ export default function Home() {
                 return (
                   <div
                     onClick={
-                      isEditMode ? undefined : () => navigate("/journal")
+                      isEditMode ? undefined : () => { haptic.trigger("light"); navigate("/journal"); }
                     }
                     className="relative overflow-hidden rounded-2xl p-5 cursor-pointer transition-all duration-200"
                     style={{
@@ -453,6 +455,7 @@ export default function Home() {
                           }`}
                         onClick={(e) => {
                           e.stopPropagation();
+                          haptic.trigger("medium");
                           navigate("/journal");
                         }}
                       >
@@ -506,6 +509,7 @@ export default function Home() {
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={async () => {
+            haptic.trigger("medium");
             if (confirm("Are you sure you want to log out?")) {
               await signOut(auth);
               navigate("/login");

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ListChecks, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
@@ -19,6 +20,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
     allPhasesComplete,
     getTotalProgress,
   } = useProtocol();
+  const haptic = useWebHaptics();
 
   const { activeStudyGoal, getStudiedToday } = useStudyGoal();
   const { goalHistory } = usePersonalGoals();
@@ -176,7 +178,10 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                 {/* Close button */}
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={onClose}
+                  onClick={() => {
+                    haptic.trigger("medium");
+                    onClose();
+                  }}
                   className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"
                 >
                   <X size={16} className="text-white" />
@@ -249,7 +254,10 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
               <div className="px-6 pb-6 shrink-0">
                 <motion.button
                   whileTap={{ scale: 0.97 }}
-                  onClick={onClose}
+                  onClick={() => {
+                    haptic.trigger("light");
+                    onClose();
+                  }}
                   className="w-full py-3.5 rounded-xl bg-[rgba(120,120,128,0.08)] text-[15px] font-semibold text-[rgba(60,60,67,0.8)] flex items-center justify-center gap-2"
                 >
                   Got it

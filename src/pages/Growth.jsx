@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useWebHaptics } from "web-haptics/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronRight, Clock, Lock, Minus, Plus } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
@@ -694,6 +695,7 @@ export default function Growth() {
 
   // Protocol context for Learn Stuff integration
   const { markLearnStuffDone } = useProtocol();
+  const haptic = useWebHaptics();
 
   // Personal goals context (persisted with localStorage + dataLogger)
   const {
@@ -883,6 +885,7 @@ export default function Growth() {
 
   // Certification handlers
   const handleCertificationClick = (cert) => {
+    haptic.trigger("selection");
     setSelectedCertification(cert);
     setShowCertDetailSheet(true);
   };
@@ -928,6 +931,7 @@ export default function Growth() {
 
   // Backward compatibility wrapper for status only
   const handleUpdateCertStatus = (cert, newStatus) => {
+    haptic.trigger("light");
     handleUpdateCertification({ ...cert, status: newStatus });
   };
 
@@ -1045,7 +1049,7 @@ export default function Growth() {
           </div>
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => setShowAddGoalSheet(true)}
+            onClick={() => { haptic.trigger("medium"); setShowAddGoalSheet(true); }}
             className="w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center shadow-md"
           >
             <Plus size={18} className="text-white" strokeWidth={2.5} />
@@ -1112,7 +1116,7 @@ export default function Growth() {
           </div>
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => setShowAddCertSheet(true)}
+            onClick={() => { haptic.trigger("medium"); setShowAddCertSheet(true); }}
             className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center shadow-sm"
           >
             <Plus size={18} strokeWidth={2.5} className="text-white" />

@@ -9,6 +9,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
 // ─── Animated height container ────────────────────────────────────────────────
 const AnimatedHeight = ({ children, className = "" }) => {
@@ -190,6 +191,7 @@ export default function CertificationDetailSheet({
     level: "Foundational",
     notes: "",
   });
+  const haptic = useWebHaptics();
 
   // Reset form whenever sheet opens
   useEffect(() => {
@@ -215,6 +217,7 @@ export default function CertificationDetailSheet({
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleStatusChange = (newStatus) => {
+    haptic.trigger("selection");
     onUpdateStatus(certification, newStatus);
   };
 
@@ -227,10 +230,12 @@ export default function CertificationDetailSheet({
       notes: editForm.notes.trim(),
     };
     onUpdateCertification({ ...certification, ...trimmed });
+    haptic.trigger("success");
     setIsEditing(false);
   };
 
   const handleDelete = () => {
+    haptic.trigger("warning");
     onDelete?.(certification);
     setShowDeleteConfirm(false);
     onClose();
@@ -257,7 +262,7 @@ export default function CertificationDetailSheet({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={onClose}
+              onClick={() => { haptic.trigger("medium"); onClose(); }}
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
             />
 
@@ -272,7 +277,7 @@ export default function CertificationDetailSheet({
               {/* Drag Handle */}
               <div
                 className="flex justify-center pt-3 pb-2 cursor-pointer shrink-0"
-                onClick={onClose}
+                onClick={() => { haptic.trigger("medium"); onClose(); }}
               >
                 <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
               </div>
@@ -419,7 +424,7 @@ export default function CertificationDetailSheet({
                               <div className="mx-4 bg-white rounded-xl overflow-hidden">
                                 <GroupedRow
                                   isLast
-                                  onClick={() => setShowDeleteConfirm(true)}
+                                  onClick={() => { haptic.trigger("warning"); setShowDeleteConfirm(true); }}
                                 >
                                   <span className="text-[17px] font-medium text-[#FF3B30]">
                                     Delete Certification
@@ -617,7 +622,7 @@ export default function CertificationDetailSheet({
                             <div className="mx-4 mb-4">
                               <motion.button
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => setShowDeleteConfirm(true)}
+                                onClick={() => { haptic.trigger("warning"); setShowDeleteConfirm(true); }}
                                 className="w-full bg-white rounded-xl py-4 flex items-center justify-center gap-2 border border-[rgba(255,59,48,0.2)]"
                               >
                                 <Trash2 size={18} className="text-[#FF3B30]" />

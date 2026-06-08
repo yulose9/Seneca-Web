@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useWebHaptics } from "web-haptics/react";
 
 const ITEM_HEIGHT = 50;
 const VISIBLE_ITEMS = 5;
@@ -90,6 +91,7 @@ export default function WeightInputDialog({
   onSave,
   currentWeight,
 }) {
+  const haptic = useWebHaptics();
   const [integerPart, setIntegerPart] = useState(90);
   const [decimalPart, setDecimalPart] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -109,6 +111,7 @@ export default function WeightInputDialog({
   }, [visible, currentWeight]);
 
   const handleSave = () => {
+    haptic.trigger("success");
     const fullWeight = parseFloat(`${integerPart}.${decimalPart}`);
     onSave(fullWeight);
     onClose();
@@ -176,7 +179,10 @@ export default function WeightInputDialog({
                 <ClockStylePicker
                   items={Array.from({ length: 171 }, (_, i) => i + 30)}
                   value={integerPart}
-                  onChange={setIntegerPart}
+                  onChange={(val) => {
+                    haptic.trigger("selection");
+                    setIntegerPart(val);
+                  }}
                 />
                 <span className="text-[28px] font-light text-black mx-1">
                   .
@@ -184,7 +190,10 @@ export default function WeightInputDialog({
                 <ClockStylePicker
                   items={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
                   value={decimalPart}
-                  onChange={setDecimalPart}
+                  onChange={(val) => {
+                    haptic.trigger("selection");
+                    setDecimalPart(val);
+                  }}
                   label="kg"
                 />
               </div>

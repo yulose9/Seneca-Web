@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useWebHaptics } from "web-haptics/react";
 import EmojiPicker from "emoji-picker-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, Check, ChevronRight, SmilePlus, Trash2 } from "lucide-react";
@@ -376,6 +377,7 @@ export default function Journal() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const navigate = useNavigate();
+  const haptic = useWebHaptics();
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -653,6 +655,7 @@ export default function Journal() {
     setTitle("");
     setMood(getRandomMood());
     setIsSaving(false);
+    haptic.trigger("success");
     setShowSuccess(true);
   }, [entry, title, mood]);
 
@@ -663,11 +666,15 @@ export default function Journal() {
       return newSet;
     });
   };
-  const handleDeleteSingle = (id) =>
+  const handleDeleteSingle = (id) => {
+    haptic.trigger("warning");
     setConfirmDialog({ isOpen: true, type: "single", itemId: id });
+  };
   const handleDeleteSelected = () => {
-    if (selectedIds.size > 0)
+    if (selectedIds.size > 0) {
+      haptic.trigger("warning");
       setConfirmDialog({ isOpen: true, type: "bulk", itemId: null });
+    }
   };
   const handleConfirmDelete = () => {
     lastLocalInteraction.current = Date.now(); // Mark interaction time
@@ -809,6 +816,7 @@ export default function Journal() {
                   <div className="relative z-50">
                     <EmojiPicker
                       onEmojiClick={(e) => {
+                        haptic.trigger("light");
                         setMood(e.emoji);
                         setShowEmojiPicker(false);
                       }}
@@ -855,7 +863,7 @@ export default function Journal() {
                 exit={{ opacity: 0, y: 10, height: 0, marginTop: 0 }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleSave}
+                onClick={() => { haptic.trigger("medium"); handleSave(); }}
                 disabled={isSaving}
                 className={clsx(
                   "w-full rounded-xl font-semibold text-[17px] overflow-hidden",
@@ -900,15 +908,16 @@ export default function Journal() {
 
         {pastEntries.length > 0 ? (
           <>
-            <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <AnimatePresence initial={false}>
                 {pastEntries.slice(0, visiblePastCount).map((item, index) => (
                   <motion.div
+                    layout
                     key={item.id}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                    initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, height: "auto", scale: 1 }}
+                    exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                    transition={{ type: "spring", bounce: 0, duration: 0.4, opacity: { duration: 0.2 } }}
                   >
                     <EntryRow
                       item={item}
@@ -925,13 +934,13 @@ export default function Journal() {
                   </motion.div>
                 ))}
               </AnimatePresence>
-            </div>
+            </motion.div>
             {visiblePastCount < pastEntries.length && (
               <motion.button
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setVisiblePastCount((prev) => prev + 10)}
+                onClick={() => { haptic.trigger("light"); setVisiblePastCount((prev) => prev + 10); }}
                 className="w-full mt-3 py-3.5 rounded-xl bg-white border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] text-[15px] font-semibold text-[#007AFF] flex items-center justify-center gap-2"
               >
                 View More ({pastEntries.length - visiblePastCount} remaining)

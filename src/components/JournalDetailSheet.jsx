@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import { refineEntryWithGemini } from "../services/journalAI";
 import RichTextEditor from "./RichTextEditor";
 
@@ -178,6 +179,7 @@ export default function JournalDetailSheet({
   onUpdate,
   onDelete,
 }) {
+  const haptic = useWebHaptics();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -242,6 +244,7 @@ export default function JournalDetailSheet({
   };
 
   const handleSave = () => {
+    haptic.trigger("success");
     // ... (rest of handleSave is fine)
     const dateObj = new Date(date);
     const displayDate = dateObj.toLocaleDateString("en-US", {
@@ -445,7 +448,10 @@ export default function JournalDetailSheet({
                     {/* Delete Button */}
                     {onDelete && (
                       <button
-                        onClick={() => setShowDeleteConfirm(true)}
+                        onClick={() => {
+                          haptic.trigger("warning");
+                          setShowDeleteConfirm(true);
+                        }}
                         className="p-2 text-gray-400 hover:text-[#FF3B30] hover:bg-red-50 rounded-full transition-colors"
                         title="Delete Entry"
                       >
@@ -505,7 +511,10 @@ export default function JournalDetailSheet({
                   </button>
                 ) : (
                   <button
-                    onClick={() => setIsEditing(true)}
+                    onClick={() => {
+                      haptic.trigger("medium");
+                      setIsEditing(true);
+                    }}
                     className="text-[17px] font-medium text-[#007AFF] px-2"
                   >
                     Edit
@@ -710,6 +719,7 @@ export default function JournalDetailSheet({
                       <motion.button
                         whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
                         onClick={() => {
+                          haptic.trigger("warning");
                           onDelete(entry.id);
                           setShowDeleteConfirm(false);
                           onClose();

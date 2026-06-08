@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Trash2, X } from "lucide-react";
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useWebHaptics } from "web-haptics/react";
 
 // iOS 18 System Colors
 const SystemColors = {
@@ -211,7 +212,7 @@ const getPastDates = (days) => {
 };
 
 // Streak Calendar Component - Habit Pixel / GitHub Style Heatmap
-const StreakCalendar = ({ habit, color, history = {}, onToggle }) => {
+const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
   const calendarData = useMemo(() => {
     const today = new Date();
     const weeksToShow = 20; // Reduced slighty for mobile width fit, but scrollable is fine
@@ -402,7 +403,12 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle }) => {
                   return (
                     <motion.div
                       key={date}
-                      onClick={() => !isFuture && onToggle(date)}
+                      onClick={() => {
+                        if (!isFuture) {
+                          haptic?.trigger("light");
+                          onToggle(date);
+                        }
+                      }}
                       whileTap={{ scale: 0.85 }}
                       className={clsx(
                         "rounded-[10px] cursor-pointer flex items-center justify-center transition-all duration-300 relative overflow-hidden",
@@ -486,6 +492,7 @@ export default function HabitDetailSheet({
   onDeleteCustomTask,
 }) {
   const navigate = useNavigate();
+  const haptic = useWebHaptics();
 
   if (!habit) return null;
 
@@ -761,6 +768,7 @@ export default function HabitDetailSheet({
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
+                    haptic.trigger("selection");
                     onClose();
                     navigate("/journal");
                   }}
@@ -782,6 +790,7 @@ export default function HabitDetailSheet({
                 habit={habit}
                 color={habitInfo.color}
                 history={history}
+                haptic={haptic}
                 onToggle={(date) =>
                   onToggleHistory(habit.phaseId, habit.id, date)
                 }
@@ -795,7 +804,10 @@ export default function HabitDetailSheet({
                       <motion.button
                         key={index}
                         whileTap={{ scale: 0.98 }}
-                        onClick={handleActionButton}
+                        onClick={() => {
+                          haptic.trigger("selection");
+                          handleActionButton();
+                        }}
                         className="flex-1 h-[56px] rounded-2xl border-2 flex items-center justify-center text-[18px] font-bold"
                         style={{
                           backgroundColor: `${choice.color}12`,
@@ -810,7 +822,10 @@ export default function HabitDetailSheet({
                 ) : (
                   <motion.button
                     whileTap={{ scale: 0.98 }}
-                    onClick={handleActionButton}
+                    onClick={() => {
+                      haptic.trigger("medium");
+                      handleActionButton();
+                    }}
                     className={clsx(
                       "w-full h-[56px] rounded-2xl flex items-center justify-center text-[18px] font-bold transition-all duration-200",
                       isTodayDone

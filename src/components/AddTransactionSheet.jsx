@@ -8,6 +8,7 @@ import {
 } from "framer-motion";
 import { Check, Loader2, MapPin, X } from "lucide-react";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
 // iOS-style Selection Row
 const SelectionRow = ({
@@ -197,6 +198,7 @@ export default function AddTransactionSheet({
 }) {
   const isSheetOpen = isOpen ?? visible ?? false;
   const handleAddTransaction = onAddTransaction ?? onAdd ?? (() => {});
+  const haptic = useWebHaptics();
 
   const derivedSavingsAccounts =
     savingsAccounts.length > 0
@@ -292,11 +294,13 @@ export default function AddTransactionSheet({
   };
 
   const handleTypeSelect = (type) => {
+    haptic.trigger("selection");
     setTransactionType(type);
     setStep("account");
   };
 
   const handleAccountSelect = (account) => {
+    haptic.trigger("selection");
     setSelectedAccount(account);
     setStep("amount");
   };
@@ -339,7 +343,10 @@ export default function AddTransactionSheet({
   };
 
   const handleSubmit = () => {
-    if (!selectedAccount || !amount || parseFloat(amount) <= 0) return;
+    if (!selectedAccount || !amount || parseFloat(amount) <= 0) {
+      haptic.trigger("error");
+      return;
+    }
 
     const transaction = {
       id: Date.now(),
@@ -362,6 +369,7 @@ export default function AddTransactionSheet({
     };
 
     handleAddTransaction(transaction);
+    haptic.trigger("success");
     setStep("success");
 
     setTimeout(() => {
@@ -419,7 +427,7 @@ export default function AddTransactionSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => { haptic.trigger("medium"); onClose(); }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[400]"
           />
 
@@ -435,7 +443,7 @@ export default function AddTransactionSheet({
             {/* Handle */}
             <div
               className="flex justify-center pt-3 pb-2 cursor-pointer"
-              onClick={onClose}
+              onClick={() => { haptic.trigger("medium"); onClose(); }}
             >
               <div className="w-12 h-1.5 rounded-full bg-[rgba(60,60,67,0.3)]" />
             </div>
@@ -466,7 +474,7 @@ export default function AddTransactionSheet({
               </motion.h2>
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                onClick={onClose}
+                onClick={() => { haptic.trigger("medium"); onClose(); }}
                 className="w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center"
               >
                 <X size={18} className="text-[rgba(60,60,67,0.6)]" />

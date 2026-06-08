@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import {
   Area,
   AreaChart,
@@ -100,6 +101,7 @@ export default function AccountDetailSheet({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const haptic = useWebHaptics();
 
   const handleStartEdit = () => {
     setEditValue(account.amount.toString());
@@ -110,6 +112,7 @@ export default function AccountDetailSheet({
     const newVal = parseFloat(editValue);
     if (account && !isNaN(newVal) && newVal !== account.amount) {
       onUpdateBalance?.(newVal);
+      haptic.trigger("success");
     }
     setIsEditing(false);
   };
@@ -181,7 +184,7 @@ export default function AccountDetailSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => { haptic.trigger("medium"); onClose(); }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[450]"
           />
 
@@ -197,12 +200,12 @@ export default function AccountDetailSheet({
             <div className="bg-white px-6 pt-5 pb-4 border-b border-black/[0.04] flex items-center justify-between sticky top-0 z-10">
               <div
                 className="w-12 h-1.5 rounded-full bg-black/20 absolute top-2 left-1/2 -translate-x-1/2 cursor-pointer"
-                onClick={onClose}
+                onClick={() => { haptic.trigger("medium"); onClose(); }}
               />
 
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                onClick={onClose}
+                onClick={() => { haptic.trigger("medium"); onClose(); }}
                 className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center -ml-2"
               >
                 <X size={18} className="text-black/60" />

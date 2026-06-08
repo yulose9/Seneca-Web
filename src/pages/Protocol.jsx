@@ -1,4 +1,5 @@
 import confetti from "canvas-confetti";
+import { useWebHaptics } from "web-haptics/react";
 import clsx from "clsx";
 import {
   AnimatePresence,
@@ -30,7 +31,10 @@ const Checkbox = ({ done, onClick }) => {
         e.stopPropagation();
         onClick();
       }}
-      className={clsx("ios-checkbox", done && "checked")}
+      className={clsx(
+        "ios-checkbox relative after:content-[''] after:absolute after:-inset-4 after:bg-transparent", 
+        done && "checked"
+      )}
     >
       {done && (
         <motion.div
@@ -457,6 +461,7 @@ export default function Protocol() {
     switchCategory,
   } = useProtocol();
 
+  const haptic = useWebHaptics();
   const [expandedPhases, setExpandedPhases] = useState(["morningIgnition"]);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [addTaskSheetVisible, setAddTaskSheetVisible] = useState(false);
@@ -486,6 +491,7 @@ export default function Protocol() {
 
       // If phase JUST became complete (transition from incomplete -> complete)
       if (isComplete && !wasComplete) {
+        haptic.trigger("success");
         const nextPhaseId = phaseOrder[index + 1];
 
         // Auto-collapse the completed phase and expand the next phase
@@ -548,7 +554,7 @@ export default function Protocol() {
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}
                   exit={{ opacity: 0, scale: 0.8, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={resetTaskOrder}
+                  onClick={() => { haptic.trigger("medium"); resetTaskOrder(); }}
                   className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-200"
                   aria-label="Reset Order"
                 >
@@ -558,7 +564,7 @@ export default function Protocol() {
             </AnimatePresence>
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => setTasksReminderSettings(true)}
+              onClick={() => { haptic.trigger("light"); setTasksReminderSettings(true); }}
               className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-200"
               aria-label="Reminder Settings"
             >
@@ -566,7 +572,7 @@ export default function Protocol() {
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => setAddTaskSheetVisible(true)}
+              onClick={() => { haptic.trigger("medium"); setAddTaskSheetVisible(true); }}
               className="w-10 h-10 rounded-full bg-[#007AFF] flex items-center justify-center shadow-lg shadow-[#007AFF]/25"
             >
               <Plus size={22} strokeWidth={2.5} className="text-white" />
@@ -579,7 +585,7 @@ export default function Protocol() {
       <CategoryPillSelector
         categories={protocolCategories}
         activeCategory={protocolCategory}
-        onCategoryChange={switchCategory}
+        onCategoryChange={(id) => { haptic.trigger("selection"); switchCategory(id); }}
       />
 
       {/* Phase Sections */}
@@ -608,7 +614,7 @@ export default function Protocol() {
                   tasks={phaseTasks[phaseId] || []}
                   isExpanded={phaseId === "general" ? true : expandedPhases.includes(phaseId)}
                   isUnlocked={phaseId === "general" ? true : isPhaseUnlocked(phaseId)}
-                  onToggleTask={toggleTask}
+                  onToggleTask={(phaseId, taskId) => { haptic.trigger("light"); toggleTask(phaseId, taskId); }}
                   onToggleExpand={handleToggleExpand}
                   onCompletePhase={handleCompletePhase}
                   onTaskPress={handleTaskPress}

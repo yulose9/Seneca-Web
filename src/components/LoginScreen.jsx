@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useWebHaptics } from 'web-haptics/react';
 import { authService } from '../services/authService';
 import { Lock, Smartphone } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -6,16 +7,20 @@ import { motion } from 'framer-motion';
 export default function LoginScreen({ onLoginSuccess }) {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const haptic = useWebHaptics();
 
     const handleLogin = async () => {
+        haptic.trigger('medium');
         setLoading(true);
         setError(null);
         try {
             await authService.loginWithGoogle();
+            haptic.trigger('success');
             // Force navigation to root to reset URL and context states
             window.location.href = "/";
         } catch (err) {
             console.error(err);
+            haptic.trigger('error');
             setError(err.message || "Access Denied. Authorization failed.");
         } finally {
             setLoading(false);

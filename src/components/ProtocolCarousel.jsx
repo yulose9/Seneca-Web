@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useWebHaptics } from "web-haptics/react";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import React, {
   useCallback,
@@ -57,6 +58,7 @@ const slideVariants = {
 export default function ProtocolCarousel() {
   const navigate = useNavigate();
   const [[activeIndex, direction], setPage] = useState([0, 0]);
+  const haptic = useWebHaptics();
 
   // Feedback animation state: { cardId, type: "yes"|"no" } or null
   const [feedback, setFeedback] = useState(null);
@@ -134,18 +136,21 @@ export default function ProtocolCarousel() {
       setPage(([prev]) => {
         const next = prev + newDirection;
         if (next < 0 || next >= cards.length) return [prev, 0];
+        haptic.trigger('selection');
         return [next, newDirection];
       });
     },
-    [cards.length],
+    [cards.length, haptic],
   );
 
   const goTo = useCallback((idx) => {
+    haptic.trigger('selection');
     setPage(([prev]) => [idx, idx > prev ? 1 : -1]);
-  }, []);
+  }, [haptic]);
 
   // Trigger feedback animation, then fire the action after a brief delay
   const triggerFeedback = useCallback((cardId, type, action) => {
+    haptic.trigger(type === 'yes' ? 'success' : 'light');
     setFeedback({ cardId, type });
     // Fire the actual state-changing action after a short animation
     feedbackTimer.current = setTimeout(() => {
@@ -153,7 +158,7 @@ export default function ProtocolCarousel() {
       // The card will auto-remove from `cards` on next render
       setFeedback(null);
     }, 1400);
-  }, []);
+  }, [haptic]);
 
   // Nothing to show — all done for the day!
   if (cards.length === 0 && !feedback) {
@@ -236,7 +241,7 @@ export default function ProtocolCarousel() {
           {/* Left arrow */}
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => paginate(-1)}
+            onClick={() => { haptic.trigger("selection"); paginate(-1); }}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-opacity ${
               safeIndex === 0
                 ? "opacity-20 pointer-events-none"
@@ -265,7 +270,7 @@ export default function ProtocolCarousel() {
           {/* Right arrow */}
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => paginate(1)}
+            onClick={() => { haptic.trigger("selection"); paginate(1); }}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-opacity ${
               safeIndex === cards.length - 1
                 ? "opacity-20 pointer-events-none"
@@ -277,8 +282,8 @@ export default function ProtocolCarousel() {
         </div>
 
         {/* Swipeable content area */}
-        <div className="relative min-h-[140px]">
-          <AnimatePresence initial={false} custom={direction} mode="popLayout">
+        <div className="relative">
+          <AnimatePresence initial={false} mode="popLayout" custom={direction}>
             <motion.div
               key={currentCard.id}
               custom={direction}
