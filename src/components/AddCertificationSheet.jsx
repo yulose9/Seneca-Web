@@ -1,8 +1,9 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import React, { useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
-import { FADE, SHEET_EXIT, SHEET_SPRING } from "../constants/motion";
+
+import Sheet from "./Sheet";
 
 // Level options
 const LEVEL_OPTIONS = [
@@ -90,69 +91,56 @@ const SelectorSheet = ({
   onSelect,
   onClose,
 }) => (
-  <AnimatePresence>
-    {visible && (
-      <>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={FADE}
+  <Sheet
+    open={visible}
+    onClose={onClose}
+    zIndex={60}
+    label={title}
+    backdropClassName="fixed inset-0 bg-black/40"
+    className="fixed bottom-0 left-0 right-0 bg-[#F2F2F7] rounded-t-[14px] max-h-[60vh]"
+  >
+      <div className="flex justify-center pt-2 pb-1">
+        <div className="w-9 h-[5px] bg-[rgba(60,60,67,0.3)] rounded-full" />
+      </div>
+      <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)]">
+        <h2 className="text-[17px] font-semibold text-black">{title}</h2>
+        <button
           onClick={onClose}
-          className="fixed inset-0 bg-black/40 z-[60]"
-        />
-        <motion.div
-          initial={{ y: "100%" }}
-          animate={{ y: 0 }}
-          exit={{ y: "100%", transition: SHEET_EXIT }}
-          transition={SHEET_SPRING}
-          className="fixed bottom-0 left-0 right-0 z-[60] bg-[#F2F2F7] rounded-t-[14px] max-h-[60vh]"
+          className="absolute right-4 text-[17px] text-[#007AFF] font-semibold"
         >
-          <div className="flex justify-center pt-2 pb-1">
-            <div className="w-9 h-[5px] bg-[rgba(60,60,67,0.3)] rounded-full" />
-          </div>
-          <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)]">
-            <h2 className="text-[17px] font-semibold text-black">{title}</h2>
-            <button
-              onClick={onClose}
-              className="absolute right-4 text-[17px] text-[#007AFF] font-semibold"
+          Done
+        </button>
+      </div>
+      <div className="overflow-y-auto max-h-[calc(60vh-60px)] pb-8">
+        <div className="mx-4 mt-4 bg-white rounded-xl overflow-hidden">
+          {options.map((option, index) => (
+            <motion.button
+              key={option.id}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                onSelect(option);
+                onClose();
+              }}
+              className={`w-full flex items-center py-3.5 px-4 ${
+                index !== options.length - 1
+                  ? "border-b border-[rgba(60,60,67,0.12)]"
+                  : ""
+              }`}
             >
-              Done
-            </button>
-          </div>
-          <div className="overflow-y-auto max-h-[calc(60vh-60px)] pb-8">
-            <div className="mx-4 mt-4 bg-white rounded-xl overflow-hidden">
-              {options.map((option, index) => (
-                <motion.button
-                  key={option.id}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    onSelect(option);
-                    onClose();
-                  }}
-                  className={`w-full flex items-center py-3.5 px-4 ${
-                    index !== options.length - 1
-                      ? "border-b border-[rgba(60,60,67,0.12)]"
-                      : ""
-                  }`}
-                >
-                  {option.icon && (
-                    <span className="text-lg mr-3">{option.icon}</span>
-                  )}
-                  <span className="text-[17px] text-black flex-1 text-left">
-                    {option.label}
-                  </span>
-                  {selected?.id === option.id && (
-                    <span className="text-[#007AFF] text-lg">✓</span>
-                  )}
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      </>
-    )}
-  </AnimatePresence>
+              {option.icon && (
+                <span className="text-lg mr-3">{option.icon}</span>
+              )}
+              <span className="text-[17px] text-black flex-1 text-left">
+                {option.label}
+              </span>
+              {selected?.id === option.id && (
+                <span className="text-[#007AFF] text-lg">✓</span>
+              )}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+  </Sheet>
 );
 
 export default function AddCertificationSheet({
@@ -216,167 +204,151 @@ export default function AddCertificationSheet({
   };
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={FADE}
+    <>
+      <Sheet
+        open={visible}
+        onClose={handleClose}
+        label="Add certification"
+        className="fixed bottom-0 left-0 right-0 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden"
+      >
+          {/* Drag Handle */}
+          <div
+            className="flex justify-center pt-3 pb-2 cursor-pointer"
             onClick={handleClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-          />
-
-          {/* Sheet */}
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%", transition: SHEET_EXIT }}
-            transition={SHEET_SPRING}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden"
           >
-            {/* Drag Handle */}
-            <div
-              className="flex justify-center pt-3 pb-2 cursor-pointer"
+            <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
+          </div>
+
+          {/* Navigation Bar */}
+          <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)]">
+            <button
               onClick={handleClose}
+              className="absolute left-4 text-[17px] text-[#007AFF] font-normal active:opacity-50"
             >
-              <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
-            </div>
+              Cancel
+            </button>
+            <h2 className="text-[17px] font-semibold text-black">
+              New Certification
+            </h2>
+            <button
+              onClick={handleSubmit}
+              disabled={!isValid}
+              className={`absolute right-4 text-[17px] font-semibold transition-colors ${
+                isValid
+                  ? "text-[#007AFF] active:opacity-50"
+                  : "text-[rgba(60,60,67,0.3)]"
+              }`}
+            >
+              Add
+            </button>
+          </div>
 
-            {/* Navigation Bar */}
-            <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)]">
-              <button
-                onClick={handleClose}
-                className="absolute left-4 text-[17px] text-[#007AFF] font-normal active:opacity-50"
+          {/* Scrollable Content */}
+          <div className="overflow-y-auto max-h-[calc(92vh-60px)] pb-10">
+            {/* Hero Icon */}
+            <div className="flex flex-col items-center py-6">
+              <div
+                className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-sm"
+                style={{
+                  backgroundColor: `${selectedCategory.color}20`,
+                }}
               >
-                Cancel
-              </button>
-              <h2 className="text-[17px] font-semibold text-black">
-                New Certification
-              </h2>
-              <button
-                onClick={handleSubmit}
-                disabled={!isValid}
-                className={`absolute right-4 text-[17px] font-semibold transition-colors ${
-                  isValid
-                    ? "text-[#007AFF] active:opacity-50"
-                    : "text-[rgba(60,60,67,0.3)]"
-                }`}
-              >
-                Add
-              </button>
-            </div>
-
-            {/* Scrollable Content */}
-            <div className="overflow-y-auto max-h-[calc(92vh-60px)] pb-10">
-              {/* Hero Icon */}
-              <div className="flex flex-col items-center py-6">
-                <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-sm"
-                  style={{
-                    backgroundColor: `${selectedCategory.color}20`,
-                  }}
-                >
-                  <span className="text-5xl">📜</span>
-                </div>
+                <span className="text-5xl">📜</span>
               </div>
+            </div>
 
-              {/* Details Section */}
-              <FormSection header="Certification Details">
-                <FormRow label="Name">
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., AWS Solutions Architect"
-                    className="w-full text-[17px] text-black text-right placeholder:text-[rgba(60,60,67,0.3)] outline-none bg-transparent py-3"
-                    autoFocus
-                  />
-                </FormRow>
-                <FormRow label="Target">
-                  <input
-                    type="text"
-                    value={target}
-                    onChange={(e) => setTarget(e.target.value)}
-                    placeholder="e.g., Q2 2025 or Mar 15"
-                    className="w-full text-[17px] text-black text-right placeholder:text-[rgba(60,60,67,0.3)] outline-none bg-transparent py-3"
-                  />
-                </FormRow>
-                <FormRow
-                  label="Level"
-                  onClick={() => { haptic.trigger("light"); setShowLevelSelector(true); }}
-                  isLast={selectedCategory.id !== "technical"}
+            {/* Details Section */}
+            <FormSection header="Certification Details">
+              <FormRow label="Name">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., AWS Solutions Architect"
+                  className="w-full text-[17px] text-black text-right placeholder:text-[rgba(60,60,67,0.3)] outline-none bg-transparent py-3"
+                  autoFocus
+                />
+              </FormRow>
+              <FormRow label="Target">
+                <input
+                  type="text"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  placeholder="e.g., Q2 2025 or Mar 15"
+                  className="w-full text-[17px] text-black text-right placeholder:text-[rgba(60,60,67,0.3)] outline-none bg-transparent py-3"
+                />
+              </FormRow>
+              <FormRow
+                label="Level"
+                onClick={() => { haptic.trigger("light"); setShowLevelSelector(true); }}
+                isLast={selectedCategory.id !== "technical"}
+              >
+                <span
+                  className="text-[17px]"
+                  style={{ color: selectedLevel.color }}
                 >
-                  <span
-                    className="text-[17px]"
-                    style={{ color: selectedLevel.color }}
-                  >
-                    {selectedLevel.label}
-                  </span>
-                </FormRow>
-                {selectedCategory.id === "technical" && (
-                  <FormRow
-                    label="Vendor"
-                    onClick={() => { haptic.trigger("light"); setShowVendorSelector(true); }}
-                    isLast
-                  >
-                    <span className="text-[17px] text-[rgba(60,60,67,0.6)]">
-                      {selectedVendor?.label || "Select vendor"}
-                    </span>
-                  </FormRow>
-                )}
-              </FormSection>
-
-              {/* Category Section */}
-              <FormSection header="Category">
+                  {selectedLevel.label}
+                </span>
+              </FormRow>
+              {selectedCategory.id === "technical" && (
                 <FormRow
-                  label="Domain"
-                  onClick={() => { haptic.trigger("light"); setShowCategorySelector(true); }}
+                  label="Vendor"
+                  onClick={() => { haptic.trigger("light"); setShowVendorSelector(true); }}
                   isLast
                 >
-                  <div className="flex items-center gap-2">
-                    <span>{selectedCategory.icon}</span>
-                    <span
-                      className="text-[17px]"
-                      style={{ color: selectedCategory.color }}
-                    >
-                      {selectedCategory.label}
-                    </span>
-                  </div>
+                  <span className="text-[17px] text-[rgba(60,60,67,0.6)]">
+                    {selectedVendor?.label || "Select vendor"}
+                  </span>
                 </FormRow>
-              </FormSection>
-            </div>
-          </motion.div>
+              )}
+            </FormSection>
 
-          {/* Selector Sheets */}
-          <SelectorSheet
-            visible={showLevelSelector}
-            title="Select Level"
-            options={LEVEL_OPTIONS}
-            selected={selectedLevel}
-            onSelect={setSelectedLevel}
-            onClose={() => setShowLevelSelector(false)}
-          />
-          <SelectorSheet
-            visible={showCategorySelector}
-            title="Select Category"
-            options={CATEGORY_OPTIONS}
-            selected={selectedCategory}
-            onSelect={setSelectedCategory}
-            onClose={() => setShowCategorySelector(false)}
-          />
-          <SelectorSheet
-            visible={showVendorSelector}
-            title="Select Vendor"
-            options={VENDOR_OPTIONS}
-            selected={selectedVendor}
-            onSelect={setSelectedVendor}
-            onClose={() => setShowVendorSelector(false)}
-          />
-        </>
-      )}
-    </AnimatePresence>
+            {/* Category Section */}
+            <FormSection header="Category">
+              <FormRow
+                label="Domain"
+                onClick={() => { haptic.trigger("light"); setShowCategorySelector(true); }}
+                isLast
+              >
+                <div className="flex items-center gap-2">
+                  <span>{selectedCategory.icon}</span>
+                  <span
+                    className="text-[17px]"
+                    style={{ color: selectedCategory.color }}
+                  >
+                    {selectedCategory.label}
+                  </span>
+                </div>
+              </FormRow>
+            </FormSection>
+          </div>
+      </Sheet>
+
+      {/* Selector Sheets */}
+      <SelectorSheet
+        visible={visible && showLevelSelector}
+        title="Select Level"
+        options={LEVEL_OPTIONS}
+        selected={selectedLevel}
+        onSelect={setSelectedLevel}
+        onClose={() => setShowLevelSelector(false)}
+      />
+      <SelectorSheet
+        visible={visible && showCategorySelector}
+        title="Select Category"
+        options={CATEGORY_OPTIONS}
+        selected={selectedCategory}
+        onSelect={setSelectedCategory}
+        onClose={() => setShowCategorySelector(false)}
+      />
+      <SelectorSheet
+        visible={visible && showVendorSelector}
+        title="Select Vendor"
+        options={VENDOR_OPTIONS}
+        selected={selectedVendor}
+        onSelect={setSelectedVendor}
+        onClose={() => setShowVendorSelector(false)}
+      />
+    </>
   );
 }

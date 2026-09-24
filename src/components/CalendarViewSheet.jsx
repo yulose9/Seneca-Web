@@ -1,9 +1,9 @@
 import clsx from "clsx";
-import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import React, { useMemo } from "react";
 import { useWebHaptics } from "web-haptics/react";
-import { FADE, SHEET_EXIT, SHEET_SPRING } from "../constants/motion";
+
+import Sheet from "./Sheet";
 
 // Helper to determine quarter from target string
 const getQuarterFromTarget = (target) => {
@@ -106,144 +106,123 @@ export default function CalendarViewSheet({
   });
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={FADE}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-          />
+    <Sheet
+      open={visible}
+      onClose={onClose}
+      label="Certification Roadmap"
+      className="fixed bottom-0 left-0 right-0 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden flex flex-col"
+    >
+        {/* Drag Handle */}
+        <div
+          className="flex justify-center pt-3 pb-2 bg-white/50 backdrop-blur-md cursor-pointer"
+          onClick={onClose}
+          aria-hidden="true"
+          aria-hidden="true"
+        >
+          <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
+        </div>
 
-          {/* Sheet */}
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%", transition: SHEET_EXIT }}
-            transition={SHEET_SPRING}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Certification Roadmap"
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden flex flex-col"
+        {/* Navigation Bar */}
+        <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)] bg-white/50 backdrop-blur-md shrink-0">
+          <h2 className="text-[17px] font-semibold text-black">
+            Certification Roadmap
+          </h2>
+          <button
+            onClick={() => {
+              haptic.trigger("light");
+              onClose();
+            }}
+            aria-label="Close"
+            className="absolute right-4 w-7 h-7 bg-[#EEE] rounded-full flex items-center justify-center text-[#8E8E93] after:absolute after:-inset-2 after:content-[''] active:scale-[0.96] transition-transform duration-150"
           >
-            {/* Drag Handle */}
-            <div
-              className="flex justify-center pt-3 pb-2 bg-white/50 backdrop-blur-md cursor-pointer"
-              onClick={onClose}
-              aria-hidden="true"
-              aria-hidden="true"
-            >
-              <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
-            </div>
+            <X size={14} strokeWidth={2.5} />
+          </button>
+        </div>
 
-            {/* Navigation Bar */}
-            <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)] bg-white/50 backdrop-blur-md shrink-0">
-              <h2 className="text-[17px] font-semibold text-black">
-                Certification Roadmap
-              </h2>
-              <button
-                onClick={() => {
-                  haptic.trigger("light");
-                  onClose();
-                }}
-                aria-label="Close"
-                className="absolute right-4 w-7 h-7 bg-[#EEE] rounded-full flex items-center justify-center text-[#8E8E93] after:absolute after:-inset-2 after:content-[''] active:scale-[0.96] transition-transform duration-150"
-              >
-                <X size={14} strokeWidth={2.5} />
-              </button>
-            </div>
-
-            {/* Scrollable Content */}
-            <div className="overflow-y-auto flex-1 p-5 pb-20">
-              {sortedQuarters.map((quarter) => (
-                <div key={quarter} className="mb-6">
-                  <h3 className="text-[13px] font-semibold text-[#8E8E93] uppercase tracking-wide mb-3 sticky top-0 bg-[#F2F2F7] py-2 z-10">
-                    {quarter}
-                  </h3>
-                  <div className="grid gap-3">
-                    {groupedCerts[quarter].map((cert, idx) => (
-                      <div
-                        key={cert.id ?? `${cert.category}-${cert.name}-${idx}`}
-                        className="bg-white rounded-xl p-4 border border-black/[0.04] shadow-sm flex items-center gap-3"
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto flex-1 p-5 pb-20">
+          {sortedQuarters.map((quarter) => (
+            <div key={quarter} className="mb-6">
+              <h3 className="text-[13px] font-semibold text-[#8E8E93] uppercase tracking-wide mb-3 sticky top-0 bg-[#F2F2F7] py-2 z-10">
+                {quarter}
+              </h3>
+              <div className="grid gap-3">
+                {groupedCerts[quarter].map((cert, idx) => (
+                  <div
+                    key={cert.id ?? `${cert.category}-${cert.name}-${idx}`}
+                    className="bg-white rounded-xl p-4 border border-black/[0.04] shadow-sm flex items-center gap-3"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `${cert.color}15` }}
+                    >
+                      {/* Simple Icon placeholder if none provided */}
+                      <span
+                        className="text-lg font-bold"
+                        style={{ color: cert.color }}
                       >
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: `${cert.color}15` }}
+                        {cert.name.charAt(0)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[15px] font-semibold text-black leading-tight mb-1 truncate">
+                        {cert.name}
+                      </p>
+                      <div className="flex items-center gap-2 text-[13px]">
+                        <span
+                          className={clsx(
+                            "font-medium",
+                            cert.status === "done"
+                              ? "text-green-500"
+                              : cert.status === "progress"
+                                ? "text-orange-500"
+                                : "text-gray-400"
+                          )}
                         >
-                          {/* Simple Icon placeholder if none provided */}
-                          <span
-                            className="text-lg font-bold"
-                            style={{ color: cert.color }}
-                          >
-                            {cert.name.charAt(0)}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[15px] font-semibold text-black leading-tight mb-1 truncate">
-                            {cert.name}
-                          </p>
-                          <div className="flex items-center gap-2 text-[13px]">
-                            <span
-                              className={clsx(
-                                "font-medium",
-                                cert.status === "done"
-                                  ? "text-green-500"
-                                  : cert.status === "progress"
-                                    ? "text-orange-500"
-                                    : "text-gray-400"
-                              )}
-                            >
-                              {cert.status === "done"
-                                ? "Completed"
-                                : cert.status === "progress"
-                                  ? "In Progress"
-                                  : "Planned"}
-                            </span>
-                            <span className="text-gray-300">•</span>
-                            <span className="text-gray-500">
-                              {cert.category}
-                            </span>
-                          </div>
-                        </div>
-                        {cert.status === "done" && (
-                          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 12 12"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M10 3L4.5 8.5L2 6"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </div>
-                        )}
+                          {cert.status === "done"
+                            ? "Completed"
+                            : cert.status === "progress"
+                              ? "In Progress"
+                              : "Planned"}
+                        </span>
+                        <span className="text-gray-300">•</span>
+                        <span className="text-gray-500">
+                          {cert.category}
+                        </span>
                       </div>
-                    ))}
+                    </div>
+                    {cert.status === "done" && (
+                      <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M10 3L4.5 8.5L2 6"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-
-              {/* Empty State */}
-              {sortedQuarters.length === 0 && (
-                <div className="text-center py-10 text-gray-400">
-                  <p>No certifications found.</p>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          ))}
+
+          {/* Empty State */}
+          {sortedQuarters.length === 0 && (
+            <div className="text-center py-10 text-gray-400">
+              <p>No certifications found.</p>
+            </div>
+          )}
+        </div>
+    </Sheet>
   );
 }

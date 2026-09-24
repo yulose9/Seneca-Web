@@ -13,11 +13,10 @@ import {
   EASE_OUT,
   FADE,
   LAYOUT_SPRING,
-  SHEET_EXIT,
-  SHEET_SPRING,
   TAP,
   TAP_TRANSITION,
 } from "../constants/motion";
+import Sheet from "./Sheet";
 
 // Step-to-step slide inside the sheet
 const STEP_MOTION = {
@@ -435,333 +434,315 @@ export default function AddTransactionSheet({
 
   return (
     <>
-    <AnimatePresence>
-      {isSheetOpen && (
-        <React.Fragment key="add-transaction-sheet">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={FADE}
-            onClick={() => { haptic.trigger("medium"); onClose(); }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[400]"
-          />
+    <Sheet
+      open={isSheetOpen}
+      onClose={() => { haptic.trigger("medium"); onClose(); }}
+      zIndex={400}
+      label="New transaction"
+      className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl overflow-hidden max-h-[90vh]"
+    >
+        {/* Handle */}
+        <div
+          className="flex justify-center pt-3 pb-2 cursor-pointer"
+          onClick={() => { haptic.trigger("medium"); onClose(); }}
+        >
+          <div className="w-12 h-1.5 rounded-full bg-[rgba(60,60,67,0.3)]" />
+        </div>
 
-          {/* Sheet */}
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%", transition: SHEET_EXIT }}
-            transition={SHEET_SPRING}
-            className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl z-[401] overflow-hidden"
-            style={{ maxHeight: "90vh" }}
-          >
-            {/* Handle */}
-            <div
-              className="flex justify-center pt-3 pb-2 cursor-pointer"
-              onClick={() => { haptic.trigger("medium"); onClose(); }}
-            >
-              <div className="w-12 h-1.5 rounded-full bg-[rgba(60,60,67,0.3)]" />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-4 border-b border-[rgba(60,60,67,0.12)]">
-              <div className="w-12">
-                {canGoBack() && (
-                  <motion.button
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, ease: EASE_OUT }}
-                    whileTap={TAP}
-                    onClick={handleBack}
-                    className="text-[17px] text-[#007AFF] font-medium"
-                  >
-                    Back
-                  </motion.button>
-                )}
-              </div>
-              <motion.h2
-                key={step + transactionType}
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: EASE_OUT }}
-                className="text-[17px] font-semibold text-black"
-              >
-                {getTitle()}
-              </motion.h2>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pb-4 border-b border-[rgba(60,60,67,0.12)]">
+          <div className="w-12">
+            {canGoBack() && (
               <motion.button
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, ease: EASE_OUT }}
                 whileTap={TAP}
-                transition={TAP_TRANSITION}
-                aria-label="Close"
-                onClick={() => { haptic.trigger("medium"); onClose(); }}
-                className="w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center"
+                onClick={handleBack}
+                className="text-[17px] text-[#007AFF] font-medium"
               >
-                <X size={18} className="text-[rgba(60,60,67,0.6)]" />
+                Back
               </motion.button>
-            </div>
+            )}
+          </div>
+          <motion.h2
+            key={step + transactionType}
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: EASE_OUT }}
+            className="text-[17px] font-semibold text-black"
+          >
+            {getTitle()}
+          </motion.h2>
+          <motion.button
+            whileTap={TAP}
+            transition={TAP_TRANSITION}
+            aria-label="Close"
+            onClick={() => { haptic.trigger("medium"); onClose(); }}
+            className="w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center"
+          >
+            <X size={18} className="text-[rgba(60,60,67,0.6)]" />
+          </motion.button>
+        </div>
 
-            {/* Content with animated height */}
-            <AnimatedHeight>
-              <AnimatePresence mode="wait" initial={false}>
-                {/* Step 1: Select Type */}
-                {step === "type" && (
-                  <motion.div
-                    key="type"
-                    {...STEP_MOTION}
-                    className="p-5"
-                  >
-                    <p className="text-[15px] text-[rgba(60,60,67,0.6)] mb-4">
-                      What type of transaction would you like to add?
-                    </p>
+        {/* Content with animated height */}
+        <AnimatedHeight>
+          <AnimatePresence mode="wait" initial={false}>
+            {/* Step 1: Select Type */}
+            {step === "type" && (
+              <motion.div
+                key="type"
+                {...STEP_MOTION}
+                className="p-5"
+              >
+                <p className="text-[15px] text-[rgba(60,60,67,0.6)] mb-4">
+                  What type of transaction would you like to add?
+                </p>
 
-                    <div className="bg-white rounded-xl border border-[rgba(60,60,67,0.12)] overflow-hidden">
-                      <SelectionRow
-                        icon="💰"
-                        label="Add to Savings"
-                        sublabel="Deposit to Maya Bank or GCash"
-                        onClick={() => handleTypeSelect("savings")}
-                      />
-                      <SelectionRow
-                        icon="📈"
-                        label="Add to Investment"
-                        sublabel="Deposit to Trading212 or other"
-                        onClick={() => handleTypeSelect("investment")}
-                      />
-                      <SelectionRow
-                        icon="💸"
-                        label="Pay Liability"
-                        sublabel="Make a payment towards a debt"
-                        color="text-[#FF3B30]"
-                        onClick={() => handleTypeSelect("liability")}
-                      />
-                    </div>
-                  </motion.div>
-                )}
+                <div className="bg-white rounded-xl border border-[rgba(60,60,67,0.12)] overflow-hidden">
+                  <SelectionRow
+                    icon="💰"
+                    label="Add to Savings"
+                    sublabel="Deposit to Maya Bank or GCash"
+                    onClick={() => handleTypeSelect("savings")}
+                  />
+                  <SelectionRow
+                    icon="📈"
+                    label="Add to Investment"
+                    sublabel="Deposit to Trading212 or other"
+                    onClick={() => handleTypeSelect("investment")}
+                  />
+                  <SelectionRow
+                    icon="💸"
+                    label="Pay Liability"
+                    sublabel="Make a payment towards a debt"
+                    color="text-[#FF3B30]"
+                    onClick={() => handleTypeSelect("liability")}
+                  />
+                </div>
+              </motion.div>
+            )}
 
-                {/* Step 2: Select Account */}
-                {step === "account" && (
-                  <motion.div
-                    key="account"
-                    {...STEP_MOTION}
-                    className="p-5"
-                  >
-                    <p className="text-[15px] text-[rgba(60,60,67,0.6)] mb-4">
-                      {transactionType === "liability"
-                        ? "Select which liability to pay:"
-                        : "Select account to add funds:"}
-                    </p>
+            {/* Step 2: Select Account */}
+            {step === "account" && (
+              <motion.div
+                key="account"
+                {...STEP_MOTION}
+                className="p-5"
+              >
+                <p className="text-[15px] text-[rgba(60,60,67,0.6)] mb-4">
+                  {transactionType === "liability"
+                    ? "Select which liability to pay:"
+                    : "Select account to add funds:"}
+                </p>
 
-                    <div className="bg-white rounded-xl border border-[rgba(60,60,67,0.12)] overflow-hidden">
-                      {getAccountsForType().map((account) => (
-                        <SelectionRow
-                          key={account.id}
-                          icon={account.icon}
-                          label={account.name}
-                          sublabel={
-                            transactionType === "liability"
-                              ? `Outstanding: ₱${account.amount.toLocaleString()}`
-                              : account.platform
-                          }
-                          isSelected={selectedAccount?.id === account.id}
-                          onClick={() => handleAccountSelect(account)}
-                          color={
-                            transactionType === "liability"
-                              ? "text-[#FF3B30]"
-                              : "text-black"
-                          }
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Step 3: Enter Amount */}
-                {step === "amount" && (
-                  <motion.div
-                    key="amount"
-                    {...STEP_MOTION}
-                    className="flex flex-col"
-                  >
-                    {/* Amount Display */}
-                    <div className="text-center py-5 px-5">
-                      <p className="text-[13px] text-[rgba(60,60,67,0.6)] mb-1 uppercase tracking-wide">
-                        {transactionType === "liability"
-                          ? "Payment Amount"
-                          : "Deposit Amount"}
-                      </p>
-                      <div className="flex items-center justify-center">
-                        <RollingNumber
-                          value={parseFloat(amount) || 0}
-                          displayValue={amount || "0"}
-                          prefix={transactionType === "liability" ? "-" : "+"}
-                          className={clsx(
-                            "text-[42px] font-bold tabular-nums select-none",
-                            transactionType === "liability"
-                              ? "text-[#FF3B30]"
-                              : "text-[#34C759]",
-                          )}
-                        />
-                      </div>
-                      {transactionType === "liability" && selectedAccount && (
-                        <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-1 tabular-nums">
-                          Remaining: ₱
-                          {Math.max(
-                            0,
-                            selectedAccount.amount - (parseFloat(amount) || 0),
-                          ).toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Location & Note */}
-                    <div className="px-5 space-y-2 mb-2">
-                      <button
-                        type="button"
-                        onClick={getLocation}
-                        className="w-full text-left flex items-center gap-2 px-4 py-2.5 bg-[rgba(120,120,128,0.08)] rounded-xl cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
-                      >
-                        {isGettingLocation ? (
-                          <Loader2
-                            size={14}
-                            className="text-[#007AFF] animate-spin"
-                          />
-                        ) : (
-                          <MapPin size={14} className="text-[#007AFF]" />
-                        )}
-                        <span className="text-[14px] text-[rgba(60,60,67,0.6)]">
-                          {isGettingLocation
-                            ? "Getting location..."
-                            : locationName || "Tap to add location (Optional)"}
-                        </span>
-                      </button>
-
-                      <input
-                        type="text"
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        placeholder="Add a note (optional)"
-                        className="w-full px-4 py-2.5 bg-[rgba(120,120,128,0.08)] rounded-xl text-[14px] text-black placeholder:text-[rgba(60,60,67,0.3)] outline-none focus:ring-2 focus:ring-[#007AFF]/30"
-                      />
-                    </div>
-
-                    <div className="px-5 mb-2">
-                      <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 no-scrollbar">
-                        <motion.button
-                          whileTap={TAP}
-                          transition={TAP_TRANSITION}
-                          onClick={handlePaste}
-                          className="shrink-0 h-9 px-4 rounded-full bg-[rgba(118,118,128,0.12)] text-[14px] font-semibold text-black/80 flex items-center justify-center border border-[rgba(0,0,0,0.02)]"
-                        >
-                          Paste
-                        </motion.button>
-                        {[5, 10, 50, 100, 1000, 5000].map((val) => (
-                          <motion.button
-                            key={val}
-                            whileTap={TAP}
-                            transition={TAP_TRANSITION}
-                            onClick={() => handleQuickAdd(val)}
-                            className="shrink-0 h-9 px-4 rounded-full bg-[rgba(120,120,128,0.08)] text-[14px] font-semibold text-black/80 flex items-center justify-center border border-[rgba(0,0,0,0.02)]"
-                          >
-                            +{val.toLocaleString()}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Number Pad */}
-                    <NumberPad
-                      value={amount}
-                      onChange={setAmount}
-                      onClear={handleClearAmount}
+                <div className="bg-white rounded-xl border border-[rgba(60,60,67,0.12)] overflow-hidden">
+                  {getAccountsForType().map((account) => (
+                    <SelectionRow
+                      key={account.id}
+                      icon={account.icon}
+                      label={account.name}
+                      sublabel={
+                        transactionType === "liability"
+                          ? `Outstanding: ₱${account.amount.toLocaleString()}`
+                          : account.platform
+                      }
+                      isSelected={selectedAccount?.id === account.id}
+                      onClick={() => handleAccountSelect(account)}
+                      color={
+                        transactionType === "liability"
+                          ? "text-[#FF3B30]"
+                          : "text-black"
+                      }
                     />
+                  ))}
+                </div>
+              </motion.div>
+            )}
 
-                    {/* Submit Button */}
-                    <div className="px-5 pb-8 pt-2">
+            {/* Step 3: Enter Amount */}
+            {step === "amount" && (
+              <motion.div
+                key="amount"
+                {...STEP_MOTION}
+                className="flex flex-col"
+              >
+                {/* Amount Display */}
+                <div className="text-center py-5 px-5">
+                  <p className="text-[13px] text-[rgba(60,60,67,0.6)] mb-1 uppercase tracking-wide">
+                    {transactionType === "liability"
+                      ? "Payment Amount"
+                      : "Deposit Amount"}
+                  </p>
+                  <div className="flex items-center justify-center">
+                    <RollingNumber
+                      value={parseFloat(amount) || 0}
+                      displayValue={amount || "0"}
+                      prefix={transactionType === "liability" ? "-" : "+"}
+                      className={clsx(
+                        "text-[42px] font-bold tabular-nums select-none",
+                        transactionType === "liability"
+                          ? "text-[#FF3B30]"
+                          : "text-[#34C759]",
+                      )}
+                    />
+                  </div>
+                  {transactionType === "liability" && selectedAccount && (
+                    <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-1 tabular-nums">
+                      Remaining: ₱
+                      {Math.max(
+                        0,
+                        selectedAccount.amount - (parseFloat(amount) || 0),
+                      ).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                {/* Location & Note */}
+                <div className="px-5 space-y-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={getLocation}
+                    className="w-full text-left flex items-center gap-2 px-4 py-2.5 bg-[rgba(120,120,128,0.08)] rounded-xl cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
+                  >
+                    {isGettingLocation ? (
+                      <Loader2
+                        size={14}
+                        className="text-[#007AFF] animate-spin"
+                      />
+                    ) : (
+                      <MapPin size={14} className="text-[#007AFF]" />
+                    )}
+                    <span className="text-[14px] text-[rgba(60,60,67,0.6)]">
+                      {isGettingLocation
+                        ? "Getting location..."
+                        : locationName || "Tap to add location (Optional)"}
+                    </span>
+                  </button>
+
+                  <input
+                    type="text"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Add a note (optional)"
+                    className="w-full px-4 py-2.5 bg-[rgba(120,120,128,0.08)] rounded-xl text-[14px] text-black placeholder:text-[rgba(60,60,67,0.3)] outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+                  />
+                </div>
+
+                <div className="px-5 mb-2">
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 no-scrollbar">
+                    <motion.button
+                      whileTap={TAP}
+                      transition={TAP_TRANSITION}
+                      onClick={handlePaste}
+                      className="shrink-0 h-9 px-4 rounded-full bg-[rgba(118,118,128,0.12)] text-[14px] font-semibold text-black/80 flex items-center justify-center border border-[rgba(0,0,0,0.02)]"
+                    >
+                      Paste
+                    </motion.button>
+                    {[5, 10, 50, 100, 1000, 5000].map((val) => (
                       <motion.button
+                        key={val}
                         whileTap={TAP}
                         transition={TAP_TRANSITION}
-                        onClick={handleSubmit}
-                        disabled={!amount || parseFloat(amount) <= 0}
-                        className={clsx(
-                          "w-full py-3.5 rounded-xl font-semibold text-[16px] transition-[background-color,color,box-shadow] duration-200 ease-out",
-                          amount && parseFloat(amount) > 0
-                            ? transactionType === "liability"
-                              ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
-                              : "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
-                            : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
-                        )}
+                        onClick={() => handleQuickAdd(val)}
+                        className="shrink-0 h-9 px-4 rounded-full bg-[rgba(120,120,128,0.08)] text-[14px] font-semibold text-black/80 flex items-center justify-center border border-[rgba(0,0,0,0.02)]"
                       >
-                        {transactionType === "liability"
-                          ? "Confirm Payment"
-                          : "Add Funds"}
+                        +{val.toLocaleString()}
                       </motion.button>
-                    </div>
-                  </motion.div>
-                )}
+                    ))}
+                  </div>
+                </div>
 
-                {step === "success" && (
-                  <motion.div
-                    key="success"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.3, ease: EASE_OUT }}
-                    className="p-10 flex flex-col items-center justify-center text-center min-h-[300px]"
+                {/* Number Pad */}
+                <NumberPad
+                  value={amount}
+                  onChange={setAmount}
+                  onClear={handleClearAmount}
+                />
+
+                {/* Submit Button */}
+                <div className="px-5 pb-8 pt-2">
+                  <motion.button
+                    whileTap={TAP}
+                    transition={TAP_TRANSITION}
+                    onClick={handleSubmit}
+                    disabled={!amount || parseFloat(amount) <= 0}
+                    className={clsx(
+                      "w-full py-3.5 rounded-xl font-semibold text-[16px] transition-[background-color,color,box-shadow] duration-200 ease-out",
+                      amount && parseFloat(amount) > 0
+                        ? transactionType === "liability"
+                          ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
+                          : "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
+                        : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
+                    )}
                   >
-                    <div className="w-24 h-24 bg-[#34C759] rounded-full flex items-center justify-center mb-6 shadow-xl shadow-[#34C759]/40">
-                      <motion.svg
-                        width="40"
-                        height="40"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{
-                          duration: 0.4,
-                          ease: EASE_OUT,
-                          delay: 0.1,
-                        }}
-                      >
-                        <motion.path d="M20 6L9 17l-5-5" />
-                      </motion.svg>
-                    </div>
-                    <motion.h3
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.15 }}
-                      className="text-[24px] font-bold text-black mb-2 tracking-tight"
-                    >
-                      {transactionType === "liability"
-                        ? "Payment Verified"
-                        : "Funds Added"}
-                    </motion.h3>
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.2 }}
-                      className="text-[17px] text-[rgba(60,60,67,0.6)] font-medium"
-                    >
-                      {transactionType === "liability"
-                        ? `Successfully paid ₱${parseFloat(
-                            amount,
-                          ).toLocaleString()}`
-                        : `Successfully deposited ₱${parseFloat(
-                            amount,
-                          ).toLocaleString()}`}
-                    </motion.p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </AnimatedHeight>
-          </motion.div>
-        </React.Fragment>
-      )}
-    </AnimatePresence>
+                    {transactionType === "liability"
+                      ? "Confirm Payment"
+                      : "Add Funds"}
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === "success" && (
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3, ease: EASE_OUT }}
+                className="p-10 flex flex-col items-center justify-center text-center min-h-[300px]"
+              >
+                <div className="w-24 h-24 bg-[#34C759] rounded-full flex items-center justify-center mb-6 shadow-xl shadow-[#34C759]/40">
+                  <motion.svg
+                    width="40"
+                    height="40"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{
+                      duration: 0.4,
+                      ease: EASE_OUT,
+                      delay: 0.1,
+                    }}
+                  >
+                    <motion.path d="M20 6L9 17l-5-5" />
+                  </motion.svg>
+                </div>
+                <motion.h3
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.15 }}
+                  className="text-[24px] font-bold text-black mb-2 tracking-tight"
+                >
+                  {transactionType === "liability"
+                    ? "Payment Verified"
+                    : "Funds Added"}
+                </motion.h3>
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.2 }}
+                  className="text-[17px] text-[rgba(60,60,67,0.6)] font-medium"
+                >
+                  {transactionType === "liability"
+                    ? `Successfully paid ₱${parseFloat(
+                        amount,
+                      ).toLocaleString()}`
+                    : `Successfully deposited ₱${parseFloat(
+                        amount,
+                      ).toLocaleString()}`}
+                </motion.p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </AnimatedHeight>
+    </Sheet>
 
     {/* Custom Paste Modal — own AnimatePresence so its exit actually plays */}
     <AnimatePresence>

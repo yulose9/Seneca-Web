@@ -1,11 +1,12 @@
 import clsx from "clsx";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Check, Trash2, X } from "lucide-react";
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebHaptics } from "web-haptics/react";
-import { FADE, SHEET_EXIT, SHEET_SPRING, TAP } from "../constants/motion";
-import { getPhDateKey } from "../utils/timeUtils";
+import { TAP } from "../constants/motion";
+import { calendarDateKey, getPhDateKey, parseDateKey } from "../utils/timeUtils";
+import Sheet from "./Sheet";
 
 // iOS 18 System Colors
 const SystemColors = {
@@ -202,15 +203,9 @@ const HABIT_INFO = {
   },
 };
 
-// Date keys follow the app-wide Manila calendar (see utils/timeUtils) so the
-// sheet's "today" matches ProtocolContext. Keys are built from local date
-// parts — toISOString() would shift them to UTC.
-const toDateKey = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const parseDateKey = (key) => {
-  const [y, m, d] = key.split("-").map(Number);
-  return new Date(y, m - 1, d);
-};
+// Calendar grid works on Manila day keys: parseDateKey/calendarDateKey convert
+// between a key and a local-midnight Date (for getDay()/getDate()), and today
+// comes from getPhDateKey() so it matches ProtocolContext.
 
 // Streak Calendar Component - Habit Pixel / GitHub Style Heatmap
 const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
@@ -237,7 +232,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
     for (let i = daysToGenerate - 1; i >= 0; i--) {
       const d = new Date(endOfWeek);
       d.setDate(d.getDate() - i);
-      dates.push(toDateKey(d));
+      dates.push(calendarDateKey(d));
     }
 
     // Generate Month Labels
@@ -271,12 +266,12 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
     let streak = 0;
     let d = parseDateKey(getPhDateKey());
     // If today not done, check if yesterday was done (allow missed entry for today to not break streak yet)
-    if (!history[toDateKey(d)]) {
+    if (!history[calendarDateKey(d)]) {
       d.setDate(d.getDate() - 1);
     }
 
     while (true) {
-      const dateStr = toDateKey(d);
+      const dateStr = calendarDateKey(d);
       if (history[dateStr]) {
         streak++;
         d.setDate(d.getDate() - 1);
@@ -516,334 +511,318 @@ export default function HabitDetailSheet({
   };
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={FADE}
-            onClick={onClose}
-            className="ios-sheet-backdrop"
-          />
+    <Sheet
+      open={visible}
+      onClose={onClose}
+      zIndex={200}
+      label={habit?.title}
+      backdropClassName="ios-sheet-backdrop"
+      className="ios-sheet"
+    >
+        {/* Handle */}
+        <div
+          className="flex justify-center pt-3 pb-2 cursor-pointer"
+          onClick={onClose}
+        >
+          <div className="ios-sheet-handle w-12 h-1.5" />
+        </div>
 
-          {/* Sheet */}
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%", transition: SHEET_EXIT }}
-            transition={SHEET_SPRING}
-            className="ios-sheet"
-          >
-            {/* Handle */}
-            <div
-              className="flex justify-center pt-3 pb-2 cursor-pointer"
-              onClick={onClose}
-            >
-              <div className="ios-sheet-handle w-12 h-1.5" />
-            </div>
-
-            <div className="ios-sheet-content max-h-[85vh] overflow-y-auto px-6 pb-12 pt-2">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <h2 className="text-[32px] font-bold text-black tracking-tight leading-tight">
-                      {habit.title}
-                    </h2>
-                    {isCustomTask && (
-                      <motion.button
-                        whileTap={TAP}
-                        onClick={handleDeleteTask}
-                        className="w-10 h-10 rounded-full bg-[#FF3B30]/10 flex items-center justify-center ml-3"
-                      >
-                        <Trash2 size={18} className="text-[#FF3B30]" />
-                      </motion.button>
-                    )}
-                  </div>
-                  {isCustomTask && habitInfo.subtitle && (
-                    <p className="text-[16px] font-medium text-[rgba(60,60,67,0.6)] mt-1.5">
-                      {habitInfo.subtitle}
-                    </p>
-                  )}
-                  {habitInfo.quote && (
-                    <p
-                      className="text-[16px] italic font-medium mt-1.5"
-                      style={{ color: habitInfo.color }}
-                    >
-                      "{habitInfo.quote}"
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Custom Task Badge */}
-              {isCustomTask && (
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="px-3 py-1.5 bg-[#007AFF]/10 text-[#007AFF] text-[12px] font-bold rounded-full uppercase tracking-wide">
-                    Custom Task
-                  </span>
-                </div>
-              )}
-
-              {/* Description */}
-              <p className="text-[18px] leading-relaxed text-[rgba(60,60,67,0.85)] mb-8">
-                {habitInfo.description}
-              </p>
-
-              {/* Items / Pills */}
-              {habitInfo.items && (
-                <div className="flex flex-wrap gap-2.5 mb-8">
-                  {habitInfo.items.map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center bg-[rgba(120,120,128,0.08)] px-4 py-2.5 rounded-2xl"
-                    >
-                      <span className="mr-2 text-lg">{item.icon}</span>
-                      <span className="text-[15px] font-semibold text-black">
-                        {item.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Routine */}
-              {habitInfo.routine && (
-                <div className="mb-8">
-                  <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
-                    Daily Routine
-                  </p>
-                  <div className="flex justify-around">
-                    {habitInfo.routine.map((step, i) => (
-                      <div key={i} className="flex flex-col items-center">
-                        <div
-                          className="w-14 h-14 rounded-full flex items-center justify-center mb-2.5"
-                          style={{ backgroundColor: `${habitInfo.color}15` }}
-                        >
-                          <span className="text-2xl">{step.icon}</span>
-                        </div>
-                        <span className="text-[14px] font-medium text-[rgba(60,60,67,0.6)]">
-                          {step.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Stack */}
-              {habitInfo.stack && (
-                <div className="mb-8">
-                  <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
-                    Essentials Stack
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {habitInfo.stack.map((item, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center bg-[rgba(120,120,128,0.08)] p-3.5 rounded-2xl"
-                      >
-                        <span className="text-2xl mr-3.5">{item.icon}</span>
-                        <span className="text-[15px] font-semibold text-black">
-                          {item.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Goals / Tags */}
-              {(habitInfo.goals || habitInfo.tags) && (
-                <div className="flex flex-wrap gap-2.5 mb-8">
-                  {(habitInfo.goals || habitInfo.tags).map((tag, i) => (
-                    <div
-                      key={i}
-                      className="px-3.5 py-2 rounded-full"
-                      style={{ backgroundColor: `${habitInfo.color}15` }}
-                    >
-                      <span
-                        className="text-[14px] font-semibold"
-                        style={{ color: habitInfo.color }}
-                      >
-                        #{tag}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* News Sources */}
-              {habitInfo.sources && (
-                <div className="mb-8">
-                  <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
-                    Sources
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {habitInfo.sources.map((source, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-2.5 px-4 py-3 rounded-2xl"
-                        style={{ backgroundColor: `${habitInfo.color}10` }}
-                      >
-                        <span className="text-xl">{source.icon}</span>
-                        <span
-                          className="text-[15px] font-semibold"
-                          style={{ color: habitInfo.color }}
-                        >
-                          {source.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Certifications */}
-              {habitInfo.certifications && (
-                <div className="mb-8">
-                  <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
-                    Certification Roadmap
-                  </p>
-                  <div className="bg-[rgba(120,120,128,0.04)] rounded-2xl overflow-hidden">
-                    {habitInfo.certifications.map((cert, i) => (
-                      <div
-                        key={i}
-                        className={clsx(
-                          "flex items-center p-4",
-                          i !== habitInfo.certifications.length - 1 &&
-                            "border-b border-[rgba(60,60,67,0.08)]",
-                        )}
-                      >
-                        <div
-                          className={clsx(
-                            "w-10 h-10 rounded-full flex items-center justify-center mr-4",
-                            cert.status === "done"
-                              ? "bg-[#D1FAE5]"
-                              : cert.status === "progress"
-                                ? "bg-[#FEF3C7]"
-                                : "bg-[#F3F4F6]",
-                          )}
-                        >
-                          <span className="text-lg">
-                            {cert.status === "done"
-                              ? "✅"
-                              : cert.status === "progress"
-                                ? "⏳"
-                                : "🔒"}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-[16px] font-semibold text-black">
-                            {cert.label}
-                          </p>
-                          <p className="text-[13px] text-[rgba(60,60,67,0.6)] mt-0.5">
-                            {cert.date}
-                          </p>
-                        </div>
-                        <span className="text-2xl">{cert.icon}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Journal Action */}
-              {habitInfo.action === "journal" && (
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    haptic.trigger("selection");
-                    onClose();
-                    navigate("/journal");
-                  }}
-                  className="w-full py-4 rounded-2xl border-2 border-dashed mb-8 font-bold text-[16px] flex items-center justify-center"
-                  style={{
-                    borderColor: habitInfo.color,
-                    color: habitInfo.color,
-                  }}
-                >
-                  Go to Journal 📖
-                </motion.button>
-              )}
-
-              {/* Divider */}
-              <div className="h-px bg-[rgba(60,60,67,0.12)] mb-8" />
-
-              {/* Streak Calendar */}
-              <StreakCalendar
-                habit={habit}
-                color={habitInfo.color}
-                history={history}
-                haptic={haptic}
-                onToggle={(date) =>
-                  onToggleHistory(habit.phaseId, habit.id, date)
-                }
-              />
-
-              {/* Action Button */}
-              <div className="mt-8 pb-8">
-                {!isTodayDone && habitInfo.type === "choice" ? (
-                  <div className="flex gap-4">
-                    {habitInfo.choices.map((choice, index) => (
-                      <motion.button
-                        key={index}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          haptic.trigger("selection");
-                          handleActionButton();
-                        }}
-                        className="flex-1 h-[56px] rounded-2xl border-2 flex items-center justify-center text-[18px] font-bold"
-                        style={{
-                          backgroundColor: `${choice.color}12`,
-                          borderColor: choice.color,
-                          color: choice.color,
-                        }}
-                      >
-                        {choice.label}
-                      </motion.button>
-                    ))}
-                  </div>
-                ) : (
+        <div className="ios-sheet-content max-h-[85vh] overflow-y-auto px-6 pb-12 pt-2">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex-1">
+              <div className="flex items-start justify-between">
+                <h2 className="text-[32px] font-bold text-black tracking-tight leading-tight">
+                  {habit.title}
+                </h2>
+                {isCustomTask && (
                   <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      haptic.trigger("medium");
-                      handleActionButton();
-                    }}
-                    className={clsx(
-                      "w-full h-[56px] rounded-2xl flex items-center justify-center text-[18px] font-bold transition-[background-color,color,box-shadow] duration-200",
-                      isTodayDone
-                        ? "text-white shadow-xl bg-opacity-100"
-                        : "bg-[rgba(120,120,128,0.12)] text-black",
-                    )}
-                    style={{
-                      backgroundColor: isTodayDone
-                        ? habitInfo.color
-                        : undefined,
-                      boxShadow: isTodayDone
-                        ? `0 6px 20px ${habitInfo.color}50`
-                        : undefined,
-                    }}
+                    whileTap={TAP}
+                    onClick={handleDeleteTask}
+                    className="w-10 h-10 rounded-full bg-[#FF3B30]/10 flex items-center justify-center ml-3"
                   >
-                    {isTodayDone ? (
-                      <>
-                        <Check size={22} strokeWidth={3} className="mr-2.5" />
-                        Completed
-                      </>
-                    ) : (
-                      "Complete Task"
-                    )}
+                    <Trash2 size={18} className="text-[#FF3B30]" />
                   </motion.button>
                 )}
               </div>
+              {isCustomTask && habitInfo.subtitle && (
+                <p className="text-[16px] font-medium text-[rgba(60,60,67,0.6)] mt-1.5">
+                  {habitInfo.subtitle}
+                </p>
+              )}
+              {habitInfo.quote && (
+                <p
+                  className="text-[16px] italic font-medium mt-1.5"
+                  style={{ color: habitInfo.color }}
+                >
+                  "{habitInfo.quote}"
+                </p>
+              )}
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          </div>
+
+          {/* Custom Task Badge */}
+          {isCustomTask && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="px-3 py-1.5 bg-[#007AFF]/10 text-[#007AFF] text-[12px] font-bold rounded-full uppercase tracking-wide">
+                Custom Task
+              </span>
+            </div>
+          )}
+
+          {/* Description */}
+          <p className="text-[18px] leading-relaxed text-[rgba(60,60,67,0.85)] mb-8">
+            {habitInfo.description}
+          </p>
+
+          {/* Items / Pills */}
+          {habitInfo.items && (
+            <div className="flex flex-wrap gap-2.5 mb-8">
+              {habitInfo.items.map((item, i) => (
+                <div
+                  key={i}
+                  className="flex items-center bg-[rgba(120,120,128,0.08)] px-4 py-2.5 rounded-2xl"
+                >
+                  <span className="mr-2 text-lg">{item.icon}</span>
+                  <span className="text-[15px] font-semibold text-black">
+                    {item.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Routine */}
+          {habitInfo.routine && (
+            <div className="mb-8">
+              <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
+                Daily Routine
+              </p>
+              <div className="flex justify-around">
+                {habitInfo.routine.map((step, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center mb-2.5"
+                      style={{ backgroundColor: `${habitInfo.color}15` }}
+                    >
+                      <span className="text-2xl">{step.icon}</span>
+                    </div>
+                    <span className="text-[14px] font-medium text-[rgba(60,60,67,0.6)]">
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Stack */}
+          {habitInfo.stack && (
+            <div className="mb-8">
+              <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
+                Essentials Stack
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {habitInfo.stack.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center bg-[rgba(120,120,128,0.08)] p-3.5 rounded-2xl"
+                  >
+                    <span className="text-2xl mr-3.5">{item.icon}</span>
+                    <span className="text-[15px] font-semibold text-black">
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Goals / Tags */}
+          {(habitInfo.goals || habitInfo.tags) && (
+            <div className="flex flex-wrap gap-2.5 mb-8">
+              {(habitInfo.goals || habitInfo.tags).map((tag, i) => (
+                <div
+                  key={i}
+                  className="px-3.5 py-2 rounded-full"
+                  style={{ backgroundColor: `${habitInfo.color}15` }}
+                >
+                  <span
+                    className="text-[14px] font-semibold"
+                    style={{ color: habitInfo.color }}
+                  >
+                    #{tag}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* News Sources */}
+          {habitInfo.sources && (
+            <div className="mb-8">
+              <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
+                Sources
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {habitInfo.sources.map((source, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 px-4 py-3 rounded-2xl"
+                    style={{ backgroundColor: `${habitInfo.color}10` }}
+                  >
+                    <span className="text-xl">{source.icon}</span>
+                    <span
+                      className="text-[15px] font-semibold"
+                      style={{ color: habitInfo.color }}
+                    >
+                      {source.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Certifications */}
+          {habitInfo.certifications && (
+            <div className="mb-8">
+              <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
+                Certification Roadmap
+              </p>
+              <div className="bg-[rgba(120,120,128,0.04)] rounded-2xl overflow-hidden">
+                {habitInfo.certifications.map((cert, i) => (
+                  <div
+                    key={i}
+                    className={clsx(
+                      "flex items-center p-4",
+                      i !== habitInfo.certifications.length - 1 &&
+                        "border-b border-[rgba(60,60,67,0.08)]",
+                    )}
+                  >
+                    <div
+                      className={clsx(
+                        "w-10 h-10 rounded-full flex items-center justify-center mr-4",
+                        cert.status === "done"
+                          ? "bg-[#D1FAE5]"
+                          : cert.status === "progress"
+                            ? "bg-[#FEF3C7]"
+                            : "bg-[#F3F4F6]",
+                      )}
+                    >
+                      <span className="text-lg">
+                        {cert.status === "done"
+                          ? "✅"
+                          : cert.status === "progress"
+                            ? "⏳"
+                            : "🔒"}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[16px] font-semibold text-black">
+                        {cert.label}
+                      </p>
+                      <p className="text-[13px] text-[rgba(60,60,67,0.6)] mt-0.5">
+                        {cert.date}
+                      </p>
+                    </div>
+                    <span className="text-2xl">{cert.icon}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Journal Action */}
+          {habitInfo.action === "journal" && (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                haptic.trigger("selection");
+                onClose();
+                navigate("/journal");
+              }}
+              className="w-full py-4 rounded-2xl border-2 border-dashed mb-8 font-bold text-[16px] flex items-center justify-center"
+              style={{
+                borderColor: habitInfo.color,
+                color: habitInfo.color,
+              }}
+            >
+              Go to Journal 📖
+            </motion.button>
+          )}
+
+          {/* Divider */}
+          <div className="h-px bg-[rgba(60,60,67,0.12)] mb-8" />
+
+          {/* Streak Calendar */}
+          <StreakCalendar
+            habit={habit}
+            color={habitInfo.color}
+            history={history}
+            haptic={haptic}
+            onToggle={(date) =>
+              onToggleHistory(habit.phaseId, habit.id, date)
+            }
+          />
+
+          {/* Action Button */}
+          <div className="mt-8 pb-8">
+            {!isTodayDone && habitInfo.type === "choice" ? (
+              <div className="flex gap-4">
+                {habitInfo.choices.map((choice, index) => (
+                  <motion.button
+                    key={index}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      haptic.trigger("selection");
+                      handleActionButton();
+                    }}
+                    className="flex-1 h-[56px] rounded-2xl border-2 flex items-center justify-center text-[18px] font-bold"
+                    style={{
+                      backgroundColor: `${choice.color}12`,
+                      borderColor: choice.color,
+                      color: choice.color,
+                    }}
+                  >
+                    {choice.label}
+                  </motion.button>
+                ))}
+              </div>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  haptic.trigger("medium");
+                  handleActionButton();
+                }}
+                className={clsx(
+                  "w-full h-[56px] rounded-2xl flex items-center justify-center text-[18px] font-bold transition-[background-color,color,box-shadow] duration-200",
+                  isTodayDone
+                    ? "text-white shadow-xl bg-opacity-100"
+                    : "bg-[rgba(120,120,128,0.12)] text-black",
+                )}
+                style={{
+                  backgroundColor: isTodayDone
+                    ? habitInfo.color
+                    : undefined,
+                  boxShadow: isTodayDone
+                    ? `0 6px 20px ${habitInfo.color}50`
+                    : undefined,
+                }}
+              >
+                {isTodayDone ? (
+                  <>
+                    <Check size={22} strokeWidth={3} className="mr-2.5" />
+                    Completed
+                  </>
+                ) : (
+                  "Complete Task"
+                )}
+              </motion.button>
+            )}
+          </div>
+        </div>
+    </Sheet>
   );
 }

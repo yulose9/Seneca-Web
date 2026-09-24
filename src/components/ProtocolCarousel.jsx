@@ -19,6 +19,7 @@ import {
   TAP_TRANSITION,
 } from "../constants/motion";
 import { useStudyGoal } from "../context/StudyGoalContext";
+import { getPhDateKey } from "../utils/timeUtils";
 import LiquidGlass from "./LiquidGlass";
 
 // Feedback messages for yes/no actions per card type
@@ -35,12 +36,6 @@ const FEEDBACK = {
     yes: { icon: "💪", text: "Beast mode!", sub: "Keep crushing it." },
     no: { icon: "🚶", text: "Rest day.", sub: "Go again tomorrow." },
   },
-};
-
-// Helper to get today's date as YYYY-MM-DD in local tz
-const getTodayStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
 // Swipe threshold in pixels â€” a quick flick past SWIPE_VELOCITY also counts
@@ -96,7 +91,8 @@ export default function ProtocolCarousel() {
 
   const { goalHistory, getGoalStreak, toggleGoalDate } = usePersonalGoals();
 
-  const today = getTodayStr();
+  // Manila day — history keys are Manila keys (device-local drifted abroad)
+  const today = getPhDateKey();
   const studiedToday = getStudiedToday();
   const noPornToday = goalHistory?.noPorn?.[today];
   const exerciseToday = goalHistory?.exercise?.[today];
@@ -245,7 +241,7 @@ export default function ProtocolCarousel() {
   return (
     <div className="relative">
       {/* Card Container */}
-      <LiquidGlass layout transition={LAYOUT_SPRING} className="overflow-hidden rounded-2xl border border-[rgba(0,0,0,0.04)] shadow-sm">
+      <LiquidGlass as={motion.div} layout transition={LAYOUT_SPRING} className="overflow-hidden rounded-2xl border border-[rgba(0,0,0,0.04)] shadow-sm">
         {/* Header with dots + arrows */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           {/* Left arrow */}

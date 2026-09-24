@@ -15,6 +15,9 @@ export default function LiquidGlass({
 }) {
   // Generate a unique ID that we will cycle occasionally if needed (Safari fix)
   const baseId = useId().replace(/:/g, "");
+  // `layout` is a framer-motion prop — only forward it to motion components,
+  // never to a plain DOM tag (React would print it as an invalid attribute).
+  const layoutProp = typeof Component === "string" ? {} : { layout: layout || undefined };
   const [filterId, setFilterId] = useState(`liquid-glass-${baseId}`);
 
   // Workaround for Safari caching SVG filters:
@@ -32,7 +35,7 @@ export default function LiquidGlass({
 
   if (!enabled) {
     return (
-      <Component className={className} layout={layout || undefined} style={style} {...props}>
+      <Component className={className} {...layoutProp} style={style} {...props}>
         {children}
       </Component>
     );
@@ -68,7 +71,7 @@ export default function LiquidGlass({
       </svg>
       <Component
         className={className}
-        layout={layout || undefined}
+        {...layoutProp}
         style={{
           backgroundColor: tint,
           backdropFilter: `blur(${blur}px) url(#${filterId})`,

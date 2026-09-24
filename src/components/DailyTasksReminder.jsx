@@ -12,12 +12,7 @@ import {
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
-
-// Helper to get today's date as YYYY-MM-DD in local tz
-const getTodayStr = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+import { getPhDateKey } from "../utils/timeUtils";
 
 export default function DailyTasksReminder({ isOpen, onClose }) {
   const {
@@ -31,7 +26,8 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
   const { activeStudyGoal, getStudiedToday } = useStudyGoal();
   const { goalHistory } = usePersonalGoals();
 
-  const today = getTodayStr();
+  // Manila day — history keys are Manila keys (device-local drifted abroad)
+  const today = getPhDateKey();
   const studiedToday = getStudiedToday();
   const noPornToday = goalHistory?.noPorn?.[today];
   const exerciseToday = goalHistory?.exercise?.[today];

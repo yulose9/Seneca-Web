@@ -33,6 +33,7 @@ import {
 import { refineEntryWithGemini } from "../services/journalAI";
 import RichTextEditor from "./RichTextEditor";
 import { htmlToText, sanitizeHtml } from "../utils/safeHtml";
+import { toDateKey } from "../utils/timeUtils";
 
 // TipTap extensions for HTML generation
 const extensions = [
@@ -216,7 +217,8 @@ export default function JournalDetailSheet({
   useEffect(() => {
     if (entry) {
       setTitle(entry.title || "");
-      setDate(entry.isoDate || new Date().toISOString().split("T")[0]);
+      // Manila day — toISOString() is the UTC day ("yesterday" before 08:00 PHT)
+      setDate(entry.isoDate || toDateKey());
       setTime(to24Hour(entry.time) || ""); // Convert 12-hour to 24-hour for input
       // Content can be JSON object or legacy HTML string
       setContent(entry.content || null);
