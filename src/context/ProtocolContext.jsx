@@ -1278,12 +1278,18 @@ export function ProtocolProvider({ children }) {
           shutdown: [],
         };
       }
-      // Update Custom Tasks State
-      setCustomTasks(remoteCustomTasks);
+      // Update Custom Tasks State — keep identity when unchanged. A fresh object
+      // here re-fires the write effect, which would re-upload this tab's (possibly
+      // stale) taskHistory and erase the other device's check.
+      setCustomTasks((prev) =>
+        JSON.stringify(prev) === JSON.stringify(remoteCustomTasks) ? prev : remoteCustomTasks,
+      );
 
       // 2. Task Order
       const remoteOrder = remoteProtocol.task_order || {};
-      setTaskOrder(remoteOrder);
+      setTaskOrder((prev) =>
+        JSON.stringify(prev) === JSON.stringify(remoteOrder) ? prev : remoteOrder,
+      );
 
       // 3. REBUILD PHASE TASKS (The Source of Truth)
       setPhaseTasks((prev) => {

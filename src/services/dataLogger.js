@@ -157,17 +157,30 @@ const attach = (entry) => {
     entry.ref = doc(db, "users", user.uid, ...entry.segments);
     entry.unsub = onSnapshot(
       entry.ref,
+      // REQUIRED: when the server merely confirms what's already cached, the SDK
+      // only emits a metadata change (fromCache true → false). Without this flag
+      // that event never arrives, the doc never hydrates, and every write stays
+      // held forever on any device that has visited before. Metadata events are
+      // not billed as reads.
+      { includeMetadataChanges: true },
       (snap) => {
         const { fromCache, hasPendingWrites } = snap.metadata;
-        entry.exists = snap.exists();
-        entry.data = entry.exists ? snap.data() : null;
+        const exists = snap.exists();
+        const data = exists ? snap.data() : null;
+        const dataChanged =
+          !entry.meta || exists !== entry.exists || !isEqual(data, entry.data);
+        entry.exists = exists;
+        entry.data = data;
         // Server answers are authoritative. Cached data only counts when offline
         // (otherwise a days-old cache could clobber newer server data).
         const authoritative =
-          !fromCache || (entry.exists && typeof navigator !== "undefined" && !navigator.onLine);
-        entry.meta = { fromCache, hasPendingWrites, exists: entry.exists, authoritative };
+          !fromCache || (exists && typeof navigator !== "undefined" && !navigator.onLine);
+        const wasHydrated = entry.hydrated;
+        entry.meta = { fromCache, hasPendingWrites, exists, authoritative };
         if (authoritative) markHydrated(entry);
-        notify(entry, entry.meta);
+        // Skip pure metadata churn (pending-write acks etc.) unless it's the
+        // moment the doc became authoritative — consumers care about that.
+        if (dataChanged || (entry.hydrated && !wasHydrated)) notify(entry, entry.meta);
       },
       (error) => {
         console.error(`🔥 Sync listener error (${entry.key}):`, error);
