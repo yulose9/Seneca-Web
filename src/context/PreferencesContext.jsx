@@ -1,10 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import {
-    getUserPreferences,
     updateUserPreferences,
     saveDraft as saveDraftToService,
     clearDraft as clearDraftFromService,
-    saveUIPreference as saveUIToService,
     updateSession,
     updateAnalytics,
     subscribeToPreferences,
@@ -76,13 +74,11 @@ export function PreferencesProvider({ children }) {
             const updates = { ...uiBatchRef.current };
             uiBatchRef.current = {}; // Clear batch
 
-            const updated = await updateUserPreferences("ui", {
-                ...preferences?.ui,
-                ...updates,
-            });
+            // Only send the keys that changed — never re-upload stale UI prefs
+            const updated = await updateUserPreferences("ui", updates);
             setPreferences(updated);
         }, 2000);
-    }, [preferences]);
+    }, []);
 
     // Helper functions
     const saveDraft = useCallback(async (draftType, content) => {
@@ -123,8 +119,7 @@ export function PreferencesProvider({ children }) {
     const incrementAnalytic = useCallback(async (key) => {
         if (!preferences) return;
         const updated = await updateAnalytics({
-            ...preferences.analytics,
-            [key]: (preferences.analytics[key] || 0) + 1,
+            [key]: (preferences.analytics?.[key] || 0) + 1,
         });
         setPreferences(updated);
     }, [preferences]);

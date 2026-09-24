@@ -1,49 +1,43 @@
 /**
  * Data Logger Service (Firestore Edition)
  *
- * Structures all app data as Daily Log Documents in Firestore.
+ * Paths:
+ *   users/{uid}/daily_logs/{YYYY-MM-DD}   — per-day snapshot (PH timezone)
+ *   users/{uid}/global_data/{docName}      — data that persists across days
  *
- * Path: users/{uid}/daily_logs/{date}
- *
- * Key improvements (Prompt 1 — Firebase Skill):
- * - Auth-aware: waits for auth before attaching listeners / refs
- * - In-memory cache: prevents duplicate Firestore reads in the same session
- * - Debounced writes: updateTodayLog batches writes at 1.5s to save budget
- * - Race-condition fix: subscribeToGlobalData uses isMounted guard
- * - Empty doc bootstrap: listener creates the doc if it doesn't exist yet
+ * Sync engine guarantees (cost + correctness):
+ * - ONE shared onSnapshot per document, reference-counted and kept warm for a
+ *   few minutes after the last consumer leaves. Tab switches never re-bill reads,
+ *   and getGlobalData()/getLogForDate() are served from that listener instead of
+ *   a separate getDoc (previously every mount paid for 2 reads per doc).
+ * - Writes are coalesced per document and HELD until the document has been
+ *   hydrated from the server. A fresh device can never overwrite cloud data with
+ *   its empty defaults, regardless of how slow the network is (replaces the old
+ *   3-second "mount protection" timers, which also silently dropped real edits
+ *   made in the first 3 seconds).
+ * - Writes are diffed against the last known server state; unchanged fields are
+ *   never re-sent, so cloud→state→effect echo loops cost zero writes.
+ * - Writes use `mergeFields`, so a field is REPLACED rather than deep-merged.
+ *   Deleting a key from a map (e.g. clearing a habit day) now actually syncs;
+ *   with `merge: true` removed keys lived forever in Firestore and came back.
+ * - Unsynced local edits are tracked as "dirty" in localStorage so consumers can
+ *   decide between adopting cloud data (clean) or merging local on top (dirty).
+ * - Pending writes are flushed on pagehide / tab hide and before logout.
  */
 
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { getPhDateKey } from "../utils/timeUtils";
 
 const STORAGE_KEY = "seneca_daily_logs";
+const DIRTY_KEY = "seneca_sync_dirty";
 
-// ─── In-memory cache (avoids re-reading same doc in one session) ─────────────
-const _logCache = new Map(); // dateKey → logData
-const _globalCache = new Map(); // collection → globalData
-
-// Clear caches on logout to prevent stale state across sessions (Fix for Prompt 6)
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    _logCache.clear();
-    _globalCache.clear();
-    // Also clear pending writes to prevent writing to a logged out user's path
-    _pendingWrites.clear();
-    _pendingGlobalWrites.clear();
-    
-    // Wipe local storage caches so another user logging in on the same device 
-    // doesn't see the previous user's data before Firestore syncs
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem("seneca_global_data");
-    localStorage.removeItem("journal_entries");
-  }
-});
-
-// ─── Pending write queue per section (for debouncing writes) ─────────────────
-const _pendingWrites = new Map(); // dateKey → { timer, sections }
-const _pendingGlobalWrites = new Map(); // collection → { timer, updates }
+const LISTENER_LINGER_MS = 5 * 60 * 1000; // keep idle listeners warm for 5 min
+const DAILY_WRITE_DELAY = 1500;
+const GLOBAL_WRITE_DELAY = 600;
+const POST_HYDRATION_DELAY = 2500; // > slowest consumer debounce (1.5s): consumers re-queue merged state first
+const HYDRATION_TIMEOUT_MS = 8000;
 
 /**
  * Get today's date as YYYY-MM-DD pinned to Philippine Standard Time (UTC+8).
@@ -51,29 +45,306 @@ const _pendingGlobalWrites = new Map(); // collection → { timer, updates }
  */
 export const getTodayKey = () => getPhDateKey();
 
-// ─── FIRESTORE HELPERS ────────────────────────────────────────────────────────
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
 
-/**
- * Wait for auth to resolve (handles the race between app init and auth state).
- * Returns the current user or null.
- */
-const waitForAuth = () => {
-  return new Promise((resolve) => {
-    // If auth is already resolved, don't wait
-    if (auth.currentUser !== undefined) {
-      // currentUser is null before SDK resolves — onAuthStateChanged fires once immediately
+const waitForAuth = async () => {
+  await auth.authStateReady();
+  return auth.currentUser;
+};
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+
+// Key-order independent: Firestore returns map keys sorted, local state keeps
+// insertion order — a plain JSON compare would see phantom changes.
+const stableStringify = (value) =>
+  JSON.stringify(value ?? null, (_key, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.keys(v).sort().reduce((acc, k) => ((acc[k] = v[k]), acc), {})
+      : v,
+  );
+const isEqual = (a, b) => stableStringify(a) === stableStringify(b);
+
+const readDirty = () => {
+  try {
+    return JSON.parse(localStorage.getItem(DIRTY_KEY) || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const setDirty = (key, dirty) => {
+  const all = readDirty();
+  if (dirty) all[key] = Date.now();
+  else delete all[key];
+  try {
+    localStorage.setItem(DIRTY_KEY, JSON.stringify(all));
+  } catch {
+    /* storage full — dirty tracking is best-effort */
+  }
+};
+
+// ─── SHARED DOCUMENT ENGINE ───────────────────────────────────────────────────
+//
+// entry = {
+//   key, segments, uid, ref,
+//   subscribers: Set<fn(data, meta)>,
+//   unsub, lingerTimer,
+//   data, exists, meta,            // latest snapshot (includes our pending writes)
+//   hydrated, waiters: [],         // resolved on first authoritative snapshot
+//   pending: { fieldPath: value }, // coalesced, not yet sent
+//   timer, inflight,
+// }
+
+const _docs = new Map();
+
+const docKey = (segments) => segments.join("/");
+
+const getEntry = (segments) => {
+  const key = docKey(segments);
+  let entry = _docs.get(key);
+  if (!entry) {
+    entry = {
+      key,
+      segments,
+      uid: null,
+      ref: null,
+      subscribers: new Set(),
+      unsub: null,
+      lingerTimer: null,
+      attaching: null,
+      data: null,
+      exists: false,
+      meta: null,
+      hydrated: false,
+      waiters: [],
+      pending: null,
+      timer: null,
+      inflight: 0,
+    };
+    _docs.set(key, entry);
+  }
+  return entry;
+};
+
+const notify = (entry, meta) => {
+  entry.subscribers.forEach((cb) => {
+    try {
+      cb(entry.data, meta);
+    } catch (error) {
+      console.error(`[sync] subscriber error (${entry.key}):`, error);
     }
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe();
-      resolve(user);
-    });
   });
 };
 
-const getLogRef = (uid, dateKey) => {
-  if (!uid) return null;
-  return doc(db, "users", uid, "daily_logs", dateKey);
+const markHydrated = (entry) => {
+  if (entry.hydrated) return;
+  entry.hydrated = true;
+  entry.waiters.splice(0).forEach((resolve) => resolve(entry));
+  // Writes made before hydration were held. Give consumers a beat to merge the
+  // cloud state (which replaces the held payload with a merged one) first.
+  if (entry.pending) scheduleFlush(entry, POST_HYDRATION_DELAY);
 };
+
+const attach = (entry) => {
+  if (entry.unsub || entry.attaching) return entry.attaching;
+  entry.attaching = waitForAuth().then((user) => {
+    entry.attaching = null;
+    if (!user) return;
+    // Nobody is interested any more (unsubscribed before auth resolved)
+    if (entry.subscribers.size === 0 && entry.waiters.length === 0 && !entry.pending) return;
+
+    entry.uid = user.uid;
+    entry.ref = doc(db, "users", user.uid, ...entry.segments);
+    entry.unsub = onSnapshot(
+      entry.ref,
+      (snap) => {
+        const { fromCache, hasPendingWrites } = snap.metadata;
+        entry.exists = snap.exists();
+        entry.data = entry.exists ? snap.data() : null;
+        // Server answers are authoritative. Cached data only counts when offline
+        // (otherwise a days-old cache could clobber newer server data).
+        const authoritative =
+          !fromCache || (entry.exists && typeof navigator !== "undefined" && !navigator.onLine);
+        entry.meta = { fromCache, hasPendingWrites, exists: entry.exists, authoritative };
+        if (authoritative) markHydrated(entry);
+        notify(entry, entry.meta);
+      },
+      (error) => {
+        console.error(`🔥 Sync listener error (${entry.key}):`, error);
+      },
+    );
+  });
+  return entry.attaching;
+};
+
+const detach = (entry) => {
+  clearTimeout(entry.lingerTimer);
+  entry.lingerTimer = null;
+  if (entry.unsub) entry.unsub();
+  entry.unsub = null;
+  // Keep last data around (harmless), but require re-hydration on reattach.
+  entry.hydrated = false;
+};
+
+const scheduleLinger = (entry) => {
+  clearTimeout(entry.lingerTimer);
+  entry.lingerTimer = setTimeout(() => {
+    if (entry.subscribers.size === 0 && !entry.pending && entry.inflight === 0) {
+      detach(entry);
+    }
+  }, LISTENER_LINGER_MS);
+};
+
+const subscribeEntry = (segments, callback) => {
+  const entry = getEntry(segments);
+  entry.subscribers.add(callback);
+  clearTimeout(entry.lingerTimer);
+  attach(entry);
+  // Late subscribers get the current value immediately (no extra read)
+  if (entry.meta) {
+    const meta = entry.meta;
+    queueMicrotask(() => {
+      if (entry.subscribers.has(callback)) callback(entry.data, meta);
+    });
+  }
+  return () => {
+    entry.subscribers.delete(callback);
+    if (entry.subscribers.size === 0) scheduleLinger(entry);
+  };
+};
+
+const whenHydrated = (segments, timeoutMs = HYDRATION_TIMEOUT_MS) => {
+  const entry = getEntry(segments);
+  if (entry.hydrated && entry.unsub) return Promise.resolve(entry);
+  attach(entry);
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      const i = entry.waiters.indexOf(done);
+      if (i !== -1) entry.waiters.splice(i, 1);
+      if (entry.subscribers.size === 0) scheduleLinger(entry);
+      resolve(entry); // not hydrated — callers must treat data as provisional
+    }, timeoutMs);
+    function done(e) {
+      clearTimeout(timer);
+      if (e.subscribers.size === 0) scheduleLinger(e);
+      resolve(e);
+    }
+    entry.waiters.push(done);
+  });
+};
+
+const getAtPath = (obj, path) =>
+  path.split(".").reduce((acc, k) => (acc == null ? undefined : acc[k]), obj);
+
+/** Queue field writes. `fields` keys are Firestore field paths ("a" or "a.b"). */
+const queueWrite = (segments, fields, delay) => {
+  const entry = getEntry(segments);
+  entry.pending = { ...(entry.pending || {}), ...fields };
+  setDirty(entry.key, true);
+  clearTimeout(entry.lingerTimer);
+  attach(entry);
+  if (entry.hydrated) scheduleFlush(entry, delay);
+  // else: held until markHydrated() schedules it
+};
+
+const scheduleFlush = (entry, delay) => {
+  clearTimeout(entry.timer);
+  entry.timer = setTimeout(() => flush(entry), delay);
+};
+
+const flush = async (entry) => {
+  clearTimeout(entry.timer);
+  entry.timer = null;
+  if (!entry.pending || !entry.hydrated || !entry.ref) return;
+  // Never write into a different user's tree
+  if (auth.currentUser?.uid !== entry.uid) {
+    entry.pending = null;
+    return;
+  }
+
+  const pending = entry.pending;
+  entry.pending = null;
+
+  // Diff against last known server state — skip unchanged fields entirely
+  const changed = {};
+  Object.entries(pending).forEach(([path, value]) => {
+    if (!isEqual(getAtPath(entry.data, path), value)) changed[path] = value;
+  });
+  const paths = Object.keys(changed);
+
+  if (paths.length === 0) {
+    if (entry.inflight === 0) setDirty(entry.key, false);
+    // Consumers may have skipped a remote snapshot while this was pending
+    notify(entry, { ...entry.meta, replay: true });
+    return;
+  }
+
+  // Build a nested payload for the dotted paths + bookkeeping fields
+  const payload = {};
+  paths.forEach((path) => {
+    const parts = path.split(".");
+    let node = payload;
+    parts.slice(0, -1).forEach((p) => {
+      node[p] = node[p] || {};
+      node = node[p];
+    });
+    node[parts[parts.length - 1]] = changed[path];
+  });
+  const extras = entry.segments[0] === "daily_logs"
+    ? { timestamp_updated: new Date().toISOString(), date: entry.segments[1], user_id: entry.uid }
+    : { lastUpdated: new Date().toISOString() };
+  Object.assign(payload, extras);
+
+  entry.inflight += 1;
+  try {
+    await setDoc(entry.ref, payload, { mergeFields: [...paths, ...Object.keys(extras)] });
+  } catch (error) {
+    console.error(`Firestore write failed (${entry.key}):`, error);
+    // Re-queue (newer local values win) so the next change or flush retries
+    entry.pending = { ...changed, ...(entry.pending || {}) };
+  } finally {
+    entry.inflight -= 1;
+  }
+
+  if (!entry.pending && entry.inflight === 0) {
+    setDirty(entry.key, false);
+    // Re-deliver the settled state: consumers that ignored remote snapshots
+    // while they had local edits in flight now converge.
+    notify(entry, { ...entry.meta, hasPendingWrites: false, replay: true });
+    if (entry.subscribers.size === 0) scheduleLinger(entry);
+  }
+};
+
+/** Flush every pending write now (pagehide, logout). */
+export const flushPendingWrites = () =>
+  Promise.all([..._docs.values()].filter((e) => e.pending).map((e) => flush(e)));
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => flushPendingWrites());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushPendingWrites();
+  });
+}
+
+// Tear everything down on logout so nothing leaks across accounts
+onAuthStateChanged(auth, (user) => {
+  if (user) return;
+  _docs.forEach((entry) => {
+    clearTimeout(entry.timer);
+    detach(entry);
+  });
+  _docs.clear();
+
+  // Wipe local caches so another user on the same device doesn't see the
+  // previous user's data before Firestore syncs
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem("seneca_global_data");
+  localStorage.removeItem("journal_entries");
+  localStorage.removeItem(DIRTY_KEY);
+});
+
+const logSegments = (dateKey) => ["daily_logs", dateKey];
+const globalSegments = (docName) => ["global_data", docName];
 
 // Create an empty log structure
 export const createEmptyLog = (dateKey) => ({
@@ -123,142 +394,65 @@ export const createEmptyLog = (dateKey) => ({
   },
 });
 
-// ─── MAIN API ─────────────────────────────────────────────────────────────────
+// ─── DAILY LOG API ────────────────────────────────────────────────────────────
 
 /**
- * Get log for a specific date.
- * Checks in-memory cache first, then Firestore (which may itself hit local IndexedDB cache).
+ * Get log for a specific date. Served from the shared listener (one read, reused
+ * by subscribeToTodayLog). Falls back to localStorage when offline / timed out.
  */
 export const getLogForDate = async (dateKey = getTodayKey()) => {
-  // 1. In-memory cache hit
-  if (_logCache.has(dateKey)) {
-    return _logCache.get(dateKey);
-  }
-
-  // 2. Wait for auth to be ready
   const user = await waitForAuth();
-  const ref = getLogRef(user?.uid, dateKey);
+  if (!user) return getLocalLog(dateKey);
 
-  if (!ref) {
-    return getLocalLog(dateKey);
+  const entry = await whenHydrated(logSegments(dateKey));
+  if (entry.exists && entry.data) {
+    return { ...createEmptyLog(dateKey), ...entry.data };
   }
-
-  try {
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      const log = { ...createEmptyLog(dateKey), ...snap.data() };
-      _logCache.set(dateKey, log);
-      return log;
-    } else {
-      const newLog = createEmptyLog(dateKey);
-      _logCache.set(dateKey, newLog);
-      return newLog;
-    }
-  } catch (error) {
-    console.error("Error fetching log:", error);
-    return getLocalLog(dateKey);
-  }
+  return entry.hydrated ? createEmptyLog(dateKey) : getLocalLog(dateKey);
 };
 
 /**
  * Update a section of today's log.
- * - Writes to localStorage immediately (instant UI + offline safety)
- * - Debounces Firestore write at 1.5s (batches rapid changes, saves budget)
+ * - localStorage immediately (instant UI + offline safety)
+ * - Firestore: coalesced (1.5s), held until hydrated, only changed sub-fields sent.
+ *   Each `section.key` is replaced as a unit, so e.g. a removed custom task
+ *   disappears from the cloud copy too.
  */
 export const updateTodayLog = (section, data) => {
   const dateKey = getTodayKey();
-
-  // 1. Update localStorage instantly
   const localLog = updateLocalLog(dateKey, section, data);
 
-  // 2. Update in-memory cache
-  if (_logCache.has(dateKey)) {
-    const cached = _logCache.get(dateKey);
-    _logCache.set(dateKey, {
-      ...cached,
-      [section]: { ...cached[section], ...data },
-      timestamp_updated: new Date().toISOString(),
-    });
-  }
+  const fields = {};
+  Object.entries(data).forEach(([k, v]) => {
+    fields[`${section}.${k}`] = v === undefined ? null : v;
+  });
+  queueWrite(logSegments(dateKey), fields, DAILY_WRITE_DELAY);
 
-  // 3. Debounced Firestore write (1.5s — batches rapid user interactions)
-  const pending = _pendingWrites.get(dateKey) || { timer: null, sections: {} };
-  clearTimeout(pending.timer);
-  pending.sections[section] = { ...(pending.sections[section] || {}), ...data };
-
-  pending.timer = setTimeout(async () => {
-    const user = await waitForAuth();
-    const ref = getLogRef(user?.uid, dateKey);
-    if (!ref) return;
-
-    const sectionsToWrite = _pendingWrites.get(dateKey)?.sections || {};
-    _pendingWrites.delete(dateKey);
-
-    try {
-      await setDoc(
-        ref,
-        {
-          ...sectionsToWrite,
-          timestamp_updated: new Date().toISOString(),
-          date: dateKey,
-          user_id: user.uid,
-        },
-        { merge: true },
-      );
-    } catch (error) {
-      console.error("Firestore debounced write failed:", error);
-    }
-  }, 1500);
-
-  _pendingWrites.set(dateKey, pending);
   return localLog;
 };
 
-/**
- * Subscribe to a specific date's log changes (Real-time listener).
- * - Waits for auth before attaching.
- * - Bootstraps the doc if it doesn't exist yet (so future listeners fire).
- * - Updates in-memory cache and localStorage on every cloud update.
- * - dateKey defaults to today (PH timezone) but can be overridden for day-rollover reconnects.
- */
-export const subscribeToTodayLog = (callback, dateKey = getTodayKey()) => {
-  let unsubscribeFirestore = () => {};
-  let isMounted = true;
-
-  waitForAuth().then((user) => {
-    if (!isMounted) return;
-    const ref = getLogRef(user?.uid, dateKey);
-    if (!ref) return;
-
-    unsubscribeFirestore = onSnapshot(
-      ref,
-      (snap) => {
-        if (!isMounted) return;
-        if (snap.exists()) {
-          const data = snap.data();
-          const fullLog = { ...createEmptyLog(dateKey), ...data };
-          // Update both caches
-          _logCache.set(dateKey, fullLog);
-          saveToLocal(dateKey, fullLog);
-          callback(fullLog, { fromCache: snap.metadata.fromCache, exists: true });
-        } else {
-          // Doc doesn't exist yet — return empty log (will be created on first write)
-          const emptyLog = createEmptyLog(dateKey);
-          _logCache.set(dateKey, emptyLog);
-          callback(emptyLog, { fromCache: snap.metadata.fromCache, exists: false });
-        }
-      },
-      (error) => {
-        console.error("🔥 Real-time sync error:", error);
-      },
-    );
-  });
-
-  return () => {
-    isMounted = false;
-    unsubscribeFirestore();
-  };
+/** True while this device has unsent changes for today's log. */
+export const hasPendingTodayWrite = (dateKey = getTodayKey()) => {
+  const entry = _docs.get(docKey(logSegments(dateKey)));
+  return !!entry && (!!entry.pending || entry.inflight > 0);
 };
+
+/**
+ * Subscribe to a date's log (real-time). dateKey defaults to today (PH) but can
+ * be passed explicitly so day-rollover reconnects to the new document.
+ * callback(log, { fromCache, hasPendingWrites, exists, authoritative, replay? })
+ */
+export const subscribeToTodayLog = (callback, dateKey = getTodayKey()) =>
+  subscribeEntry(logSegments(dateKey), (data, meta) => {
+    if (meta.exists && data) {
+      const fullLog = { ...createEmptyLog(dateKey), ...data };
+      saveToLocal(dateKey, fullLog);
+      callback(fullLog, meta);
+    } else {
+      // Doc doesn't exist yet — it is created on the first write
+      callback(createEmptyLog(dateKey), meta);
+    }
+  });
 
 // ─── LOCAL STORAGE HELPERS (Backing Store) ────────────────────────────────────
 
@@ -267,7 +461,7 @@ const getLocalLog = (dateKey) => {
     const allData = localStorage.getItem(STORAGE_KEY);
     const logs = allData ? JSON.parse(allData) : {};
     return logs[dateKey] || createEmptyLog(dateKey);
-  } catch (e) {
+  } catch {
     return createEmptyLog(dateKey);
   }
 };
@@ -319,7 +513,7 @@ export const getLastNDaysLogs = (days = 30) => {
       return date >= cutoffDate;
     })
     .sort(([a], [b]) => new Date(b) - new Date(a))
-    .map(([_, log]) => log);
+    .map(([, log]) => log);
 };
 
 export const exportForLLM = (days = 30) => {
@@ -499,76 +693,59 @@ const calculateStreaks = (logs) => {
 // 🌐 GLOBAL DATA SYNC (For data that persists across days, like Wealth)
 // =============================================================================
 
-const getGlobalDataRef = async (docName) => {
+/**
+ * Read a global doc. Resolves from the shared listener once the server has
+ * answered (so a following subscribeToGlobalData costs no extra read).
+ * Falls back to the local copy if the server can't be reached in time.
+ */
+export const getGlobalData = async (docName) => {
   const user = await waitForAuth();
   if (!user) return null;
-  return doc(db, "users", user.uid, "global_data", docName);
-};
-
-export const getGlobalData = async (docName) => {
-  const ref = await getGlobalDataRef(docName);
-  if (!ref) return null;
-
-  try {
-    const snap = await getDoc(ref);
-    return snap.exists() ? snap.data() : null;
-  } catch (error) {
-    console.error(`Failed to get global data (${docName}):`, error);
-    return null;
-  }
-};
-
-export const updateGlobalData = async (docName, data) => {
-  const ref = await getGlobalDataRef(docName);
-  if (!ref) return;
-
-  try {
-    await setDoc(
-      ref,
-      {
-        ...data,
-        lastUpdated: new Date().toISOString(),
-      },
-      { merge: true },
-    );
-  } catch (error) {
-    console.error(`Failed to update global data (${docName}):`, error);
-  }
+  const entry = await whenHydrated(globalSegments(docName));
+  if (entry.hydrated) return entry.exists ? entry.data : null;
+  return entry.data ?? loadGlobalDataLocal(docName);
 };
 
 /**
- * Subscribe to global data changes.
- * - Uses isMounted guard to prevent state updates after component unmount.
- * - Waits for auth before attaching the listener (fixes auth race condition).
+ * Write top-level fields of a global doc. Each field in `data` is replaced as a
+ * unit (deletions inside maps/arrays propagate). Coalesced, diffed, and held
+ * until the doc is hydrated — safe to call on every state change.
  */
-export const subscribeToGlobalData = (docName, callback) => {
-  let unsubscribeFirestore = () => {};
-  let isMounted = true;
-
-  getGlobalDataRef(docName).then((ref) => {
-    if (!isMounted || !ref) return;
-
-    unsubscribeFirestore = onSnapshot(
-      ref,
-      (snap) => {
-        if (!isMounted) return;
-        if (snap.exists()) {
-          const data = snap.data();
-          saveGlobalDataLocal(docName, data);
-          callback(data);
-        }
-      },
-      (error) => {
-        console.error(`🔥 Global data sync error (${docName}):`, error);
-      },
-    );
+export const updateGlobalData = (docName, data) => {
+  const fields = {};
+  Object.entries(data).forEach(([k, v]) => {
+    fields[k] = v === undefined ? null : v;
   });
-
-  return () => {
-    isMounted = false;
-    unsubscribeFirestore();
-  };
+  queueWrite(globalSegments(docName), fields, GLOBAL_WRITE_DELAY);
+  return Promise.resolve();
 };
+
+/** True if this device has local edits for `docName` the server hasn't confirmed. */
+export const isGlobalDirty = (docName) => !!readDirty()[docKey(globalSegments(docName))];
+
+/** True while this device has unsent / unacknowledged changes for `docName`. */
+export const hasPendingGlobalWrite = (docName) => {
+  const entry = _docs.get(docKey(globalSegments(docName)));
+  return !!entry && (!!entry.pending || entry.inflight > 0);
+};
+
+/** True once the doc has been confirmed against the server this session. */
+export const isGlobalHydrated = (docName) => {
+  const entry = _docs.get(docKey(globalSegments(docName)));
+  return !!entry && entry.hydrated;
+};
+
+/**
+ * Subscribe to a global doc (one shared listener per doc, app-wide).
+ * callback(data, meta) — only called when the doc exists (legacy contract).
+ * meta: { fromCache, hasPendingWrites, exists, authoritative, replay? }
+ */
+export const subscribeToGlobalData = (docName, callback) =>
+  subscribeEntry(globalSegments(docName), (data, meta) => {
+    if (!meta.exists || !data) return;
+    saveGlobalDataLocal(docName, data);
+    callback(data, meta);
+  });
 
 // Helper: Local storage for global data
 const GLOBAL_STORAGE_KEY = "seneca_global_data";
@@ -591,7 +768,7 @@ export const loadGlobalDataLocal = (docName) => {
       localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}",
     );
     return allData[docName] || null;
-  } catch (e) {
+  } catch {
     return null;
   }
 };

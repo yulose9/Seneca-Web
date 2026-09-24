@@ -1,11 +1,11 @@
 /**
  * Authentication Service (Local Adapter)
- * 
+ *
  * Manages user login and security.
- * 
+ *
  * MODE: LOCAL (Unlocked)
  * Currently allows any access since we haven't connected Firebase yet.
- * 
+ *
  * TO MIGRATE TO CLOUD:
  * 1. Import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
  * 2. Implement the actual 'loginWithGoogle' function.
@@ -13,13 +13,14 @@
 
 import { auth } from './firebase'; // Will be null in local mode
 import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
+import { flushPendingWrites } from './dataLogger';
 
 const ALLOWED_EMAIL = import.meta.env.VITE_ALLOWED_EMAIL;
 
 export const authService = {
     // Get current user (simple wrapper)
     get currentUser() {
-        // STRICT MODE: No local fallback anymore. 
+        // STRICT MODE: No local fallback anymore.
         // If not logged in via Firebase, you are locked out.
         return auth?.currentUser;
     },
@@ -57,6 +58,8 @@ export const authService = {
      */
     async logout() {
         if (auth) {
+            // Don't lose debounced edits made just before logging out
+            await flushPendingWrites().catch(() => {});
             await signOut(auth);
         }
         window.location.reload();

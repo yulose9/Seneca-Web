@@ -9,7 +9,7 @@
  */
 
 import { db, auth } from './firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const PREFS_STORAGE_KEY = "seneca_user_preferences";
 const LAST_SYNC_KEY = "seneca_prefs_last_sync";
@@ -93,56 +93,44 @@ const getPrefsRef = () => {
 // --- MAIN API ---
 
 /**
- * Get user preferences (from Cloud first, fallback to local)
+ * Get user preferences.
+ * Served from localStorage; cloud data arrives through subscribeToPreferences
+ * (one listener instead of a getDoc + listener = 2 billed reads per app open).
  */
-export const getUserPreferences = async () => {
-    const ref = getPrefsRef();
-
-    // Try cloud first
-    if (ref) {
-        try {
-            const snap = await getDoc(ref);
-            if (snap.exists()) {
-                const cloudPrefs = snap.data();
-                // Merge with defaults to ensure all fields exist
-                const fullPrefs = { ...createDefaultPreferences(), ...cloudPrefs };
-                // Update local cache
-                saveToLocal(fullPrefs);
-                return fullPrefs;
-            }
-        } catch (error) {
-            console.error("Error fetching preferences:", error);
-        }
-    }
-
-    // Fallback to local
-    return getLocalPreferences();
-};
+export const getUserPreferences = async () => getLocalPreferences();
 
 /**
- * Update user preferences (writes to both local and cloud)
+ * Update user preferences (writes to both local and cloud).
+ * Only the touched `section.key` fields are sent (mergeFields), so a device with
+ * stale or default local prefs can never overwrite the rest of the cloud doc.
  */
 export const updateUserPreferences = async (section, data) => {
     const currentPrefs = getLocalPreferences();
 
-    // Deep merge the section
     currentPrefs[section] = {
         ...currentPrefs[section],
         ...data,
     };
-    currentPrefs.metadata.lastUpdated = new Date().toISOString();
+    currentPrefs.metadata = {
+        ...currentPrefs.metadata,
+        lastUpdated: new Date().toISOString(),
+    };
 
     // Save to local immediately
     saveToLocal(currentPrefs);
 
-    // Save to cloud (background)
+    // Save to cloud (background) — only the fields that were passed in
     const ref = getPrefsRef();
-    if (ref) {
-        try {
-            await setDoc(ref, currentPrefs, { merge: true });
-        } catch (error) {
+    const keys = Object.keys(data);
+    if (ref && keys.length > 0) {
+        const payload = {
+            [section]: Object.fromEntries(keys.map((k) => [k, data[k] === undefined ? null : data[k]])),
+            metadata: { lastUpdated: currentPrefs.metadata.lastUpdated },
+        };
+        const fields = [...keys.map((k) => `${section}.${k}`), "metadata.lastUpdated"];
+        setDoc(ref, payload, { mergeFields: fields }).catch((error) => {
             console.error("Failed to sync preferences to cloud:", error);
-        }
+        });
     }
 
     return currentPrefs;
@@ -176,15 +164,17 @@ export const clearDraft = async (draftType) => {
 
 // Save UI preference
 export const saveUIPreference = async (key, value) => {
-    const currentUI = getLocalPreferences().ui;
-    return updateUserPreferences("ui", {
-        ...currentUI,
-        [key]: value,
-    });
+    return updateUserPreferences("ui", { [key]: value });
 };
 
 // Update session info
+// Throttled: at most one cloud write per 30 minutes, whatever the caller does
+const SESSION_WRITE_INTERVAL = 30 * 60 * 1000;
+const LAST_SESSION_WRITE_KEY = "seneca_prefs_last_session_write";
 export const updateSession = async (data) => {
+    const last = Number(localStorage.getItem(LAST_SESSION_WRITE_KEY) || 0);
+    if (Date.now() - last < SESSION_WRITE_INTERVAL) return getLocalPreferences();
+    localStorage.setItem(LAST_SESSION_WRITE_KEY, String(Date.now()));
     return updateUserPreferences("session", data);
 };
 

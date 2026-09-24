@@ -28,7 +28,20 @@ import { ReminderSettingsSheet } from "../components/ObligationReminder";
 import PageTransition from "../components/PageTransition";
 import TransactionDetailSheet from "../components/TransactionDetailSheet";
 import {
+  DIALOG_SPRING,
+  EASE_OUT,
+  FADE,
+  ICON_ENTER,
+  ICON_SPRING,
+  ICON_VISIBLE,
+  LAYOUT_SPRING,
+  TAP,
+  TAP_TRANSITION,
+} from "../constants/motion";
+import {
   getGlobalData,
+  hasPendingGlobalWrite,
+  isGlobalDirty,
   saveGlobalDataLocal,
   subscribeToGlobalData,
   updateGlobalData,
@@ -178,8 +191,8 @@ const RollingNumber = ({ value, prefix = "", className }) => {
   useEffect(() => {
     if (value === undefined || value === null) return;
     const controls = animate(motionValue, value, {
-      duration: 0.8,
-      ease: [0.32, 0.72, 0, 1], // Custom efficient ease
+      duration: 0.6,
+      ease: EASE_OUT,
       onUpdate: (latest) => {
         if (ref.current) {
           ref.current.textContent = `${prefix}${Math.round(
@@ -191,10 +204,11 @@ const RollingNumber = ({ value, prefix = "", className }) => {
     return () => controls.stop();
   }, [value, motionValue, prefix]);
 
-  if (value === undefined || value === null) return <span>{prefix}0</span>;
+  if (value === undefined || value === null)
+    return <span className="tabular-nums">{prefix}0</span>;
 
   return (
-    <span ref={ref} className={className}>
+    <span ref={ref} className={clsx("tabular-nums", className)}>
       {prefix}
       {(value || 0).toLocaleString()}
     </span>
@@ -217,13 +231,15 @@ const ConfirmDialog = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={FADE}
           onClick={onClose}
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300]"
         />
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95, transition: FADE }}
+          transition={DIALOG_SPRING}
           className="fixed left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl overflow-hidden z-[301] max-w-sm mx-auto shadow-2xl"
         >
           <div className="p-6 text-center">
@@ -318,9 +334,10 @@ const SwipeableRow = ({
       <AnimatePresence>
         {showDelete && !isSelecting && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8, x: 20 }}
+            initial={{ opacity: 0, scale: 0.95, x: 20 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.8, x: 20 }}
+            exit={{ opacity: 0, scale: 0.95, x: 20 }}
+            transition={LAYOUT_SPRING}
             className="absolute right-2 top-2 bottom-2 z-10 flex w-[70px]"
           >
             <button
@@ -329,7 +346,8 @@ const SwipeableRow = ({
                 onSwipeDelete(item);
                 setShowDelete(false);
               }}
-              className="w-full h-full bg-[#FF3B30] text-white rounded-xl font-semibold flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+              aria-label="Delete"
+              className="w-full h-full bg-[#FF3B30] text-white rounded-xl font-semibold flex items-center justify-center shadow-sm active:scale-[0.96] transition-transform duration-150 ease-out"
             >
               <Trash2 size={20} />
             </button>
@@ -339,9 +357,9 @@ const SwipeableRow = ({
 
       <motion.div
         animate={{ x: showDelete ? -80 : 0 }}
-        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+        transition={LAYOUT_SPRING}
         className={clsx(
-          "bg-white active:bg-black/[0.02] transition-colors relative z-0",
+          "bg-white active:bg-black/[0.02] transition-colors duration-150 relative z-0",
           isSelecting && "pl-12",
         )}
         onTouchStart={handleTouchStart}
@@ -353,22 +371,33 @@ const SwipeableRow = ({
         <AnimatePresence>
           {isSelecting && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.5, x: -20 }}
+              initial={{ opacity: 0, scale: 0.9, x: -20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.5, x: -20 }}
+              exit={{ opacity: 0, scale: 0.9, x: -20 }}
+              transition={LAYOUT_SPRING}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-20"
             >
               <div
                 className={clsx(
-                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
                   isSelected
                     ? "bg-[#007AFF] border-[#007AFF]"
                     : "border-[rgba(60,60,67,0.3)] bg-transparent",
                 )}
               >
-                {isSelected && (
-                  <Check size={14} className="text-white" strokeWidth={3} />
-                )}
+                <AnimatePresence initial={false}>
+                  {isSelected && (
+                    <motion.span
+                      key="check"
+                      initial={ICON_ENTER}
+                      animate={ICON_VISIBLE}
+                      exit={ICON_ENTER}
+                      transition={ICON_SPRING}
+                    >
+                      <Check size={14} className="text-white" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           )}
@@ -395,13 +424,13 @@ const AssetRow = (props) => (
         </p>
       </div>
       <div className="text-right">
-        <p className="text-[16px] font-bold text-black">
+        <p className="text-[16px] font-bold text-black tabular-nums">
           ₱{(props.amount || 0).toLocaleString()}
         </p>
         {props.change !== undefined && (
           <p
             className={clsx(
-              "text-[13px] font-semibold",
+              "text-[13px] font-semibold tabular-nums",
               props.isPositive ? "text-[#34C759]" : "text-[#FF3B30]",
             )}
           >
@@ -447,7 +476,7 @@ const LiabilityRow = (props) => (
           ))}
         </div>
       </div>
-      <p className="text-[16px] font-bold text-[#FF3B30]">
+      <p className="text-[16px] font-bold text-[#FF3B30] tabular-nums">
         -₱{(props.amount || 0).toLocaleString()}
       </p>
     </div>
@@ -524,7 +553,8 @@ const TransactionRow = ({
       >
         <button
           onClick={() => onDelete(item.id)}
-          className="w-full h-full bg-[#FF3B30] text-white rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+          aria-label="Delete transaction"
+          className="w-full h-full bg-[#FF3B30] text-white rounded-xl flex items-center justify-center shadow-sm active:scale-[0.96] transition-transform duration-150 ease-out"
         >
           <Trash2 size={20} />
         </button>
@@ -537,7 +567,7 @@ const TransactionRow = ({
         onTouchEnd={handleTouchEnd}
         whileTap={!isSelecting && !showDelete ? { scale: 0.98 } : undefined}
         className={clsx(
-          "flex items-center p-4 bg-white border border-black/[0.04] relative transition-transform duration-200 select-none",
+          "flex items-center p-4 bg-white border border-black/[0.04] relative transition-[translate] duration-200 ease-out select-none",
           !isLast ? "border-b-0" : "",
           showDelete && "-translate-x-20",
         )}
@@ -549,19 +579,30 @@ const TransactionRow = ({
               initial={{ width: 0, opacity: 0, marginRight: 0 }}
               animate={{ width: 28, opacity: 1, marginRight: 12 }}
               exit={{ width: 0, opacity: 0, marginRight: 0 }}
+              transition={{ duration: 0.2, ease: EASE_OUT }}
               className="shrink-0 overflow-hidden"
             >
               <div
                 className={clsx(
-                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
                   isSelected
                     ? "bg-[#007AFF] border-[#007AFF]"
                     : "border-[rgba(60,60,67,0.3)]",
                 )}
               >
-                {isSelected && (
-                  <Check size={14} className="text-white" strokeWidth={3} />
-                )}
+                <AnimatePresence initial={false}>
+                  {isSelected && (
+                    <motion.span
+                      key="check"
+                      initial={ICON_ENTER}
+                      animate={ICON_VISIBLE}
+                      exit={ICON_ENTER}
+                      transition={ICON_SPRING}
+                    >
+                      <Check size={14} className="text-white" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           )}
@@ -585,7 +626,7 @@ const TransactionRow = ({
               }}
               className={
                 props.onAccountClick && !isSelecting
-                  ? "hover:underline cursor-pointer active:text-[#007AFF] transition-colors"
+                  ? "hover:underline cursor-pointer active:text-[#007AFF] transition-colors duration-150"
                   : ""
               }
             >
@@ -599,7 +640,7 @@ const TransactionRow = ({
         <div className="text-right">
           <p
             className={clsx(
-              "text-[17px] font-bold",
+              "text-[17px] font-bold tabular-nums",
               item.type === "deposit" || item.type === "payment"
                 ? "text-black"
                 : "text-[#FF3B30]",
@@ -624,24 +665,27 @@ const CategoryDropdown = ({
 }) => (
   <div className="relative z-50">
     <motion.button
-      whileTap={{ scale: 0.95 }}
+      whileTap={TAP}
+      transition={TAP_TRANSITION}
+      aria-expanded={isOpen}
       onClick={() => setIsOpen(!isOpen)}
       className="flex items-center gap-2 text-white/90 font-semibold text-[15px]"
     >
       {selected}
       <ChevronDown
         size={18}
-        className={clsx("transition-transform", isOpen && "rotate-180")}
+        className={clsx("transition-transform duration-200 ease-out", isOpen && "rotate-180")}
       />
     </motion.button>
 
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+          initial={{ opacity: 0, y: -4, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-black/[0.06] overflow-hidden min-w-[140px] z-[100]"
+          exit={{ opacity: 0, y: -4, scale: 0.95 }}
+          transition={{ duration: 0.15, ease: EASE_OUT }}
+          className="origin-top-left absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-black/[0.06] overflow-hidden min-w-[140px] z-[100]"
         >
           {options.map((option) => (
             <motion.button
@@ -671,9 +715,8 @@ export default function Wealth() {
   // Interaction timestamp to prevent "Cloud Echo" overwrites
   const lastLocalInteraction = useRef(0);
 
-  // 🛡️ MOUNT PROTECTION: Prevents new devices from overwriting cloud data
-  const mountTimestamp = useRef(Date.now());
-  const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds
+  // Bumped when unsynced edits from a previous session must be re-sent
+  const [resyncNonce, setResyncNonce] = useState(0);
 
   const haptic = useWebHaptics();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -844,18 +887,9 @@ export default function Wealth() {
 
   // 🌐 Sync WEALTH DATA to GLOBAL storage (persists across days)
   useEffect(() => {
-    // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
-    const timeSinceMount = Date.now() - mountTimestamp.current;
-    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-      console.log("[Wealth] Mount protection active, skipping Firestore WRITE");
-      return;
-    }
-
-    // Only sync after user has actually interacted
-    if (lastLocalInteraction.current === 0) {
-      console.log("[Wealth] No user interaction yet, skipping Firestore WRITE");
-      return;
-    }
+    // Only sync after user has actually interacted. dataLogger holds the write
+    // until the doc is hydrated from the server, so a new device can't clobber it.
+    if (lastLocalInteraction.current === 0) return;
 
     const syncTimer = setTimeout(() => {
       console.log(
@@ -918,24 +952,20 @@ export default function Wealth() {
     }, 1000); // 1 second debounce
 
     return () => clearTimeout(syncTimer);
-  }, [assets, liabilities, transactions, searchHistory]);
+  }, [assets, liabilities, transactions, searchHistory, resyncNonce]);
 
   // 🚀 REAL-TIME CLOUD SYNC (Incoming) - Listen to GLOBAL wealth data
   useEffect(() => {
-    const unsubscribe = subscribeToGlobalData("wealth", (cloudWealth) => {
-      // 🛡️ MOUNT PROTECTION: Skip cloud updates for first 3 seconds after page load
-      const timeSinceMount = Date.now() - mountTimestamp.current;
-      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-        console.log("[Wealth] Mount protection active, skipping cloud sync");
-        return;
-      }
-
-      // Throttle: Ignore cloud updates if user just interacted locally (<2s)
-      if (Date.now() - lastLocalInteraction.current < 2000) return;
-
+    let handledDirty = false;
+    const unsubscribe = subscribeToGlobalData("wealth", (cloudWealth, meta) => {
       if (!cloudWealth) return;
 
-      console.log("[Wealth] Received global data from cloud");
+      // Local edits not yet on the server win; the settled state is re-delivered
+      // (meta.replay) once they land, so nothing is dropped for good.
+      if (
+        hasPendingGlobalWrite("wealth") ||
+        Date.now() - lastLocalInteraction.current < 1500
+      ) return;
 
       const {
         assets: cloudAssets,
@@ -943,6 +973,38 @@ export default function Wealth() {
         transactions: cloudTransactions,
         search_history: cloudSearchHistory,
       } = cloudWealth;
+
+      const leftoverDirty = meta?.authoritative && !handledDirty && isGlobalDirty("wealth");
+      if (meta?.authoritative) handledDirty = true;
+
+      if (!leftoverDirty) {
+        // Clean device: the cloud is the source of truth. Replacing (instead of
+        // union-merging) is what lets deletions from other devices stick — the
+        // old union kept every locally-known item alive and re-uploaded it.
+        const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+        if (Array.isArray(cloudTransactions)) {
+          const sorted = [...cloudTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+          setTransactions((prev) => (same(prev, sorted) ? prev : sorted));
+        }
+        if (Array.isArray(cloudAssets)) {
+          setAssets((prev) => (same(prev, cloudAssets) ? prev : cloudAssets));
+        }
+        if (Array.isArray(cloudLiabilities)) {
+          const hydrated = cloudLiabilities.map(hydrateLiability);
+          setLiabilities((prev) => (same(prev, hydrated) ? prev : hydrated));
+        }
+        if (Array.isArray(cloudSearchHistory)) {
+          const history = cloudSearchHistory.slice(0, 10);
+          setSearchHistory((prev) => (same(prev, history) ? prev : history));
+        }
+        saveGuardRef.current = true;
+        return;
+      }
+
+      // Unsynced edits from a previous session: union-merge, then re-push
+      console.log("[Wealth] Merging unsynced local edits with cloud");
+      lastLocalInteraction.current = Date.now();
+      setResyncNonce((n) => n + 1);
 
       // 1. Transactions - Union by ID
       if (Array.isArray(cloudTransactions)) {
@@ -1418,21 +1480,27 @@ export default function Wealth() {
                 />
                 <div className="flex items-center gap-3">
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={TAP}
+                    transition={TAP_TRANSITION}
+                    aria-label="Add transaction"
                     onClick={() => { haptic.trigger("medium"); setShowAddSheet(true); }}
                     className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
                   >
                     <Plus size={20} className="text-white" />
                   </motion.button>
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={TAP}
+                    transition={TAP_TRANSITION}
+                    aria-label="Reminder settings"
                     onClick={() => setShowReminderSettings(true)}
                     className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative"
                   >
                     <Bell size={20} className="text-white" />
                   </motion.button>
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    whileTap={TAP}
+                    transition={TAP_TRANSITION}
+                    aria-label="Search transactions"
                     onClick={() => setIsSearching(true)}
                     className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
                   >
@@ -1444,6 +1512,7 @@ export default function Wealth() {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, ease: EASE_OUT }}
                 className="flex-1 flex items-center gap-3"
               >
                 <div className="flex-1 relative">
@@ -1458,12 +1527,13 @@ export default function Wealth() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSaveSearch()}
-                    className="w-full bg-white/10 text-white placeholder-white/50 rounded-xl pl-10 pr-10 py-2.5 outline-none focus:bg-white/20 transition-colors"
+                    className="w-full bg-white/10 text-white placeholder-white/50 rounded-xl pl-10 pr-10 py-2.5 outline-none focus:bg-white/20 transition-colors duration-150"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      aria-label="Clear search"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2"
                     >
                       <div className="bg-white/20 rounded-full p-0.5">
                         <X size={12} className="text-white" />
@@ -1492,18 +1562,19 @@ export default function Wealth() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: EASE_OUT }}
                 className="overflow-x-auto no-scrollbar -mx-5 px-5 pb-2"
               >
                 <div className="flex items-center gap-2">
                   {FILTER_OPTIONS.map((filter, index) => (
                     <motion.button
                       key={filter.id}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
+                      transition={{ duration: 0.2, ease: EASE_OUT, delay: index * 0.03 }}
                       onClick={() => setActiveFilter(filter.id)}
                       className={clsx(
-                        "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-all",
+                        "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-[background-color,color,box-shadow,scale] duration-150 ease-out",
                         activeFilter === filter.id
                           ? "bg-white text-[#1e3a2f] shadow-md shadow-black/10 scale-105"
                           : "bg-white/10 text-white/80 hover:bg-white/15",
@@ -1521,9 +1592,9 @@ export default function Wealth() {
           {/* Balance Display (Hidden in Search Mode to reduce noise) */}
           {!isSearching && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+              transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.05 }}
               className="text-center mb-6"
             >
               <div
@@ -1581,6 +1652,7 @@ export default function Wealth() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2, ease: EASE_OUT }}
                 className="px-5 mt-4 overflow-hidden"
               >
                 <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-black/[0.04] shadow-sm">
@@ -1600,7 +1672,7 @@ export default function Wealth() {
                       onClick={handleDeleteSelected}
                       disabled={selectedIds.size === 0}
                       className={clsx(
-                        "px-4 py-2 rounded-lg text-[15px] font-semibold transition-colors",
+                        "px-4 py-2 rounded-lg text-[15px] font-semibold transition-colors duration-150",
                         selectedIds.size > 0
                           ? "bg-[#FF3B30] text-white"
                           : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
@@ -1615,7 +1687,7 @@ export default function Wealth() {
           </AnimatePresence>
 
           {/* Priority Liabilities Alert */}
-          <AnimatePresence>
+          <AnimatePresence initial={false}>
             {liabilities.some((l) => l.isPriority) &&
               selectedCategory !== "Savings" &&
               selectedCategory !== "Investments" &&
@@ -1626,6 +1698,7 @@ export default function Wealth() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
+                  transition={LAYOUT_SPRING}
                   className="mx-5 mt-6 overflow-hidden"
                 >
                   <motion.div
@@ -1642,11 +1715,11 @@ export default function Wealth() {
                           Priority Payment
                         </p>
                         <p className="text-[20px] font-bold text-white">
-                          Loan from Kuya
+                          {liabilities.find((l) => l.isPriority)?.name}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[24px] font-bold text-white">
+                        <p className="text-[24px] font-bold text-white tabular-nums">
                           ₱
                           {(
                             liabilities.find((l) => l.isPriority)?.amount || 0
@@ -1661,14 +1734,15 @@ export default function Wealth() {
           </AnimatePresence>
 
           {/* Liabilities List */}
-          <AnimatePresence>
+          <AnimatePresence initial={false}>
             {filteredLiabilities.length > 0 && !isSelecting && (
               <motion.section
                 key="liabilities-list"
                 layout
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={LAYOUT_SPRING}
                 className="mx-5 mt-6"
               >
                 <h3 className="text-[13px] font-semibold text-[#FF3B30] uppercase tracking-wide mb-2 px-1">
@@ -1678,15 +1752,15 @@ export default function Wealth() {
                   layout
                   className="bg-white rounded-2xl overflow-hidden border border-[#FF3B30]/20 shadow-[0_2px_12px_rgba(255,59,48,0.1)]"
                 >
-                  <AnimatePresence mode="popLayout">
+                  <AnimatePresence mode="popLayout" initial={false}>
                     {filteredLiabilities.map((liability, index) => (
                       <motion.div
                         key={liability.id}
                         layout
-                        initial={{ opacity: 0, scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.2, ease: EASE_OUT }}
                       >
                         <LiabilityRow
                           {...liability}
@@ -1708,14 +1782,15 @@ export default function Wealth() {
           </AnimatePresence>
 
           {/* Assets List */}
-          <AnimatePresence>
+          <AnimatePresence initial={false}>
             {filteredAssets.length > 0 && !isSelecting && (
               <motion.section
                 key="assets-list"
                 layout
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={LAYOUT_SPRING}
                 className="mx-5 mt-6"
               >
                 <h3 className="text-[13px] font-semibold text-[#34C759] uppercase tracking-wide mb-2 px-1">
@@ -1725,15 +1800,15 @@ export default function Wealth() {
                   layout
                   className="bg-white rounded-2xl overflow-hidden border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
                 >
-                  <AnimatePresence mode="popLayout">
+                  <AnimatePresence mode="popLayout" initial={false}>
                     {filteredAssets.map((asset, index) => (
                       <motion.div
                         key={asset.id}
                         layout
-                        initial={{ opacity: 0, scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.2, ease: EASE_OUT }}
                       >
                         <AssetRow
                           {...asset}
@@ -1756,9 +1831,9 @@ export default function Wealth() {
 
           {/* Transactions Section */}
           <motion.section
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.1 }}
             className="mx-5 mt-8"
           >
             <div className="flex items-center justify-between mb-4">
@@ -1798,7 +1873,8 @@ export default function Wealth() {
             ))}
 
             <motion.button
-              whileTap={{ scale: 0.98 }}
+              whileTap={TAP}
+              transition={TAP_TRANSITION}
               className="w-full py-4 text-center text-[15px] font-semibold text-[rgba(60,60,67,0.6)]"
             >
               Manage accounts list
@@ -1819,10 +1895,11 @@ export default function Wealth() {
                 Recent Searches
               </p>
               <div className="flex flex-wrap gap-2">
-                {searchHistory.map((term, i) => (
+                {searchHistory.map((term) => (
                   <motion.button
-                    key={i}
-                    whileTap={{ scale: 0.95 }}
+                    key={term}
+                    whileTap={TAP}
+                    transition={TAP_TRANSITION}
                     onClick={() => setSearchQuery(term)}
                     className="px-3 py-1.5 bg-white border border-black/[0.06] rounded-full text-[14px] text-black/80 font-medium shadow-sm"
                   >
@@ -1842,20 +1919,15 @@ export default function Wealth() {
           </p>
 
           <motion.div layout className="space-y-2">
-            <AnimatePresence mode="popLayout">
-              {searchResults.map((transaction, index) => (
+            <AnimatePresence mode="popLayout" initial={false}>
+              {searchResults.map((transaction) => (
                 <motion.div
                   key={transaction.id}
                   layout
-                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 30,
-                    delay: Math.min(index * 0.05, 0.3),
-                  }}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                  transition={{ duration: 0.15, ease: EASE_OUT }}
                 >
                   <TransactionRow
                     item={transaction}

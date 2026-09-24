@@ -9,9 +9,9 @@ import React, {
 import {
   getGlobalData,
   getLogForDate,
-  getTodayKey,
-  loadGlobalDataLocal,
-  migrateOldData,
+  hasPendingGlobalWrite,
+  hasPendingTodayWrite,
+  isGlobalDirty,
   saveGlobalDataLocal,
   subscribeToGlobalData,
   subscribeToTodayLog,
@@ -403,18 +403,28 @@ export function ProtocolProvider({ children }) {
   // Track if user is actively dragging (to prevent cloud sync interference)
   const isDragging = useRef(false);
 
-  // 🛡️ MOUNT PROTECTION: Prevents cloud sync from overwriting local data during initial load
-  const mountTimestamp = useRef(Date.now());
-  const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds grace period after mount
-  const initialFetchDone = useRef(false); // Track if initial fetch completed
-  const hasReceivedServerSyncRef = useRef(false); // Tracks if we've received an authoritative server payload
+  // Cloud → state guards. Writes are held by dataLogger until each document has
+  // been hydrated from the server, so no time-based "mount protection" is needed.
+  // Bumped when unsynced edits from a previous session must be re-sent.
+  const [resyncNonce, setResyncNonce] = useState(0);
 
   // 🛡️ DAY ROLLOVER (Midnight Reset)
-  // Tracks the date the app currently thinks it is
-  const currentDateRef = useRef(getPhDateKey());
+  // dayKey drives which daily_logs/{date} doc the real-time listener is attached to.
+  const [dayKey, setDayKey] = useState(() => getPhDateKey());
+  const currentDateRef = useRef(dayKey);
+  // Guard for auto-marking "Reflect on your day" (reset every new day)
+  const reflectMarkedForDate = useRef(null);
 
   const resetForNewDay = useCallback(() => {
+    const newDay = getPhDateKey();
+    if (newDay === currentDateRef.current) return;
     console.log(`[Protocol:${protocolCategory}] 🌙 Midnight Rollover detected! Resetting tasks for new day.`);
+
+    // Clear localStorage today-task cache for all categories so stale states aren't restored
+    ["personal", "work", "other"].forEach((cat) => {
+      localStorage.removeItem(getStorageKeys(cat).TODAY_TASKS);
+    });
+
     setPhaseTasks((prev) => {
       const next = {};
       Object.keys(prev).forEach((phaseId) => {
@@ -422,11 +432,14 @@ export function ProtocolProvider({ children }) {
       });
       return next;
     });
-    // Update the ref to the new date so we don't reset again
-    currentDateRef.current = getPhDateKey();
-    
-    // The existing useEffect will naturally save the new phaseTasks to localStorage with today's date!
-    // And the debounce sync will push it to the new day's Firestore log.
+    setActivePhase(getPhaseOrderForCategory(protocolCategory)[0] || "morningIgnition");
+    setCompletedPhases([]);
+
+    reflectMarkedForDate.current = null;
+    lastLocalInteraction.current = 0;
+    currentDateRef.current = newDay;
+    // Re-attaches the today-log listener to the NEW day's document
+    setDayKey(newDay);
   }, [protocolCategory]);
 
   useEffect(() => {
@@ -476,8 +489,7 @@ export function ProtocolProvider({ children }) {
               const merged = { ...prev };
               Object.entries(cloudProtocol.taskHistory).forEach(
                 ([key, dates]) => {
-                  if (!merged[key]) merged[key] = {};
-                  Object.assign(merged[key], dates);
+                  merged[key] = { ...(merged[key] || {}), ...dates };
                 },
               );
               return merged;
@@ -497,12 +509,14 @@ export function ProtocolProvider({ children }) {
                     merged[phaseKey] = [];
                   }
 
-                  const localTasks = merged[phaseKey];
+                  // Copy — never mutate the previous state array
+                  const localTasks = [...merged[phaseKey]];
                   phaseTasks.forEach((cloudTask) => {
                     if (!localTasks.find((t) => t.id === cloudTask.id)) {
                       localTasks.push(cloudTask);
                     }
                   });
+                  merged[phaseKey] = localTasks;
                 },
               );
 
@@ -614,10 +628,8 @@ export function ProtocolProvider({ children }) {
           });
         }
 
-        initialFetchDone.current = true;
       } catch (error) {
         console.error("[Protocol] Failed to fetch global data:", error);
-        initialFetchDone.current = true;
       }
     };
 
@@ -626,13 +638,8 @@ export function ProtocolProvider({ children }) {
 
   // 🌐 Sync PROTOCOL DATA to GLOBAL storage (persists across days, for streaks)
   useEffect(() => {
-    // 🛡️ MOUNT PROTECTION: Don't sync during initial load
-    const timeSinceMount = Date.now() - mountTimestamp.current;
-    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-      return;
-    }
-
-    // Only sync after user has actually interacted
+    // Only sync after user has actually interacted (initial render never writes).
+    // dataLogger holds the write until the doc is hydrated from the server.
     if (lastLocalInteraction.current === 0) {
       return;
     }
@@ -657,27 +664,49 @@ export function ProtocolProvider({ children }) {
     }, 1000);
 
     return () => clearTimeout(syncTimer);
-  }, [taskHistory, customTasks, taskOrder, protocolCategory]);
+  }, [taskHistory, customTasks, taskOrder, protocolCategory, resyncNonce]);
 
   // 🚀 REAL-TIME CLOUD SYNC for global Protocol data
   useEffect(() => {
     const globalKey = protocolCategory === "personal" ? "protocol" : `protocol_${protocolCategory}`;
-    const unsubscribe = subscribeToGlobalData(globalKey, (cloudProtocol) => {
-      // 🛡️ MOUNT PROTECTION
-      const timeSinceMount = Date.now() - mountTimestamp.current;
-      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-        console.log(`[Protocol:${protocolCategory}] Mount protection active, skipping global sync`);
-        return;
-      }
+    let handledDirty = false;
+    const unsubscribe = subscribeToGlobalData(globalKey, (cloudProtocol, meta) => {
+      if (!cloudProtocol) return;
 
-      // Throttle
+      // Local edits not yet on the server win; dataLogger re-delivers the settled
+      // state once they land (meta.replay), so nothing is dropped for good.
       if (
-        Date.now() - lastLocalInteraction.current < 2000 ||
+        hasPendingGlobalWrite(globalKey) ||
+        Date.now() - lastLocalInteraction.current < 1500 ||
         isDragging.current
       )
         return;
 
-      if (!cloudProtocol) return;
+      // Unsynced edits left over from a previous session (e.g. app closed offline):
+      // merge instead of replacing, then push the merged state.
+      const leftoverDirty = meta?.authoritative && !handledDirty && isGlobalDirty(globalKey);
+      if (meta?.authoritative) handledDirty = true;
+      if (leftoverDirty) {
+        setCustomTasks((prev) => {
+          const merged = { ...prev };
+          Object.entries(cloudProtocol.customTasks || {}).forEach(([phaseKey, tasks]) => {
+            if (!Array.isArray(tasks)) return;
+            const local = merged[phaseKey] || [];
+            merged[phaseKey] = [...local, ...tasks.filter((t) => !local.some((l) => l.id === t.id))];
+          });
+          return merged;
+        });
+        setTaskHistory((prev) => {
+          const merged = { ...prev };
+          Object.entries(cloudProtocol.taskHistory || {}).forEach(([key, dates]) => {
+            merged[key] = { ...dates, ...(merged[key] || {}) };
+          });
+          return merged;
+        });
+        lastLocalInteraction.current = Date.now();
+        setResyncNonce((n) => n + 1);
+        return;
+      }
 
       console.log(`[Protocol:${protocolCategory}] Received global data from cloud`);
 
@@ -896,7 +925,7 @@ export function ProtocolProvider({ children }) {
     }));
   };
 
-  // Mark Workout as complete on the UI task list (to clear it out), 
+  // Mark Workout as complete on the UI task list (to clear it out),
   // but logically record true/false based on actual workout success for streaks.
   const markWorkoutDone = (isSuccess) => {
     const phaseId = "arena";
@@ -957,7 +986,6 @@ export function ProtocolProvider({ children }) {
   // Auto-check "Reflect on your day" when a journal entry exists for today.
   // Uses a ref to avoid re-running on every arena task change (which caused a state loop
   // where markReflectDone triggered a sync, which retriggered this effect).
-  const reflectMarkedForDate = useRef(null);
   useEffect(() => {
     const unsubscribe = subscribeToGlobalData("journal", (journalData) => {
       if (!journalData || !journalData.entries) return;
@@ -1147,30 +1175,12 @@ export function ProtocolProvider({ children }) {
 
   // 🔄 Sync to Daily Log whenever tasks change (DEBOUNCED)
   useEffect(() => {
-    // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
-    // This prevents new devices from overwriting cloud data with empty state
-    const timeSinceMount = Date.now() - mountTimestamp.current;
-    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-      console.log(
-        "[Protocol] Mount protection active, skipping Firestore WRITE",
-      );
-      return; // Don't write to Firestore during mount protection
-    }
-
-    // Also check if user has actually interacted (not just initial render)
+    // Only write after a real user interaction (not initial render / cloud apply).
+    // Overwrite protection lives in dataLogger: the write is held until today's
+    // doc has been confirmed by the server — including when it doesn't exist yet
+    // (the old guard required an existing doc, so a new day never synced).
     if (lastLocalInteraction.current === 0) {
-      console.log(
-        "[Protocol] No user interaction yet, skipping Firestore WRITE",
-      );
-      return; // User hasn't toggled anything yet
-    }
-    
-    // 🛡️ FATAL OVERWRITE PROTECTION
-    // If we're magically online but haven't received a validated cloud payload yet, PREVENT the sync!
-    // If we push our current "default" state before the cloud state arrives, we will literally erase the user's data from the cloud!
-    if (navigator.onLine && !hasReceivedServerSyncRef.current) {
-       console.log("[Protocol] Blocked Firestore Write: Waiting for authoritative Server Data to prevent overwriting cloud state.");
-       return;
+      return;
     }
 
     // Debounce timer to prevent excessive writes
@@ -1237,26 +1247,19 @@ export function ProtocolProvider({ children }) {
   useEffect(() => {
     // 1. Subscribe to Firestore updates for today
     const unsubscribe = subscribeToTodayLog((todayLog, meta) => {
-      // Allow the cloud data to populate the app, immediately. 
-      // Do NOT skip based on MOUNT_PROTECTION_DURATION, or else the app stays empty.
+      // A doc that doesn't exist yet (fresh day) carries no state. Applying the
+      // empty template used to wipe custom tasks + order at the start of each day.
+      if (!todayLog || !meta?.exists) return;
 
-      const isFromServer = meta?.exists && !meta?.fromCache;
-      const isFirstServerSync = isFromServer && !hasReceivedServerSyncRef.current;
-      
-      if (isFromServer) {
-        hasReceivedServerSyncRef.current = true;
-      }
-
-      // Throttle: Ignore cloud updates if user just interacted locally (<2s) OR is actively dragging
-      // UNLESS this is our very first real server sync, which we MUST process to avoid data loss.
+      // Local edits not yet on the server win; the settled state is re-delivered
+      // (meta.replay) after they land.
       if (
-        (Date.now() - lastLocalInteraction.current < 2000 || isDragging.current) &&
-        !isFirstServerSync
+        hasPendingTodayWrite(dayKey) ||
+        Date.now() - lastLocalInteraction.current < 1500 ||
+        isDragging.current
       ) {
         return;
       }
-
-      if (!todayLog) return;
 
       const logKey = protocolCategory === "personal" ? "protocol" : `protocol_${protocolCategory}`;
       if (!todayLog[logKey]) return;
@@ -1347,63 +1350,10 @@ export function ProtocolProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, [protocolCategory]);
+  }, [protocolCategory, dayKey]);
 
-  // ─── MIDNIGHT DAY-ROLLOVER ────────────────────────────────────────────────────
-  // When the Philippine day changes while the app is open, we need to:
-  // 1. Reset all task done-states to false (fresh day).
-  // 2. Clear the localStorage "today tasks" cache so stale data isn't restored.
-  // 3. Re-attach the Firestore real-time listener to the NEW day's document.
-  // 4. Reset the reflect-marked guard so journal syncing works for the new day.
-  useEffect(() => {
-    const scheduleReset = () => {
-      const msLeft = msUntilMidnightPH();
-      console.log(`[Protocol] Day rollover in ${Math.round(msLeft / 60000)} min (PH midnight)`);
-
-      const timer = setTimeout(() => {
-        console.log("[Protocol] 🌅 Philippine midnight — resetting tasks for new day");
-
-        // Clear localStorage today-task cache for all categories
-        ["personal", "work", "other"].forEach((cat) => {
-          const keys = getStorageKeys(cat);
-          localStorage.removeItem(keys.TODAY_TASKS);
-        });
-
-        // Reset all task done-states
-        const categoryPhases = getPhasesForCategory(protocolCategory);
-        const phaseOrderArr = getPhaseOrderForCategory(protocolCategory);
-        const freshTasks = {};
-        phaseOrderArr.forEach((phaseId) => {
-          const phase = categoryPhases[phaseId];
-          if (!phase) return;
-          const phaseCustom = customTasks[phaseId] || [];
-          freshTasks[phaseId] = [
-            ...phase.tasks.map((t) => ({ ...t, done: false })),
-            ...phaseCustom.map((t) => ({ ...t, done: false })),
-          ];
-        });
-        setPhaseTasks(freshTasks);
-        setActivePhase(phaseOrderArr[0] || "morningIgnition");
-        setCompletedPhases([]);
-
-        // Reset guards so next-day logic fires clean
-        reflectMarkedForDate.current = null;
-        hasReceivedServerSyncRef.current = false;
-        lastLocalInteraction.current = 0;
-        mountTimestamp.current = Date.now();
-        initialFetchDone.current = false;
-
-        // Schedule the NEXT day's reset (recurse)
-        scheduleReset();
-      }, msLeft + 500); // +500ms buffer to land after midnight
-
-      return timer;
-    };
-
-    const timer = scheduleReset();
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [protocolCategory]);
+  // Midnight rollover is handled once, by resetForNewDay (timer + visibility
+  // wake-up above); it also moves the today-log listener to the new date.
 
   // Get phases for the current category
   const currentPhases = getPhasesForCategory(protocolCategory);
@@ -1486,7 +1436,7 @@ export function ProtocolProvider({ children }) {
     protocolCategory,
     PROTOCOL_CATEGORIES, // This is a constant, but included for completeness if it were dynamic
     customTasks,
-    
+
     // Functions (stable references are important)
     toggleTaskHistory,
     getTaskHistory,

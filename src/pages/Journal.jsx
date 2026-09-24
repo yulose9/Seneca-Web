@@ -6,10 +6,19 @@ import { BookOpen, Check, ChevronRight, SmilePlus, Trash2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import JournalDetailSheet from "../components/JournalDetailSheet";
+import {
+  DIALOG_SPRING,
+  EASE_OUT,
+  FADE,
+  LAYOUT_SPRING,
+  TAP,
+  TAP_TRANSITION,
+} from "../constants/motion";
 import PageTransition from "../components/PageTransition";
 import RichTextEditor from "../components/RichTextEditor";
 import {
-  getGlobalData,
+  hasPendingGlobalWrite,
+  isGlobalDirty,
   loadGlobalDataLocal,
   saveGlobalDataLocal,
   subscribeToGlobalData,
@@ -27,32 +36,30 @@ const JournalLoggedOverlay = ({ isOpen, onBack }) => (
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={FADE}
           className="fixed inset-0 bg-black/30 backdrop-blur-md z-[400]"
         />
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 30 }}
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 30 }}
-          transition={{ type: "spring", damping: 22, stiffness: 260 }}
+          exit={{ opacity: 0, scale: 0.97, y: 8, transition: FADE }}
+          transition={DIALOG_SPRING}
           className="fixed inset-0 flex items-center justify-center z-[401] px-8"
         >
           <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-[320px] w-full shadow-2xl text-center">
             {/* Animated Checkmark */}
             <motion.div
-              initial={{ scale: 0, opacity: 0 }}
+              initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{
-                delay: 0.15,
+                delay: 0.1,
                 type: "spring",
-                damping: 12,
-                stiffness: 200,
+                duration: 0.5,
+                bounce: 0.3,
               }}
               className="mx-auto mb-5 w-[72px] h-[72px] rounded-full bg-[#34C759] flex items-center justify-center shadow-lg shadow-[#34C759]/30"
             >
-              <motion.svg
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ delay: 0.35, duration: 0.4, ease: "easeOut" }}
+              <svg
                 width="32"
                 height="32"
                 viewBox="0 0 24 24"
@@ -66,15 +73,15 @@ const JournalLoggedOverlay = ({ isOpen, onBack }) => (
                   d="M5 13l4 4L19 7"
                   initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  transition={{ delay: 0.35, duration: 0.4, ease: "easeOut" }}
+                  transition={{ delay: 0.25, duration: 0.3, ease: EASE_OUT }}
                 />
-              </motion.svg>
+              </svg>
             </motion.div>
 
             <motion.h2
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.15, duration: 0.3, ease: EASE_OUT }}
               className="text-[22px] font-bold text-black mb-1"
             >
               Journal Logged
@@ -83,19 +90,19 @@ const JournalLoggedOverlay = ({ isOpen, onBack }) => (
             <motion.p
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.2, duration: 0.3, ease: EASE_OUT }}
               className="text-[15px] text-[rgba(60,60,67,0.6)] mb-7"
             >
               Your reflection has been saved.
             </motion.p>
 
             <motion.button
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              whileTap={{ scale: 0.97 }}
+              transition={{ delay: 0.25, duration: 0.3, ease: EASE_OUT }}
+              whileTap={TAP}
               onClick={onBack}
-              className="w-full h-[50px] rounded-2xl bg-[#007AFF] text-white font-semibold text-[17px] shadow-lg shadow-[#007AFF]/25 active:opacity-90 transition-opacity"
+              className="w-full h-[50px] rounded-2xl bg-[#007AFF] text-white font-semibold text-[17px] shadow-lg shadow-[#007AFF]/25"
             >
               Back to Protocol
             </motion.button>
@@ -122,13 +129,15 @@ const ConfirmDialog = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={FADE}
           onClick={onClose}
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300]"
         />
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.97, transition: FADE }}
+          transition={DIALOG_SPRING}
           className="fixed left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl overflow-hidden z-[301] max-w-sm mx-auto shadow-2xl"
         >
           <div className="p-6 text-center">
@@ -213,7 +222,9 @@ const EntryRow = ({
     }
     if (isSelecting) {
       onSelect(item.id);
-    } else if (!showDelete) {
+    } else if (showDelete) {
+      setShowDelete(false);
+    } else {
       onClick?.(item);
     }
   };
@@ -244,12 +255,13 @@ const EntryRow = ({
     <div className="relative overflow-hidden">
       <div
         className={clsx(
-          "absolute right-0 top-0 bottom-0 w-20 bg-[#FF3B30] flex items-center justify-center transition-transform duration-200",
+          "absolute right-0 top-0 bottom-0 w-20 bg-[#FF3B30] flex items-center justify-center transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
           showDelete ? "translate-x-0" : "translate-x-full",
         )}
       >
         <button
           onClick={() => onDelete(item.id)}
+          aria-label="Delete entry"
           className="w-full h-full flex items-center justify-center"
         >
           <Trash2 size={20} className="text-white" />
@@ -267,7 +279,7 @@ const EntryRow = ({
             : undefined
         }
         className={clsx(
-          "flex items-start p-4 cursor-pointer bg-white relative transition-transform duration-200 select-none",
+          "flex items-start p-4 cursor-pointer bg-white relative transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] select-none",
           !isLast && "border-b border-[rgba(60,60,67,0.08)]",
           showDelete && "-translate-x-20",
         )}
@@ -278,6 +290,7 @@ const EntryRow = ({
               initial={{ width: 0, opacity: 0, marginRight: 0 }}
               animate={{ width: 28, opacity: 1, marginRight: 12 }}
               exit={{ width: 0, opacity: 0, marginRight: 0 }}
+              transition={LAYOUT_SPRING}
               className="shrink-0 overflow-hidden mt-2"
             >
               <div
@@ -312,7 +325,7 @@ const EntryRow = ({
             <h3 className="text-[16px] font-semibold text-black leading-tight line-clamp-1">
               {item.title}
             </h3>
-            <span className="text-[12px] text-[rgba(60,60,67,0.5)] whitespace-nowrap mt-0.5">
+            <span className="text-[12px] text-[rgba(60,60,67,0.5)] whitespace-nowrap mt-0.5 tabular-nums">
               {item.time}
             </span>
           </div>
@@ -325,12 +338,14 @@ const EntryRow = ({
 
         {isSelecting ? (
           <motion.button
-            whileTap={{ scale: 0.9 }}
+            whileTap={TAP}
+            transition={TAP_TRANSITION}
+            aria-label="Delete entry"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(item.id);
             }}
-            className="ml-2 shrink-0 mt-2 p-1.5 rounded-full hover:bg-red-50 transition-colors"
+            className="ml-2 shrink-0 mt-2 p-1.5 rounded-full hover:bg-red-50 transition-colors duration-150"
           >
             <Trash2 size={18} className="text-[#FF3B30]" />
           </motion.button>
@@ -367,9 +382,8 @@ export default function Journal() {
   // Interaction timestamp to prevent "Cloud Echo" overwrites
   const lastLocalInteraction = useRef(0);
 
-  // 🛡️ MOUNT PROTECTION: Prevents new devices from overwriting cloud data
-  const mountTimestamp = useRef(Date.now());
-  const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds
+  // Bumped when unsynced edits from a previous session must be re-sent
+  const [resyncNonce, setResyncNonce] = useState(0);
 
   const [entry, setEntry] = useState(null);
   const [title, setTitle] = useState("");
@@ -420,63 +434,14 @@ export default function Journal() {
     localStorage.setItem("journal_entries", JSON.stringify(entries));
   }, [entries]);
 
-  // 🔄 INITIAL CLOUD FETCH on mount - Get ALL journal entries from global data
-  useEffect(() => {
-    const fetchGlobalJournal = async () => {
-      try {
-        const cloudJournal = await getGlobalData("journal");
-        if (cloudJournal?.entries && Array.isArray(cloudJournal.entries)) {
-          console.log(
-            "[Journal] ✓ Loaded global entries from Firestore:",
-            cloudJournal.entries.length,
-            "entries",
-          );
-
-          // Merge cloud entries with local entries (cloud wins for duplicates)
-          setEntries((prev) => {
-            // Start with cloud entries
-            const merged = [...cloudJournal.entries];
-
-            // Add any local entries that don't exist in cloud
-            prev.forEach((localEntry) => {
-              if (!merged.find((c) => c.id === localEntry.id)) {
-                merged.push(localEntry);
-              }
-            });
-
-            // Sort by date/id descending (newest first)
-            merged.sort((a, b) => b.id - a.id);
-
-            console.log("[Journal] Merged entries:", merged.length);
-            return merged;
-          });
-        }
-      } catch (error) {
-        console.error("[Journal] Failed to fetch global data:", error);
-      }
-    };
-
-    fetchGlobalJournal();
-  }, []); // Run once on mount
+  // Initial cloud entries arrive through the real-time listener below (one
+  // shared Firestore listener — no separate getDoc read).
 
   // 🌐 Sync ALL JOURNAL ENTRIES to GLOBAL storage (persists across days)
   useEffect(() => {
-    // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
-    const timeSinceMount = Date.now() - mountTimestamp.current;
-    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-      console.log(
-        "[Journal] Mount protection active, skipping Firestore WRITE",
-      );
-      return;
-    }
-
-    // Only sync after user has actually interacted
-    if (lastLocalInteraction.current === 0) {
-      console.log(
-        "[Journal] No user interaction yet, skipping Firestore WRITE",
-      );
-      return;
-    }
+    // Only sync after user has actually interacted. dataLogger holds the write
+    // until the doc is hydrated from the server, so a new device can't clobber it.
+    if (lastLocalInteraction.current === 0) return;
 
     const syncTimer = setTimeout(() => {
       console.log("[Journal] Syncing to GLOBAL Firestore (all entries)...");
@@ -527,28 +492,37 @@ export default function Journal() {
     }, 1000); // 1 second debounce
 
     return () => clearTimeout(syncTimer);
-  }, [entries]);
+  }, [entries, resyncNonce]);
 
   // 🚀 REAL-TIME CLOUD SYNC (Incoming) - Listen to GLOBAL journal data
   useEffect(() => {
-    const unsubscribe = subscribeToGlobalData("journal", (cloudJournal) => {
-      // 🛡️ MOUNT PROTECTION: Skip cloud updates for first 3 seconds after page load
-      const timeSinceMount = Date.now() - mountTimestamp.current;
-      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-        console.log("[Journal] Mount protection active, skipping cloud sync");
+    let handledDirty = false;
+    const unsubscribe = subscribeToGlobalData("journal", (cloudJournal, meta) => {
+      if (!Array.isArray(cloudJournal?.entries)) return;
+
+      // Local edits not yet on the server win; the settled state is re-delivered
+      // (meta.replay) once they land, so nothing is dropped for good.
+      if (
+        hasPendingGlobalWrite("journal") ||
+        Date.now() - lastLocalInteraction.current < 1500
+      ) return;
+
+      const cloudEntries = cloudJournal.entries;
+      const leftoverDirty = meta?.authoritative && !handledDirty && isGlobalDirty("journal");
+      if (meta?.authoritative) handledDirty = true;
+
+      if (!leftoverDirty) {
+        // Clean device: cloud is the source of truth. Replacing is what makes a
+        // deletion on another device stick (the old union resurrected entries).
+        const sorted = [...cloudEntries].sort((a, b) => b.id - a.id);
+        setEntries((prev) => (JSON.stringify(prev) === JSON.stringify(sorted) ? prev : sorted));
         return;
       }
 
-      // Throttle: Ignore cloud updates if user just interacted locally (< 2s)
-      if (Date.now() - lastLocalInteraction.current < 2000) return;
-
-      if (!cloudJournal?.entries) return;
-
-      console.log("[Journal] Received global entries from cloud");
-
-      const cloudEntries = cloudJournal.entries;
-
-      if (Array.isArray(cloudEntries)) {
+      // Unsynced edits from a previous session: union-merge, then re-push
+      lastLocalInteraction.current = Date.now();
+      setResyncNonce((n) => n + 1);
+      {
         setEntries((prevEntries) => {
           // Merge Strategy: Union by ID
           // Prefer Cloud version if it exists (to get remote updates)
@@ -721,8 +695,9 @@ export default function Journal() {
         <div>
           <motion.h1
             className="ios-large-title"
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: EASE_OUT }}
           >
             The Mirror
           </motion.h1>
@@ -730,7 +705,7 @@ export default function Journal() {
             className="text-[17px] text-[rgba(60,60,67,0.6)] mt-1"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.1, duration: 0.3, ease: EASE_OUT }}
           >
             Reflect on your journey
           </motion.p>
@@ -739,6 +714,7 @@ export default function Journal() {
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            transition={FADE}
             onClick={() => {
               setIsSelecting(!isSelecting);
               setSelectedIds(new Set());
@@ -757,6 +733,7 @@ export default function Journal() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
+            transition={LAYOUT_SPRING}
             className="px-5 mb-4 overflow-hidden"
           >
             <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-black/[0.04] shadow-sm">
@@ -769,7 +746,7 @@ export default function Journal() {
                   : "Select All"}
               </button>
               <div className="flex items-center gap-2">
-                <span className="text-[13px] text-[rgba(60,60,67,0.6)]">
+                <span className="text-[13px] text-[rgba(60,60,67,0.6)] tabular-nums">
                   {selectedIds.size} selected
                 </span>
                 <button
@@ -792,8 +769,9 @@ export default function Journal() {
 
       {/* Editor Area */}
       <motion.section
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.35, ease: EASE_OUT }}
         className="px-5 mb-8"
       >
         <div className="bg-white rounded-2xl p-5 border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.06)] relative z-10">
@@ -801,9 +779,12 @@ export default function Journal() {
           <div className="flex items-start gap-3 mb-4">
             <div className="relative">
               <motion.button
-                whileTap={{ scale: 0.9 }}
+                whileTap={TAP}
+                transition={TAP_TRANSITION}
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="w-12 h-12 rounded-full bg-[#f2f2f7] flex items-center justify-center text-2xl hover:bg-[#e5e5ea] transition-colors"
+                aria-label="Choose mood"
+                aria-expanded={showEmojiPicker}
+                className="w-12 h-12 rounded-full bg-[#f2f2f7] flex items-center justify-center text-2xl hover:bg-[#e5e5ea] transition-colors duration-150"
               >
                 {mood}
               </motion.button>
@@ -861,12 +842,12 @@ export default function Journal() {
                 initial={{ opacity: 0, y: 10, height: 0, marginTop: 0 }}
                 animate={{ opacity: 1, y: 0, height: 50, marginTop: 16 }}
                 exit={{ opacity: 0, y: 10, height: 0, marginTop: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                whileTap={{ scale: 0.98 }}
+                transition={LAYOUT_SPRING}
+                whileTap={isSaving ? undefined : TAP}
                 onClick={() => { haptic.trigger("medium"); handleSave(); }}
                 disabled={isSaving}
                 className={clsx(
-                  "w-full rounded-xl font-semibold text-[17px] overflow-hidden",
+                  "w-full rounded-xl font-semibold text-[17px] overflow-hidden transition-[background-color,color,box-shadow] duration-150",
                   !isSaving
                     ? "bg-[#007AFF] text-white shadow-lg shadow-[#007AFF]/25"
                     : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
@@ -908,16 +889,16 @@ export default function Journal() {
 
         {pastEntries.length > 0 ? (
           <>
-            <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <motion.div layout transition={LAYOUT_SPRING} className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <AnimatePresence initial={false}>
                 {pastEntries.slice(0, visiblePastCount).map((item, index) => (
                   <motion.div
                     layout
                     key={item.id}
-                    initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, height: "auto", scale: 1 }}
-                    exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                    transition={{ type: "spring", bounce: 0, duration: 0.4, opacity: { duration: 0.2 } }}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ ...LAYOUT_SPRING, opacity: { duration: 0.2, ease: EASE_OUT } }}
                   >
                     <EntryRow
                       item={item}
@@ -939,11 +920,15 @@ export default function Journal() {
               <motion.button
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.25, ease: EASE_OUT }}
+                whileTap={TAP}
                 onClick={() => { haptic.trigger("light"); setVisiblePastCount((prev) => prev + 10); }}
                 className="w-full mt-3 py-3.5 rounded-xl bg-white border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] text-[15px] font-semibold text-[#007AFF] flex items-center justify-center gap-2"
               >
-                View More ({pastEntries.length - visiblePastCount} remaining)
+                View More{" "}
+                <span className="tabular-nums">
+                  ({pastEntries.length - visiblePastCount} remaining)
+                </span>
               </motion.button>
             )}
           </>

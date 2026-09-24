@@ -8,13 +8,11 @@ import React, {
 } from "react";
 import {
   updateTodayLog,
-  subscribeToTodayLog,
-  getLogForDate,
   updateGlobalData,
   subscribeToGlobalData,
-  getGlobalData,
+  hasPendingGlobalWrite,
+  isGlobalDirty,
 } from "../services/dataLogger";
-import { getPhDateKey } from "../utils/timeUtils";
 
 // LocalStorage keys
 const STORAGE_KEYS = {
@@ -59,9 +57,8 @@ export function StudyGoalProvider({ children }) {
   // Interaction timestamp to prevent "Cloud Echo" overwrites
   const lastLocalInteraction = useRef(0);
 
-  // 🛡️ MOUNT PROTECTION: Prevents new devices from overwriting cloud data
-  const mountTimestamp = useRef(Date.now());
-  const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds
+  // Bumped when unsynced edits from a previous session must be re-sent
+  const [resyncNonce, setResyncNonce] = useState(0);
 
   // Active study goal (selected certificate) - persisted
   const [activeStudyGoal, setActiveStudyGoal] = useState(loadActiveGoal);
@@ -84,51 +81,16 @@ export function StudyGoalProvider({ children }) {
     );
   }, [studyHistory]);
 
-  // 🔄 INITIAL CLOUD FETCH on mount - Get global StudyGoal data
-  useEffect(() => {
-    const fetchGlobalStudyGoal = async () => {
-      try {
-        const cloudData = await getGlobalData("studyGoal");
-        if (cloudData) {
-          console.log("[StudyGoal] ✓ Loaded global data from Firestore");
-
-          if (cloudData.activeStudyGoal) {
-            setActiveStudyGoal(cloudData.activeStudyGoal);
-          }
-
-          if (cloudData.studyHistory && Object.keys(cloudData.studyHistory).length > 0) {
-            setStudyHistory(prev => {
-              const merged = { ...prev };
-              Object.assign(merged, cloudData.studyHistory);
-              return merged;
-            });
-          }
-        }
-      } catch (error) {
-        console.error("[StudyGoal] Failed to fetch global data:", error);
-      }
-    };
-
-    fetchGlobalStudyGoal();
-  }, []); // Run once on mount
+  // Initial cloud state arrives through the real-time listener below (one shared
+  // Firestore listener — no separate getDoc read).
 
   // 🌐 Sync StudyGoal to GLOBAL storage (persists across days)
   useEffect(() => {
-    // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
-    const timeSinceMount = Date.now() - mountTimestamp.current;
-    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-      console.log("[StudyGoal] Mount protection active, skipping Firestore WRITE");
-      return;
-    }
-
-    // Only sync after user has actually interacted
-    if (lastLocalInteraction.current === 0) {
-      console.log("[StudyGoal] No user interaction yet, skipping Firestore WRITE");
-      return;
-    }
+    // Only sync after user has actually interacted. dataLogger holds the write
+    // until the doc is hydrated from the server, so a new device can't clobber it.
+    if (lastLocalInteraction.current === 0) return;
 
     const syncTimer = setTimeout(() => {
-      const today = formatLocalDate(new Date());
       console.log("[StudyGoal] Syncing to GLOBAL Firestore...");
 
       // 🌐 GLOBAL DATA: Save to global_data/studyGoal (persists across days!)
@@ -145,27 +107,35 @@ export function StudyGoalProvider({ children }) {
     }, 800); // 800ms debounce
 
     return () => clearTimeout(syncTimer);
-  }, [activeStudyGoal, studyHistory]);
+  }, [activeStudyGoal, studyHistory, resyncNonce]);
 
   // 🚀 REAL-TIME CLOUD SYNC for global StudyGoal data
   useEffect(() => {
-    const unsubscribe = subscribeToGlobalData("studyGoal", (cloudData) => {
-      // 🛡️ MOUNT PROTECTION: Skip cloud updates for first 3 seconds after page load
-      const timeSinceMount = Date.now() - mountTimestamp.current;
-      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-        console.log("[StudyGoal] Mount protection active, skipping cloud sync");
+    let handledDirty = false;
+    const unsubscribe = subscribeToGlobalData("studyGoal", (cloudData, meta) => {
+      if (!cloudData) return;
+
+      // Local edits not yet on the server win; the settled state is re-delivered
+      // (meta.replay) once they land, so nothing is dropped for good.
+      if (
+        hasPendingGlobalWrite("studyGoal") ||
+        Date.now() - lastLocalInteraction.current < 1500
+      ) return;
+
+      // Unsynced edits from a previous session: keep local on top, then re-push
+      const leftoverDirty = meta?.authoritative && !handledDirty && isGlobalDirty("studyGoal");
+      if (meta?.authoritative) handledDirty = true;
+      if (leftoverDirty) {
+        setStudyHistory((prev) => ({ ...(cloudData.studyHistory || {}), ...prev }));
+        lastLocalInteraction.current = Date.now();
+        setResyncNonce((n) => n + 1);
         return;
       }
 
-      // Throttle: Ignore cloud updates if user just interacted locally (< 2s)
-      if (Date.now() - lastLocalInteraction.current < 2000) return;
-
-      if (!cloudData) return;
-
       console.log("[StudyGoal] Received global data from cloud");
 
-      // 1. Sync Active Goal
-      if (cloudData.activeStudyGoal) {
+      // 1. Sync Active Goal (null = cleared on another device)
+      if (cloudData.activeStudyGoal !== undefined) {
         setActiveStudyGoal(prev => {
           if (JSON.stringify(prev) === JSON.stringify(cloudData.activeStudyGoal)) return prev;
           return cloudData.activeStudyGoal;
@@ -174,10 +144,10 @@ export function StudyGoalProvider({ children }) {
 
       // 2. Sync Study History
       if (cloudData.studyHistory) {
+        // Cloud is authoritative here (clean state) — replace so removals sync
         setStudyHistory(prev => {
-          const merged = { ...prev, ...cloudData.studyHistory };
-          if (JSON.stringify(merged) === JSON.stringify(prev)) return prev;
-          return merged;
+          if (JSON.stringify(prev) === JSON.stringify(cloudData.studyHistory)) return prev;
+          return cloudData.studyHistory;
         });
       }
     });

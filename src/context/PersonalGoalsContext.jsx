@@ -1,13 +1,11 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from "react";
 import {
   updateTodayLog,
-  subscribeToTodayLog,
-  getLogForDate,
   updateGlobalData,
   subscribeToGlobalData,
-  getGlobalData,
+  hasPendingGlobalWrite,
+  isGlobalDirty,
 } from "../services/dataLogger";
-import { getPhDateKey } from "../utils/timeUtils";
 
 /**
  * Personal Goals Context
@@ -81,9 +79,8 @@ export function PersonalGoalsProvider({ children }) {
   // Interaction timestamp to prevent "Cloud Echo" overwrites
   const lastLocalInteraction = useRef(0);
 
-  // 🛡️ MOUNT PROTECTION: Prevents new devices from overwriting cloud data
-  const mountTimestamp = useRef(Date.now());
-  const MOUNT_PROTECTION_DURATION = 3000; // 3 seconds
+  // Bumped when unsynced edits from a previous session must be re-sent
+  const [resyncNonce, setResyncNonce] = useState(0);
 
   // Goals definitions - persisted
   const [goals, setGoals] = useState(loadGoals);
@@ -101,52 +98,14 @@ export function PersonalGoalsProvider({ children }) {
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(goalHistory));
   }, [goalHistory]);
 
-  // 🔄 INITIAL CLOUD FETCH on mount - Get global PersonalGoals data
-  useEffect(() => {
-    const fetchGlobalPersonalGoals = async () => {
-      try {
-        const cloudData = await getGlobalData("personalGoals");
-        if (cloudData) {
-          console.log("[PersonalGoals] ✓ Loaded global data from Firestore");
-
-          if (cloudData.goals) {
-            setGoals(prev => ({ ...prev, ...cloudData.goals }));
-          }
-
-          if (cloudData.goalHistory) {
-            setGoalHistory(prev => {
-              const merged = { ...prev };
-              // Deep merge: goalKey -> dateKey -> value
-              Object.entries(cloudData.goalHistory).forEach(([goalKey, dates]) => {
-                if (!merged[goalKey]) merged[goalKey] = {};
-                Object.assign(merged[goalKey], dates);
-              });
-              return merged;
-            });
-          }
-        }
-      } catch (error) {
-        console.error("[PersonalGoals] Failed to fetch global data:", error);
-      }
-    };
-
-    fetchGlobalPersonalGoals();
-  }, []); // Run once on mount
+  // Initial cloud state arrives through the real-time listener below (one shared
+  // Firestore listener — no separate getDoc read).
 
   // 🌐 Sync PersonalGoals to GLOBAL storage (persists across days)
   useEffect(() => {
-    // 🛡️ MOUNT PROTECTION: Don't sync to Firestore during initial load
-    const timeSinceMount = Date.now() - mountTimestamp.current;
-    if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-      console.log("[PersonalGoals] Mount protection active, skipping Firestore WRITE");
-      return;
-    }
-
-    // Only sync after user has actually interacted
-    if (lastLocalInteraction.current === 0) {
-      console.log("[PersonalGoals] No user interaction yet, skipping Firestore WRITE");
-      return;
-    }
+    // Only sync after user has actually interacted. dataLogger holds the write
+    // until the doc is hydrated from the server, so a new device can't clobber it.
+    if (lastLocalInteraction.current === 0) return;
 
     const syncTimer = setTimeout(() => {
       console.log("[PersonalGoals] Syncing to GLOBAL Firestore...");
@@ -167,23 +126,38 @@ export function PersonalGoalsProvider({ children }) {
     }, 800); // 800ms debounce
 
     return () => clearTimeout(syncTimer);
-  }, [goals, goalHistory]);
+  }, [goals, goalHistory, resyncNonce]);
 
-  // 🔄 INITIAL CLOUD FETCH on mount
-  // 🚀 REAL-TIME CLOUD SYNC for global PersonalGoals data
+  // 🚀 REAL-TIME CLOUD SYNC for global PersonalGoals data (also the initial load)
   useEffect(() => {
-    const unsubscribe = subscribeToGlobalData("personalGoals", (cloudData) => {
-      // 🛡️ MOUNT PROTECTION: Skip cloud updates for first 3 seconds after page load
-      const timeSinceMount = Date.now() - mountTimestamp.current;
-      if (timeSinceMount < MOUNT_PROTECTION_DURATION) {
-        console.log("[PersonalGoals] Mount protection active, skipping cloud sync");
+    let handledDirty = false;
+    const unsubscribe = subscribeToGlobalData("personalGoals", (cloudData, meta) => {
+      if (!cloudData) return;
+
+      // Local edits not yet on the server win; the settled state is re-delivered
+      // (meta.replay) once they land, so nothing is dropped for good.
+      if (
+        hasPendingGlobalWrite("personalGoals") ||
+        Date.now() - lastLocalInteraction.current < 1500
+      ) return;
+
+      // Unsynced edits from a previous session: keep local on top, then re-push
+      const leftoverDirty = meta?.authoritative && !handledDirty && isGlobalDirty("personalGoals");
+      if (meta?.authoritative) handledDirty = true;
+      if (leftoverDirty) {
+        if (cloudData.goals) setGoals((prev) => ({ ...cloudData.goals, ...prev }));
+        setGoalHistory((prev) => {
+          const merged = {};
+          const keys = new Set([...Object.keys(cloudData.goalHistory || {}), ...Object.keys(prev)]);
+          keys.forEach((k) => {
+            merged[k] = { ...(cloudData.goalHistory?.[k] || {}), ...(prev[k] || {}) };
+          });
+          return merged;
+        });
+        lastLocalInteraction.current = Date.now();
+        setResyncNonce((n) => n + 1);
         return;
       }
-
-      // Throttle: Ignore cloud updates if user just interacted locally (<2s)
-      if (Date.now() - lastLocalInteraction.current < 2000) return;
-
-      if (!cloudData) return;
 
       console.log("[PersonalGoals] Received global data from cloud");
 

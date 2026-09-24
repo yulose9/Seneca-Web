@@ -26,6 +26,8 @@ const app = initializeApp(firebaseConfig);
 // - Data survives iOS Safari page reloads without a full network round-trip.
 // - persistentMultipleTabManager allows multiple tabs to share the same cache safely.
 const db = initializeFirestore(app, {
+  // A stray `undefined` anywhere in a payload would reject the whole write
+  ignoreUndefinedProperties: true,
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager(),
   }),
