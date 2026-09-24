@@ -2,31 +2,40 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── User-scoped data ─────────────────────────────────────────────────────
-    // Only the authenticated owner can read/write their own data.
-    // Uses UID matching (not email) — more secure and cannot be spoofed.
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+    // Only the verified owner can touch their own tree.
+    // NOTE: rules are OR-ed — a broad `users/{userId}/{document=**}` match
+    // (as before) silently overrides any stricter rule below it, so each
+    // collection is matched explicitly instead.
+    function isOwner(userId) {
+      return request.auth != null
+        && request.auth.uid == userId
+        && request.auth.token.email_verified == true;
     }
 
-    // ── Daily logs: field-level validation ───────────────────────────────────
+    // Guard against runaway writes (Firestore's hard limit is 1 MiB/doc)
+    function withinSize() {
+      return request.resource.data.size() < 200;
+    }
+
     match /users/{userId}/daily_logs/{dateKey} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   // Validate that user_id in document matches the authenticated user
-                   && (!request.resource.data.keys().hasAny(['user_id'])
-                       || request.resource.data.user_id == request.auth.uid);
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && withinSize()
+        && dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && (!request.resource.data.keys().hasAny(['user_id'])
+            || request.resource.data.user_id == request.auth.uid);
     }
 
-    // ── Global data: field-level validation ──────────────────────────────────
     match /users/{userId}/global_data/{docName} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && withinSize();
     }
 
-    // ── Deny all other paths ────────────────────────────────────────────────
+    match /users/{userId}/preferences/{docId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Deny everything else (including unknown subcollections)
     match /{document=**} {
       allow read, write: if false;
     }

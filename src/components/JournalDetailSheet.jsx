@@ -32,6 +32,7 @@ import {
 } from "../constants/motion";
 import { refineEntryWithGemini } from "../services/journalAI";
 import RichTextEditor from "./RichTextEditor";
+import { htmlToText, sanitizeHtml } from "../utils/safeHtml";
 
 // TipTap extensions for HTML generation
 const extensions = [
@@ -48,12 +49,12 @@ const extensions = [
 // Helper to convert TipTap JSON to HTML
 const jsonToHtml = (content) => {
   if (!content) return "";
-  // If it's already a string (legacy HTML), return as-is
-  if (typeof content === "string") return content;
+  // Legacy HTML / AI output is untrusted — sanitise before it hits the DOM
+  if (typeof content === "string") return sanitizeHtml(content);
   // If it's a JSON object, convert to HTML
   if (typeof content === "object" && content.type === "doc") {
     try {
-      return generateHTML(content, extensions);
+      return sanitizeHtml(generateHTML(content, extensions));
     } catch (e) {
       console.error("Error generating HTML:", e);
       return "";
@@ -286,9 +287,7 @@ export default function JournalDetailSheet({
     if (content && typeof content === "object") {
       plainText = getPlainTextFromJson(content);
     } else if (typeof content === "string") {
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = content;
-      plainText = tempDiv.innerText || tempDiv.textContent || "";
+      plainText = htmlToText(content);
     }
     const preview =
       plainText.substring(0, 100) + (plainText.length > 100 ? "..." : "");
@@ -339,9 +338,8 @@ export default function JournalDetailSheet({
       });
 
       // Preview gen
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = result.content || content;
-      const plainText = tempDiv.innerText || tempDiv.textContent || "";
+      const refined = result.content || content;
+      const plainText = typeof refined === "string" ? htmlToText(refined) : "";
       const preview =
         plainText.replace(/\n/g, " ").substring(0, 100) +
         (plainText.length > 100 ? "..." : "");

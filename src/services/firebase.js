@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import {
   initializeFirestore,
   persistentLocalCache,
@@ -19,6 +20,18 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// App Check: Firestore/Storage/Auth reject requests that don't come from this
+// app (scripts reusing the public config, scraped API keys). Enabled once a
+// reCAPTCHA Enterprise site key is configured; then turn on enforcement per
+// product in Firebase Console → App Check.
+const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
+if (appCheckSiteKey) {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
 
 // Initialize Firestore with offline-first persistent cache.
 // - Reads hit local IndexedDB cache first (zero Firestore reads billed on repeat visits).

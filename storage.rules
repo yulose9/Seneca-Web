@@ -1,8 +1,31 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    // Owner-only. Previously ANY signed-in Google account could read, overwrite
+    // or delete every file in the bucket (the email allow-list only runs in
+    // the browser, so it never protected the backend).
+    function isOwner(userId) {
+      return request.auth != null
+        && request.auth.uid == userId
+        && request.auth.token.email_verified == true;
+    }
+
+    // Uploads: images only, 10 MB cap (client compresses to ~0.5 MB)
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidImage();
+      allow delete: if isOwner(userId);
+    }
+
+    // Everything else is closed
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }
