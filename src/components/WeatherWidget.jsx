@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CloudRain, Sun, Umbrella, Cloud, Clock, CloudLightning, Wind } from 'lucide-react';
+import { EASE_OUT, LAYOUT_SPRING, TAP, TAP_TRANSITION } from '../constants/motion';
 import { getDetailedLocationSummary, getSmartWeatherSummary } from '../services/weatherService';
 
 const formatTimeAgo = (timestamp) => {
@@ -27,6 +28,24 @@ export default function WeatherWidget() {
     const [expandedLocation, setExpandedLocation] = useState(null);
     const [summaries, setSummaries] = useState({});
     const [loadingSummary, setLoadingSummary] = useState(false);
+    const containerRef = useRef(null);
+
+    // Dismiss the popover on outside tap or Escape, like a native popover
+    useEffect(() => {
+        if (!isOpen) return;
+        const handlePointerDown = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
+        };
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setIsOpen(false);
+        };
+        document.addEventListener('pointerdown', handlePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isOpen]);
 
     useEffect(() => {
         const fetchWeather = async () => {
@@ -66,18 +85,21 @@ export default function WeatherWidget() {
     );
 
     return (
-        <div className="relative z-50">
+        <div ref={containerRef} className="relative z-50">
             {/* Status Pill in Header */}
             <motion.button
                 onClick={() => setIsOpen(!isOpen)}
-                whileTap={{ scale: 0.95 }}
+                whileTap={TAP}
+                transition={TAP_TRANSITION}
+                aria-expanded={isOpen}
+                aria-haspopup="dialog"
                 className="flex items-center gap-2 bg-white/60 backdrop-blur-md border border-black/5 px-3 py-1.5 rounded-full shadow-sm"
             >
                 <span className="text-xl">
                     {(weather?.homeTemp ?? 25) > 30 ? '☀️' : (weather?.raw?.[0]?.current?.precip ?? 0) > 0 ? '🌧️' : '⛅'}
                 </span>
                 <div className="flex flex-col items-start leading-none">
-                    <span className="text-[13px] font-bold text-black">
+                    <span className="text-[13px] font-bold text-black tabular-nums">
                         {typeof weather?.homeTemp === 'number' ? `${Math.round(weather.homeTemp)}°C` : '--'}
                     </span>
                     <span className="text-[10px] text-black/60 font-medium truncate max-w-[100px]">
@@ -90,11 +112,14 @@ export default function WeatherWidget() {
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute top-full right-0 mt-3 w-[320px] bg-white rounded-2xl shadow-xl border border-black/5 overflow-hidden p-4"
-                        style={{ zIndex: 100 }}
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12, ease: EASE_OUT } }}
+                        transition={{ duration: 0.2, ease: EASE_OUT }}
+                        role="dialog"
+                        aria-label="Weather details"
+                        className="absolute top-full right-0 mt-3 w-[320px] bg-white rounded-[24px] shadow-xl border border-black/5 overflow-hidden p-3"
+                        style={{ zIndex: 100, transformOrigin: 'top right' }}
                     >
                         {/* Gemini Recommendation */}
                         <div className="bg-gradient-to-br from-[#007AFF]/10 to-[#5856D6]/10 rounded-xl p-3 mb-4">
@@ -139,8 +164,18 @@ export default function WeatherWidget() {
                                     <motion.div
                                         key={loc.location}
                                         layout
+                                        transition={LAYOUT_SPRING}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-expanded={isExpanded}
                                         onClick={() => handleLocationClick(loc)}
-                                        className={`rounded-xl p-2 transition-all cursor-pointer border ${isExpanded ? 'bg-black/[0.03] border-black/5' : 'bg-transparent border-transparent hover:bg-black/[0.02]'
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                handleLocationClick(loc);
+                                            }
+                                        }}
+                                        className={`rounded-2xl p-2 transition-colors duration-150 cursor-pointer border ${isExpanded ? 'bg-black/[0.03] border-black/5' : 'bg-transparent border-transparent hover:bg-black/[0.02]'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between">
@@ -150,22 +185,23 @@ export default function WeatherWidget() {
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 {rainChance > 20 && (
-                                                    <span className="text-xs font-bold text-[#007AFF] flex items-center gap-1">
+                                                    <span className="text-xs font-bold text-[#007AFF] flex items-center gap-1 tabular-nums">
                                                         <CloudRain size={10} /> {rainChance}%
                                                     </span>
                                                 )}
-                                                <span className="text-sm font-bold text-black">
+                                                <span className="text-sm font-bold text-black tabular-nums">
                                                     {loc.current?.temp !== undefined ? Math.round(loc.current.temp) : '--'}°
                                                 </span>
                                             </div>
                                         </div>
 
-                                        <AnimatePresence>
+                                        <AnimatePresence initial={false}>
                                             {isExpanded && (
                                                 <motion.div
                                                     initial={{ opacity: 0, height: 0 }}
                                                     animate={{ opacity: 1, height: 'auto' }}
                                                     exit={{ opacity: 0, height: 0 }}
+                                                    transition={{ ...LAYOUT_SPRING, opacity: { duration: 0.2 } }}
                                                     className="overflow-hidden"
                                                 >
                                                     <div className="pt-3 pb-1 text-[13px] text-black/70 leading-relaxed font-medium">
@@ -176,8 +212,9 @@ export default function WeatherWidget() {
                                                             </div>
                                                         ) : (
                                                             <motion.div
-                                                                initial={{ opacity: 0, y: 5 }}
+                                                                initial={{ opacity: 0, y: 4 }}
                                                                 animate={{ opacity: 1, y: 0 }}
+                                                                transition={{ duration: 0.2, ease: EASE_OUT }}
                                                                 className="bg-white rounded-lg p-3 border border-black/5 shadow-sm text-black/80"
                                                             >
                                                                 <p className="leading-snug">
@@ -211,7 +248,7 @@ export default function WeatherWidget() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div >
+        </div>
     );
 }
 

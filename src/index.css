@@ -84,6 +84,10 @@
   --spring-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --spring-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  /* Motion system (mirrors src/constants/motion.js) */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Base Reset */
@@ -189,9 +193,9 @@ body {
     inset -2px 4px 8px -4px rgba(255, 255, 255, 0.40);
 
   transition:
-    transform 0.4s cubic-bezier(1, 0, 0.4, 1),
-    background 0.4s cubic-bezier(1, 0, 0.4, 1),
-    box-shadow 0.4s cubic-bezier(1, 0, 0.4, 1);
+    transform 0.3s var(--ease-out),
+    background 0.3s var(--ease-out),
+    box-shadow 0.3s var(--ease-out);
 
   /* Subtle refraction fringe — a light prismatic shimmer at the top edge */
   position: fixed; /* re-declare to ensure stacking */
@@ -220,6 +224,12 @@ body {
 
 .liquid-nav-item {
   position: relative;
+  /* button reset */
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -234,15 +244,17 @@ body {
 
   color: rgba(60, 60, 67, 0.70);
   transition:
-    color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.15s ease-out;
+    color 0.15s ease,
+    transform 0.16s var(--ease-out);
 
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
 
-.liquid-nav-item:hover:not(.active) {
-  color: color-mix(in srgb, var(--liquid-action) 70%, rgba(60,60,67,0.7));
+@media (hover: hover) and (pointer: fine) {
+  .liquid-nav-item:hover:not(.active) {
+    color: color-mix(in srgb, var(--liquid-action) 70%, rgba(60,60,67,0.7));
+  }
 }
 
 .liquid-nav-item.active {
@@ -293,7 +305,7 @@ body {
     inset -1.5px 3px 6px -3px rgba(255, 255, 255, 0.55);
 
   z-index: 1;
-  will-change: transform, width;
+  will-change: transform;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   isolation: isolate;
@@ -329,12 +341,12 @@ body {
   width: 26px;
   height: 26px;
   transition:
-    transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-    color 0.25s ease;
+    color 0.15s ease,
+    filter 0.15s ease;
 }
 
+/* Lift + scale is driven by framer-motion in GlassTabBar; only the glow lives here */
 .liquid-nav-item.active .liquid-icon {
-  transform: translateY(-2px) scale(1.1);
   /* Subtle icon glow matching the action color */
   filter: drop-shadow(0 2px 6px rgba(0, 122, 255, 0.30));
 }
@@ -343,16 +355,14 @@ body {
   font-size: 11px;
   font-weight: 600;
   margin-top: 4px;
-  opacity: 0.65;
-  transition:
-    opacity 0.2s ease,
-    font-weight 0.2s ease;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
   letter-spacing: -0.01em;
 }
 
+/* Weight stays at 600 — animating font-weight reflows the label and jitters the row */
 .liquid-nav-item.active .liquid-label {
   opacity: 1;
-  font-weight: 700;
 }
 
 /* ============================================
@@ -375,13 +385,9 @@ body {
     0 2px 12px rgba(0, 0, 0, 0.06),
     0 1px 2px rgba(0, 0, 0, 0.04);
 
-  transition: all 0.25s var(--spring-smooth);
-}
-
-.ios-card:hover {
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.1),
-    0 2px 4px rgba(0, 0, 0, 0.06);
+  transition:
+    transform 0.16s var(--ease-out),
+    box-shadow 0.2s ease;
 }
 
 .ios-card.interactive {
@@ -389,8 +395,7 @@ body {
 }
 
 .ios-card.interactive:active {
-  transform: scale(0.98);
-  opacity: 0.9;
+  transform: scale(0.96);
 }
 
 /* Grouped Card Style (like Settings) */
@@ -507,7 +512,9 @@ body {
   z-index: 50;
   padding: 48px 16px 8px;
   background: var(--color-background);
-  transition: all 0.25s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .ios-nav-bar.scrolled {
@@ -547,14 +554,16 @@ body {
   border-radius: 14px;
   border: none;
   cursor: pointer;
-  transition: all 0.2s var(--spring-smooth);
+  transition:
+    transform 0.16s var(--ease-out),
+    background-color 0.15s ease,
+    color 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
 
 .ios-button:active {
-  transform: scale(0.97);
-  opacity: 0.8;
+  transform: scale(0.96);
 }
 
 .ios-button-filled {
@@ -592,7 +601,10 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s var(--spring-bounce);
+  transition:
+    background-color 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out),
+    transform 0.16s var(--ease-out);
   flex-shrink: 0;
   /* Ensure the ::before hit-slop expands outside this element */
   overflow: visible;
@@ -614,21 +626,10 @@ body {
 .ios-checkbox.checked {
   background: var(--color-system-blue);
   border-color: var(--color-system-blue);
-  animation: checkBounce 0.3s var(--spring-bounce);
 }
 
-@keyframes checkBounce {
-  0% {
-    transform: scale(0.8);
-  }
-
-  50% {
-    transform: scale(1.1);
-  }
-
-  100% {
-    transform: scale(1);
-  }
+.ios-checkbox:active {
+  transform: scale(0.96);
 }
 
 .ios-checkbox-icon {
@@ -636,13 +637,18 @@ body {
   height: 14px;
   color: #ffffff;
   opacity: 0;
-  transform: scale(0);
-  transition: all 0.2s var(--spring-bounce);
+  transform: scale(0.25);
+  filter: blur(4px);
+  transition:
+    opacity 0.3s cubic-bezier(0.2, 0, 0, 1),
+    transform 0.3s cubic-bezier(0.2, 0, 0, 1),
+    filter 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .ios-checkbox.checked .ios-checkbox-icon {
   opacity: 1;
   transform: scale(1);
+  filter: blur(0px);
 }
 
 /* ============================================
@@ -682,7 +688,9 @@ body {
   color: var(--color-label);
   border-radius: 7px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
   z-index: 1;
 }
 
@@ -835,7 +843,7 @@ body {
 
 /* Animation Utilities */
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.3s var(--ease-out) forwards;
 }
 
 @keyframes fadeIn {
@@ -867,7 +875,7 @@ body {
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.3s var(--spring-bounce) forwards;
+  animation: scaleIn 0.25s var(--ease-out) forwards;
 }
 
 @keyframes scaleIn {
@@ -920,7 +928,9 @@ body {
   overflow: hidden;
   border: 1px solid rgba(60, 60, 67, 0.12);
   background: white;
-  transition: all 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .rich-text-editor:focus-within {
@@ -1314,7 +1324,7 @@ body {
   border-radius: 8px;
   width: 100%;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease;
   text-align: left;
 }
 
@@ -1350,8 +1360,10 @@ body {
   transition: transform 0.15s ease;
 }
 
-.slash-command-item:hover .slash-command-icon {
-  transform: scale(1.05);
+@media (hover: hover) and (pointer: fine) {
+  .slash-command-item:hover .slash-command-icon {
+    transform: scale(1.05);
+  }
 }
 
 .slash-command-item-content {
@@ -1448,7 +1460,9 @@ body {
   border-radius: 6px;
   color: #000000;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .bubble-menu-button:hover {
@@ -1525,7 +1539,7 @@ body {
   font-weight: 500;
   color: #1a1a1a;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease;
   text-align: left;
 }
 
@@ -1558,8 +1572,10 @@ body {
   transition: transform 0.15s ease;
 }
 
-.bubble-menu-color-swatch:hover {
-  transform: scale(1.15);
+@media (hover: hover) and (pointer: fine) {
+  .bubble-menu-color-swatch:hover {
+    transform: scale(1.15);
+  }
 }
 
 /* ============================================
@@ -1582,7 +1598,10 @@ body {
   border-radius: 6px;
   color: rgba(60, 60, 67, 0.4);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .floating-menu-trigger:hover {
@@ -1615,7 +1634,9 @@ body {
   border-radius: 6px;
   color: rgba(60, 60, 67, 0.7);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .floating-menu-action:hover {
@@ -1752,7 +1773,10 @@ body {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   outline: none;
-  transition: box-shadow 0.3s ease;
+  transition:
+    box-shadow 0.2s ease,
+    background-color 0.15s ease,
+    transform 0.16s var(--ease-out);
   /* iOS HIG: ensure 44pt minimum touch target with padding */
   min-width: 36px;
   min-height: 36px;
@@ -1769,8 +1793,14 @@ body {
   /* No shadow — only active pills get glow via inline style */
 }
 
-.protocol-pill-inactive:hover {
-  background: #6e6e6e;
+.protocol-pill:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .protocol-pill-inactive:hover {
+    background: #6e6e6e;
+  }
 }
 
 .protocol-pill-content {
@@ -1830,4 +1860,49 @@ body {
 .protocol-empty-subtitle strong {
   color: var(--color-system-blue);
   font-weight: 600;
+}
+
+/* ============================================
+   Reduced Motion
+   Fewer, gentler animations — not zero. Opacity and
+   color still transition; movement is removed.
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-scale-in {
+    animation-name: reducedFade;
+  }
+
+  .liquid-active-tab::after {
+    animation: none;
+  }
+
+  .ios-card:hover,
+  .ios-card.interactive:active,
+  .ios-button:active,
+  .ios-checkbox:active,
+  .protocol-pill:active {
+    transform: none;
+  }
+
+  .ios-checkbox-icon {
+    transform: none;
+  }
+}
+
+@keyframes reducedFade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import { FADE, LAYOUT_SPRING, SHEET_EXIT, SHEET_SPRING, TAP } from "../constants/motion";
 
 // Preset colors for goals
 const COLOR_OPTIONS = [
@@ -112,6 +113,7 @@ export default function AddGoalSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             onClick={handleClose}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
           />
@@ -120,8 +122,8 @@ export default function AddGoalSheet({
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            exit={{ y: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
             className="fixed bottom-0 left-0 right-0 z-50 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden"
           >
             {/* Drag Handle */}
@@ -166,7 +168,7 @@ export default function AddGoalSheet({
               {/* Icon Preview - Centered Hero Style */}
               <div className="flex flex-col items-center py-8">
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={TAP}
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                   className="relative"
                 >
@@ -194,7 +196,7 @@ export default function AddGoalSheet({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 350, opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    transition={LAYOUT_SPRING}
                     className="overflow-hidden mx-4 mb-4 rounded-xl"
                   >
                     <EmojiPicker
@@ -233,9 +235,9 @@ export default function AddGoalSheet({
                     {COLOR_OPTIONS.map((option) => (
                       <motion.button
                         key={option.id}
-                        whileTap={{ scale: 0.9 }}
+                        whileTap={TAP}
                         onClick={() => setSelectedColor(option.color)}
-                        className={`w-12 h-12 rounded-full transition-all ${
+                        className={`w-12 h-12 rounded-full transition-shadow duration-150 ${
                           selectedColor === option.color
                             ? "ring-2 ring-offset-2 ring-[#007AFF]"
                             : ""

@@ -10,6 +10,17 @@ import {
 } from "lucide-react";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import {
+  DIALOG_SPRING,
+  EASE_OUT,
+  FADE,
+  ICON_ENTER,
+  ICON_SPRING,
+  ICON_VISIBLE,
+  LAYOUT_SPRING,
+  SHEET_EXIT,
+  SHEET_SPRING,
+} from "../constants/motion";
 
 // ─── Animated height container ────────────────────────────────────────────────
 const AnimatedHeight = ({ children, className = "" }) => {
@@ -29,7 +40,7 @@ const AnimatedHeight = ({ children, className = "" }) => {
     <motion.div
       style={{ height }}
       animate={{ height }}
-      transition={{ type: "spring", stiffness: 500, damping: 40, mass: 1 }}
+      transition={LAYOUT_SPRING}
       className={`overflow-hidden ${className}`}
     >
       <div ref={containerRef}>{children}</div>
@@ -126,14 +137,15 @@ const DeleteConfirmModal = ({ visible, certName, onConfirm, onCancel }) => (
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={FADE}
           onClick={onCancel}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70]"
         />
         <motion.div
-          initial={{ scale: 0.85, opacity: 0 }}
+          initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.85, opacity: 0 }}
-          transition={{ type: "spring", damping: 24, stiffness: 320 }}
+          exit={{ scale: 0.97, opacity: 0, transition: { duration: 0.15, ease: EASE_OUT } }}
+          transition={DIALOG_SPRING}
           className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-[280px] bg-white rounded-2xl overflow-hidden shadow-2xl"
         >
           {/* Icon + title */}
@@ -262,6 +274,7 @@ export default function CertificationDetailSheet({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={FADE}
               onClick={() => { haptic.trigger("medium"); onClose(); }}
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
             />
@@ -270,8 +283,8 @@ export default function CertificationDetailSheet({
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              exit={{ y: "100%", transition: SHEET_EXIT }}
+              transition={SHEET_SPRING}
               className="fixed bottom-0 left-0 right-0 z-50 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden flex flex-col"
             >
               {/* Drag Handle */}
@@ -325,7 +338,7 @@ export default function CertificationDetailSheet({
               <div className="overflow-y-auto overflow-x-hidden w-full">
                 <AnimatedHeight>
                   <div className="pb-32">
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="wait" initial={false}>
                       {isEditing ? (
                         /* ── EDIT FORM ─────────────────────────────────────── */
                         <motion.div
@@ -333,7 +346,7 @@ export default function CertificationDetailSheet({
                           initial={{ opacity: 0, x: 24 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -24 }}
-                          transition={{ duration: 0.2 }}
+                          transition={{ duration: 0.2, ease: EASE_OUT }}
                           className="pt-6"
                         >
                           {/* Certification Details */}
@@ -445,7 +458,7 @@ export default function CertificationDetailSheet({
                           initial={{ opacity: 0, x: -24 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 24 }}
-                          transition={{ duration: 0.2 }}
+                          transition={{ duration: 0.2, ease: EASE_OUT }}
                         >
                           {/* Hero Card */}
                           <div className="mx-4 mt-6 mb-4">
@@ -548,7 +561,7 @@ export default function CertificationDetailSheet({
                                   >
                                     {/* Icon circle */}
                                     <div
-                                      className="w-8 h-8 rounded-full flex items-center justify-center mr-3 transition-colors"
+                                      className="w-8 h-8 rounded-full flex items-center justify-center mr-3 transition-colors duration-150"
                                       style={{
                                         backgroundColor: isSelected
                                           ? status.color
@@ -588,13 +601,23 @@ export default function CertificationDetailSheet({
                                     </span>
 
                                     {/* Checkmark */}
-                                    {isSelected && (
-                                      <Check
-                                        size={18}
-                                        strokeWidth={2.5}
-                                        style={{ color: status.color }}
-                                      />
-                                    )}
+                                    <AnimatePresence initial={false}>
+                                      {isSelected && (
+                                        <motion.span
+                                          initial={ICON_ENTER}
+                                          animate={ICON_VISIBLE}
+                                          exit={ICON_ENTER}
+                                          transition={ICON_SPRING}
+                                          className="flex"
+                                        >
+                                          <Check
+                                            size={18}
+                                            strokeWidth={2.5}
+                                            style={{ color: status.color }}
+                                          />
+                                        </motion.span>
+                                      )}
+                                    </AnimatePresence>
                                   </motion.button>
                                 );
                               })}

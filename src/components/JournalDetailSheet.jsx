@@ -23,6 +23,13 @@ import {
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import {
+  DIALOG_SPRING,
+  EASE_OUT,
+  FADE,
+  SHEET_EXIT,
+  SHEET_SPRING,
+} from "../constants/motion";
 import { refineEntryWithGemini } from "../services/journalAI";
 import RichTextEditor from "./RichTextEditor";
 
@@ -115,9 +122,10 @@ const to12Hour = (time24h) => {
 
 const HistoryViewer = ({ history, onRestore, onClose }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
+    initial={{ opacity: 0, y: 16 }}
     animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: 20 }}
+    exit={{ opacity: 0, y: 8, transition: FADE }}
+    transition={DIALOG_SPRING}
     className="absolute inset-x-4 top-20 bottom-4 bg-white rounded-2xl shadow-2xl border border-black/5 z-50 overflow-hidden flex flex-col"
   >
     <div className="flex items-center justify-between p-4 border-b border-black/5 bg-gray-50/50">
@@ -125,7 +133,11 @@ const HistoryViewer = ({ history, onRestore, onClose }) => (
         <HistoryIcon size={18} />
         Entry History
       </h3>
-      <button onClick={onClose} className="p-1 hover:bg-black/5 rounded-full">
+      <button
+        onClick={onClose}
+        aria-label="Close history"
+        className="p-2 -m-1 hover:bg-black/5 rounded-full transition-colors duration-150"
+      >
         <X size={20} />
       </button>
     </div>
@@ -141,20 +153,20 @@ const HistoryViewer = ({ history, onRestore, onClose }) => (
         .map((ver, idx) => (
           <div
             key={ver.timestamp || idx}
-            className="border border-black/5 rounded-xl p-3 hover:bg-gray-50 transition-colors"
+            className="border border-black/5 rounded-xl p-3 hover:bg-gray-50 transition-colors duration-150"
           >
             <div className="flex justify-between items-start mb-2">
               <div>
                 <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block mb-0.5">
                   {ver.action || "Edit"}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 tabular-nums">
                   {new Date(ver.timestamp).toLocaleString()}
                 </span>
               </div>
               <button
                 onClick={() => onRestore(ver)}
-                className="flex items-center gap-1 text-xs font-semibold bg-gray-100 px-2 py-1 rounded-lg hover:bg-gray-200"
+                className="flex items-center gap-1 text-xs font-semibold bg-gray-100 px-2 py-1 rounded-md hover:bg-gray-200 active:scale-[0.96] transition-[background-color,scale] duration-150"
               >
                 <RotateCcw size={12} /> Restore
               </button>
@@ -164,7 +176,7 @@ const HistoryViewer = ({ history, onRestore, onClose }) => (
             </p>
             <div
               className="text-xs text-gray-500 line-clamp-2 mt-1"
-              dangerouslySetInnerHTML={{ __html: ver.content }}
+              dangerouslySetInnerHTML={{ __html: jsonToHtml(ver.content) }}
             />
           </div>
         ))}
@@ -407,6 +419,7 @@ export default function JournalDetailSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             onClick={onClose}
             className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[400]"
           />
@@ -415,8 +428,8 @@ export default function JournalDetailSheet({
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            exit={{ x: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
             className="fixed inset-y-0 right-0 w-full md:max-w-2xl bg-white shadow-2xl z-[401] flex flex-col"
           >
             {/* Header */}
@@ -424,7 +437,7 @@ export default function JournalDetailSheet({
               {isEditing ? (
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="text-[17px] text-[#FF3B30] -ml-2 px-3 py-1"
+                  className="text-[17px] text-[#FF3B30] -ml-2 px-3 py-1 active:opacity-60 disabled:opacity-40 transition-opacity duration-150"
                   disabled={isRefining}
                 >
                   Cancel
@@ -433,7 +446,7 @@ export default function JournalDetailSheet({
                 <div className="flex items-center gap-1">
                   <button
                     onClick={onClose}
-                    className="flex items-center gap-1 text-[#007AFF] text-[17px] font-medium -ml-2 px-2 py-1 rounded-lg hover:bg-black/[0.04] transition-colors"
+                    className="flex items-center gap-1 text-[#007AFF] text-[17px] font-medium -ml-2 px-2 py-1 rounded-lg hover:bg-black/[0.04] active:opacity-60 transition-[background-color,opacity] duration-150"
                   >
                     <ChevronLeft size={22} className="-ml-1" />
                     Back
@@ -452,8 +465,9 @@ export default function JournalDetailSheet({
                           haptic.trigger("warning");
                           setShowDeleteConfirm(true);
                         }}
-                        className="p-2 text-gray-400 hover:text-[#FF3B30] hover:bg-red-50 rounded-full transition-colors"
+                        className="p-2 text-gray-400 hover:text-[#FF3B30] hover:bg-red-50 rounded-full active:scale-[0.96] transition-[color,background-color,scale] duration-150"
                         title="Delete Entry"
+                        aria-label="Delete entry"
                       >
                         <Trash2 size={20} />
                       </button>
@@ -462,8 +476,13 @@ export default function JournalDetailSheet({
                     {/* History Button */}
                     <button
                       onClick={() => setShowHistory(!showHistory)}
-                      className="p-2 text-gray-400 hover:text-black hover:bg-black/5 rounded-full transition-colors"
+                      className={clsx(
+                        "p-2 hover:text-black hover:bg-black/5 rounded-full active:scale-[0.96] transition-[color,background-color,scale] duration-150",
+                        showHistory ? "text-black bg-black/5" : "text-gray-400",
+                      )}
                       title="View History"
+                      aria-label="View history"
+                      aria-pressed={showHistory}
                     >
                       <HistoryIcon size={20} />
                     </button>
@@ -472,7 +491,7 @@ export default function JournalDetailSheet({
                     {justRefined ? (
                       <button
                         onClick={handleUndo}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/5 text-black hover:bg-black/10 transition-colors text-sm font-medium mr-1"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/5 text-black hover:bg-black/10 active:scale-[0.96] transition-[background-color,scale] duration-150 text-sm font-medium mr-1"
                       >
                         <RotateCcw size={14} />
                         Undo
@@ -482,10 +501,10 @@ export default function JournalDetailSheet({
                         onClick={handleRefine}
                         disabled={isRefining}
                         className={clsx(
-                          "flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-semibold transition-all mr-1",
+                          "flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-semibold transition-[box-shadow,scale] duration-150 mr-1",
                           isRefining
                             ? "bg-[#E5E5EA] text-[#8E8E93]"
-                            : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md hover:shadow-lg"
+                            : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md hover:shadow-lg active:scale-[0.96]"
                         )}
                       >
                         {isRefining ? (
@@ -504,7 +523,7 @@ export default function JournalDetailSheet({
                 {isEditing ? (
                   <button
                     onClick={handleSave}
-                    className="text-[17px] font-semibold text-[#007AFF] -mr-2 px-3 py-1"
+                    className="text-[17px] font-semibold text-[#007AFF] -mr-2 px-3 py-1 active:opacity-60 disabled:opacity-40 transition-opacity duration-150"
                     disabled={isRefining}
                   >
                     Save
@@ -515,7 +534,7 @@ export default function JournalDetailSheet({
                       haptic.trigger("medium");
                       setIsEditing(true);
                     }}
-                    className="text-[17px] font-medium text-[#007AFF] px-2"
+                    className="text-[17px] font-medium text-[#007AFF] px-2 active:opacity-60 transition-opacity duration-150"
                   >
                     Edit
                   </button>
@@ -540,21 +559,19 @@ export default function JournalDetailSheet({
                 {isEditing ? (
                   <motion.div
                     key="edit-mode"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 30,
-                    }}
+                    initial={{ opacity: 0, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, filter: "blur(4px)" }}
+                    transition={{ duration: 0.15, ease: EASE_OUT }}
                     className="px-5 py-6 flex flex-col gap-5"
                   >
                     <div className="flex items-start gap-4 mb-6">
                       <div className="relative shrink-0">
                         <button
                           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                          className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center text-4xl shadow-sm border border-black/5 hover:bg-gray-100 transition-colors"
+                          aria-label="Choose mood"
+                          aria-expanded={showEmojiPicker}
+                          className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center text-4xl shadow-sm border border-black/5 hover:bg-gray-100 active:scale-[0.96] transition-[background-color,scale] duration-150"
                         >
                           {mood}
                         </button>
@@ -585,7 +602,7 @@ export default function JournalDetailSheet({
                           className="w-full text-[22px] font-bold bg-transparent outline-none placeholder:text-gray-300 leading-tight"
                           placeholder="Entry Title"
                         />
-                        <p className="text-[15px] text-gray-400 mt-1">
+                        <p className="text-[15px] text-gray-400 mt-1 tabular-nums">
                           {date ? new Date(date).toLocaleDateString() : "Today"}{" "}
                           • {time || "No time set"}
                         </p>
@@ -636,14 +653,10 @@ export default function JournalDetailSheet({
                 ) : (
                   <motion.div
                     key="view-mode"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 30,
-                    }}
+                    initial={{ opacity: 0, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, filter: "blur(4px)" }}
+                    transition={{ duration: 0.15, ease: EASE_OUT }}
                     className="max-w-none px-6 py-8 cursor-text"
                     onDoubleClick={() => setIsEditing(true)}
                   >
@@ -654,7 +667,7 @@ export default function JournalDetailSheet({
                           <h1 className="text-3xl font-bold text-[#1C1C1E] leading-tight mb-2">
                             {title || "Untitled Entry"}
                           </h1>
-                          <div className="flex items-center gap-4 text-[13px] text-[rgba(60,60,67,0.5)] font-medium">
+                          <div className="flex items-center gap-4 text-[13px] text-[rgba(60,60,67,0.5)] font-medium tabular-nums">
                             <div className="flex items-center gap-1.5">
                               <Calendar size={14} />
                               {getRelativeTime(date)}
@@ -672,8 +685,8 @@ export default function JournalDetailSheet({
                       key={JSON.stringify(content)}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                      className="prose prose-lg max-w-none prose-headings:font-bold prose-p:text-[17px] prose-p:leading-relaxed prose-a:text-[#007AFF] prose-img:rounded-xl prose-img:shadow-sm"
+                      transition={{ duration: 0.2, ease: EASE_OUT }}
+                      className="prose prose-lg max-w-none prose-headings:font-bold prose-p:text-[17px] prose-p:leading-relaxed prose-a:text-[#007AFF] prose-img:rounded-xl prose-img:shadow-sm prose-img:outline prose-img:outline-1 prose-img:-outline-offset-1 prose-img:outline-[oklch(0_0_0/0.1)]"
                       dangerouslySetInnerHTML={{
                         __html: jsonToHtml(content),
                       }}
@@ -691,13 +704,15 @@ export default function JournalDetailSheet({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
+                    transition={FADE}
                     onClick={() => setShowDeleteConfirm(false)}
                     className="absolute inset-0 bg-black/40 backdrop-blur-sm z-[50]"
                   />
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97, transition: FADE }}
+                    transition={DIALOG_SPRING}
                     className="absolute left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl overflow-hidden z-[51] max-w-sm mx-auto shadow-2xl"
                   >
                     <div className="p-6 text-center">

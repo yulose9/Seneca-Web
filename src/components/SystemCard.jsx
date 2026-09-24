@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
+import { TAP, TAP_TRANSITION } from '../constants/motion';
 
 /**
  * iOS 18 Material Card Component
@@ -45,8 +46,6 @@ export default function SystemCard({
                 paddingClasses[padding],
                 // Interactive states
                 isInteractive && "cursor-pointer",
-                // Transition
-                "transition-all duration-200 ease-out",
                 className
             )}
         >
@@ -56,10 +55,7 @@ export default function SystemCard({
 
     if (animate && isInteractive) {
         return (
-            <motion.div
-                whileTap={{ scale: 0.98, opacity: 0.9 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            >
+            <motion.div whileTap={TAP} transition={TAP_TRANSITION}>
                 {cardContent}
             </motion.div>
         );

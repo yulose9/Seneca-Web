@@ -3,6 +3,7 @@ import { useWebHaptics } from "web-haptics/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronRight, Clock, Lock, Minus, Plus } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
+import { EASE_OUT, TAP } from "../constants/motion";
 import AddCertificationSheet from "../components/AddCertificationSheet";
 import AddGoalSheet from "../components/AddGoalSheet";
 import CertificationDetailSheet from "../components/CertificationDetailSheet";
@@ -297,7 +298,7 @@ const ProgressRing = ({
           style={{ stroke: color }}
         />
       </svg>
-      <span className="absolute text-sm font-bold" style={{ color }}>
+      <span className="absolute text-sm font-bold tabular-nums" style={{ color }}>
         {progress}%
       </span>
     </div>
@@ -357,7 +358,7 @@ const CourseRow = ({
       onClick={() => onClick?.(item)}
       whileTap={{ scale: 0.98, backgroundColor: "rgba(0,0,0,0.02)" }}
       className={clsx(
-        "flex items-center py-4 px-4 cursor-pointer transition-all",
+        "flex items-center py-4 px-4 cursor-pointer transition-colors duration-150",
         !isLast && "border-b border-[rgba(60,60,67,0.12)]",
         isActive && "bg-[#007AFF]/5"
       )}
@@ -487,28 +488,27 @@ const ClickableStreakGrid = ({
             };
           } else {
             // Partial (fallback)
-            bgStyle = { backgroundColor: color, opacity: 0.5 };
+            bgStyle = { backgroundColor: `color-mix(in srgb, ${color} 50%, transparent)` };
           }
 
           return (
             <motion.div
               key={index}
               onClick={() => onToggle && onToggle(dateStr)}
-              whileTap={{ scale: 0.85 }}
+              whileTap={TAP}
               className={clsx(
-                "aspect-square rounded-[4px] relative transition-all duration-300 cursor-pointer active:opacity-80",
+                "aspect-square rounded-[4px] relative transition-[background-color,box-shadow] duration-150 cursor-pointer",
                 isToday &&
                 "ring-2 ring-offset-2 ring-offset-white ring-[#007AFF]"
               )}
               style={{ ...bgStyle, ...glowStyle }}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{
-                scale: isComplete && isToday ? 1.05 : 1,
-                opacity: bgStyle.opacity || 1,
-              }}
+              // Mount-only stagger: animate targets never change, so toggling a
+              // cell doesn't inherit its entrance delay.
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
               transition={{
-                delay: index * 0.02,
-                scale: { type: "spring", stiffness: 400, damping: 25 },
+                opacity: { delay: index * 0.012, duration: 0.2, ease: EASE_OUT },
+                scale: { delay: index * 0.012, type: "spring", duration: 0.3, bounce: 0 },
               }}
             />
           );
@@ -560,7 +560,7 @@ const StudyGoalCard = ({ certificate, history, onToggle, onClear }) => {
           <h3 className="text-[20px] font-bold text-black">Study Goal</h3>
         </div>
         <motion.button
-          whileTap={{ scale: 0.9 }}
+          whileTap={TAP}
           onClick={onClear}
           className="text-[13px] font-medium text-[#FF3B30]"
         >
@@ -637,15 +637,15 @@ const WeightGoalCard = ({
           <div className="flex items-center gap-2">
             <span className="text-[15px] font-semibold text-black">Weight</span>
             <span className="text-[15px] text-[rgba(60,60,67,0.6)]">
-              {currentWeight}kg
+              <span className="tabular-nums">{currentWeight}</span>kg
             </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[13px] text-[rgba(60,60,67,0.6)]">
-              Goal {goalWeight}kg
+              Goal <span className="tabular-nums">{goalWeight}</span>kg
             </span>
             <motion.button
-              whileTap={{ scale: 0.9 }}
+              whileTap={TAP}
               onClick={onUpdateWeight}
               className="w-7 h-7 rounded-full bg-[#007AFF] flex items-center justify-center shadow-sm"
             >
@@ -661,13 +661,13 @@ const WeightGoalCard = ({
             style={{ backgroundColor: color }}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1] }}
+            transition={{ duration: 0.5, ease: EASE_OUT }}
           />
         </div>
 
         <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-2">
           You lost{" "}
-          <span className="font-semibold text-black">
+          <span className="font-semibold text-black tabular-nums">
             {weightLost > 0 ? weightLost : 0} kg
           </span>
         </p>
@@ -1048,7 +1048,7 @@ export default function Growth() {
             </h2>
           </div>
           <motion.button
-            whileTap={{ scale: 0.9 }}
+            whileTap={TAP}
             onClick={() => { haptic.trigger("medium"); setShowAddGoalSheet(true); }}
             className="w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center shadow-md"
           >
@@ -1115,7 +1115,7 @@ export default function Growth() {
             </h2>
           </div>
           <motion.button
-            whileTap={{ scale: 0.9 }}
+            whileTap={TAP}
             onClick={() => { haptic.trigger("medium"); setShowAddCertSheet(true); }}
             className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center shadow-sm"
           >

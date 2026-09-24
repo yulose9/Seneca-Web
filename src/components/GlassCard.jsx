@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
+import { TAP, TAP_TRANSITION } from '../constants/motion';
 
 /**
  * iOS 18 Glass/Frosted Material Card
@@ -35,8 +36,6 @@ export default function GlassCard({
                 "shadow-[0_4px_24px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.06)]",
                 // Interactive states
                 isInteractive && "cursor-pointer",
-                // Transition
-                "transition-all duration-200 ease-out",
                 className
             )}
             style={style}
@@ -58,10 +57,7 @@ export default function GlassCard({
 
     if (isInteractive) {
         return (
-            <motion.div
-                whileTap={{ scale: 0.98, opacity: 0.9 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            >
+            <motion.div whileTap={TAP} transition={TAP_TRANSITION}>
                 {cardContent}
             </motion.div>
         );
@@ -93,12 +89,12 @@ export function TintedCard({
     return (
         <motion.div
             onClick={onClick}
-            whileTap={isInteractive ? { scale: 0.98, opacity: 0.9 } : undefined}
+            whileTap={isInteractive ? TAP : undefined}
+            transition={TAP_TRANSITION}
             className={clsx(
                 "relative overflow-hidden rounded-2xl mb-4 p-5",
                 "border",
                 isInteractive && "cursor-pointer",
-                "transition-all duration-200 ease-out",
                 className
             )}
             style={{
@@ -126,12 +122,12 @@ export function HeroCard({
     return (
         <motion.div
             onClick={onClick}
-            whileTap={isInteractive ? { scale: 0.98 } : undefined}
+            whileTap={isInteractive ? TAP : undefined}
+            transition={TAP_TRANSITION}
             className={clsx(
                 "relative overflow-hidden rounded-3xl mb-4 p-6",
                 "text-white",
                 isInteractive && "cursor-pointer",
-                "transition-all duration-200 ease-out",
                 className
             )}
             style={{

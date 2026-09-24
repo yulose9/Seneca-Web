@@ -3,6 +3,17 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check } from "lucide-react";
 import React, { useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import {
+  FADE,
+  ICON_ENTER,
+  ICON_SPRING,
+  ICON_VISIBLE,
+  LAYOUT_SPRING,
+  SHEET_EXIT,
+  SHEET_SPRING,
+  TAP,
+  TAP_TRANSITION,
+} from "../constants/motion";
 
 // Phase options with colors matching the app theme
 const PHASE_OPTIONS = [
@@ -116,6 +127,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             onClick={() => { haptic.trigger("medium"); onClose(); }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
           />
@@ -124,14 +136,18 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            exit={{ y: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
+            role="dialog"
+            aria-modal="true"
+            aria-label={categoryTitle}
             className="fixed bottom-0 left-0 right-0 z-50 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden"
           >
             {/* Drag Handle */}
             <div
               className="flex justify-center pt-3 pb-2 cursor-pointer"
               onClick={() => { haptic.trigger("medium"); onClose(); }}
+              aria-hidden="true"
             >
               <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
             </div>
@@ -169,8 +185,11 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
               {/* Icon Preview - Centered Hero Style (like Reminders) */}
               <div className="flex flex-col items-center py-8">
                 <motion.button
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={TAP}
+                  transition={TAP_TRANSITION}
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  aria-label="Change icon"
+                  aria-expanded={showEmojiPicker}
                   className="relative"
                 >
                   <div
@@ -199,7 +218,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 350, opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    transition={LAYOUT_SPRING}
                     className="overflow-hidden mx-4 mb-4 rounded-xl"
                   >
                     <EmojiPicker
@@ -256,7 +275,10 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                   <div className="flex items-center justify-between min-h-[44px] px-4 border-b border-[rgba(60,60,67,0.12)]">
                     <span className="text-[17px] text-black">Assign to Phase</span>
                     <motion.button
-                      whileTap={{ scale: 0.9 }}
+                      whileTap={TAP}
+                      role="switch"
+                      aria-checked={phaseEnabled}
+                      aria-label="Assign to Phase"
                       onClick={() => { haptic.trigger("selection"); setPhaseEnabled(!phaseEnabled); }}
                       className="relative w-[51px] h-[31px] rounded-full transition-colors duration-200"
                       style={{
@@ -264,9 +286,10 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                       }}
                     >
                       <motion.div
-                        className="absolute top-[2px] w-[27px] h-[27px] rounded-full bg-white shadow-sm"
-                        animate={{ left: phaseEnabled ? 22 : 2 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        className="absolute top-[2px] left-[2px] w-[27px] h-[27px] rounded-full bg-white shadow-sm"
+                        initial={false}
+                        animate={{ x: phaseEnabled ? 20 : 0 }}
+                        transition={ICON_SPRING}
                       />
                     </motion.button>
                   </div>
@@ -279,13 +302,15 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                       initial={!isPersonal ? { height: 0, opacity: 0 } : false}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                      transition={LAYOUT_SPRING}
                       style={{ overflow: "hidden" }}
                     >
                       {PHASE_OPTIONS.map((phase, index) => (
                         <motion.button
                           key={phase.id}
                           whileTap={{ scale: 0.98 }}
+                          transition={TAP_TRANSITION}
+                          aria-pressed={selectedPhase === phase.id}
                           onClick={() => { haptic.trigger("selection"); setSelectedPhase(phase.id); }}
                           className={`w-full flex items-center justify-between min-h-[44px] px-4 ${index !== PHASE_OPTIONS.length - 1
                               ? "border-b border-[rgba(60,60,67,0.12)]"
@@ -303,15 +328,19 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                               {phase.label}
                             </span>
                           </div>
-                          {selectedPhase === phase.id && (
-                            <motion.div
-                              initial={{ scale: 0, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              transition={{ type: "spring", damping: 15 }}
-                            >
-                              <Check size={20} className="text-[#007AFF]" />
-                            </motion.div>
-                          )}
+                          <AnimatePresence initial={false}>
+                            {selectedPhase === phase.id && (
+                              <motion.div
+                                key="check"
+                                initial={ICON_ENTER}
+                                animate={ICON_VISIBLE}
+                                exit={ICON_ENTER}
+                                transition={ICON_SPRING}
+                              >
+                                <Check size={20} className="text-[#007AFF]" />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </motion.button>
                       ))}
                     </motion.div>

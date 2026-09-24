@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useWebHaptics } from 'web-haptics/react';
 import { authService } from '../services/authService';
-import { Lock, Smartphone } from 'lucide-react';
+import { AlertCircle, Lock, Smartphone } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { EASE_OUT } from '../constants/motion';
 
 export default function LoginScreen({ onLoginSuccess }) {
     const [error, setError] = useState(null);
@@ -36,9 +37,9 @@ export default function LoginScreen({ onLoginSuccess }) {
             </div>
 
             <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                initial={{ scale: 0.96, opacity: 0, y: 12 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                transition={{ type: "spring", duration: 0.5, bounce: 0 }}
                 className="relative w-full max-w-sm bg-white/60 border border-white/50 rounded-[32px] p-8 backdrop-blur-xl shadow-2xl shadow-black/5"
             >
                 <div className="flex justify-center mb-8">
@@ -56,11 +57,13 @@ export default function LoginScreen({ onLoginSuccess }) {
 
                 {error && (
                     <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
+                        role="alert"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2, ease: EASE_OUT }}
                         className="mb-8 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-2xl text-[#FF3B30] text-[14px] font-medium text-left flex items-start gap-3"
                     >
-                        <span>⚠️</span>
+                        <AlertCircle size={18} strokeWidth={2} className="shrink-0 mt-px" aria-hidden="true" />
                         <span>{error}</span>
                     </motion.div>
                 )}
@@ -68,13 +71,13 @@ export default function LoginScreen({ onLoginSuccess }) {
                 <button
                     onClick={handleLogin}
                     disabled={loading}
-                    className="group w-full py-4 bg-[#000000] text-white font-semibold rounded-2xl active:scale-[0.98] transition-all hover:bg-[#1C1C1E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-black/10"
+                    className="group w-full py-4 bg-[#000000] text-white font-semibold rounded-2xl active:scale-[0.96] transition-[scale,background-color] duration-150 ease-out hover:bg-[#1C1C1E] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-black/10"
                 >
                     {loading ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
                         <>
-                            <Smartphone size={20} className="group-hover:scale-110 transition-transform" />
+                            <Smartphone size={20} strokeWidth={2} className="group-hover:scale-110 transition-[scale] duration-150 ease-out" aria-hidden="true" />
                             <span>Authenticate</span>
                         </>
                     )}

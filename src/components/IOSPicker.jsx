@@ -1,5 +1,5 @@
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
-import React, { useEffect, useRef, useState } from "react";
+import { motion, useSpring, useTransform } from "framer-motion";
+import React, { useEffect, useRef } from "react";
 import { useWebHaptics } from "web-haptics/react";
 
 const ITEM_HEIGHT = 44; // Standard iOS height
@@ -48,7 +48,7 @@ export default function IOSPicker({ items, value, onChange, label }) {
             <div
                 ref={containerRef}
                 onScroll={handleScroll}
-                className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide py-[88px]" // py = (height - itemHeight) / 2
+                className="h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar py-[88px]" // py = (height - itemHeight) / 2
                 style={{
                     perspective: "1000px",
                     perspectiveOrigin: "center center",

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { ArrowDownLeft, ArrowUpRight, Copy, Share, Tag, Calendar, MapPin, CreditCard } from 'lucide-react';
 import { useWebHaptics } from "web-haptics/react";
+import { FADE, SHEET_EXIT, SHEET_SPRING, TAP, TAP_TRANSITION } from "../constants/motion";
 
 const SystemColors = {
     green: '#34C759',
@@ -15,11 +16,18 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
     const [cachedTransaction, setCachedTransaction] = useState(transaction);
     const haptic = useWebHaptics();
 
-    useEffect(() => {
-        if (transaction) setCachedTransaction(transaction);
-    }, [transaction]);
+    // Keep the last transaction so the sheet can finish its exit after the parent clears it
+    if (transaction && transaction !== cachedTransaction) setCachedTransaction(transaction);
 
     const activeTransaction = transaction || cachedTransaction;
+
+    // Stable per transaction — Math.random() here re-rolled the reference on every render
+    const reference = useMemo(() => {
+        const seed = String(activeTransaction?.id ?? activeTransaction?.date ?? '');
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+        return `#TRX-${String(hash % 1000000).padStart(6, '0')}`;
+    }, [activeTransaction?.id, activeTransaction?.date]);
 
     if (!activeTransaction) return null;
 
@@ -32,7 +40,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
     // Mock extra data for visual richness
     const details = [
         { label: 'Status', value: 'Completed', icon: <div className="w-2 h-2 rounded-full bg-[#34C759]" /> },
-        { label: 'Reference', value: `#TRX-${Math.floor(Math.random() * 1000000)}`, icon: <Copy size={14} className="text-[rgba(60,60,67,0.4)]" /> },
+        { label: 'Reference', value: reference, icon: <Copy size={14} className="text-[rgba(60,60,67,0.4)]" /> },
         { label: 'Category', value: isDeposit ? 'Income' : 'Expense', icon: <Tag size={16} className="text-[rgba(60,60,67,0.6)]" /> },
     ];
 
@@ -45,6 +53,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        transition={FADE}
                         onClick={() => { haptic.trigger("medium"); onClose(); }}
                         className="ios-sheet-backdrop"
                     />
@@ -53,8 +62,8 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                     <motion.div
                         initial={{ y: "100%" }}
                         animate={{ y: 0 }}
-                        exit={{ y: "100%" }}
-                        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                        exit={{ y: "100%", transition: SHEET_EXIT }}
+                        transition={SHEET_SPRING}
                         className="ios-sheet"
                     >
                         {/* Handle */}
@@ -75,14 +84,14 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                                         <ArrowUpRight size={32} color={color} />
                                     )}
                                 </div>
-                                <h2 className="text-[32px] font-bold text-black tracking-tight leading-tight mb-1">
+                                <h2 className="text-[32px] font-bold text-black tracking-tight leading-tight mb-1 tabular-nums">
                                     {isDeposit ? '+' : '-'}₱{activeTransaction.amount.toLocaleString()}
                                 </h2>
                                 <p
                                     onClick={() => onAccountClick && onAccountClick(activeTransaction)}
                                     className={clsx(
                                         "text-[17px] font-medium text-[rgba(60,60,67,0.6)]",
-                                        onAccountClick && "cursor-pointer hover:text-black transition-colors"
+                                        onAccountClick && "cursor-pointer hover:text-black transition-colors duration-150"
                                     )}
                                 >
                                     {activeTransaction.bank}
@@ -110,7 +119,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                                     </div>
                                 </div>
                                 <div
-                                    className={clsx("flex items-center p-4 cursor-pointer active:bg-black/5 transition-colors")}
+                                    className={clsx("flex items-center p-4 cursor-pointer active:bg-black/5 transition-colors duration-150")}
                                     onClick={() => onAccountClick && onAccountClick(activeTransaction)}
                                 >
                                     <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center mr-3 shrink-0 text-[rgba(60,60,67,0.6)]">
@@ -140,7 +149,8 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
 
                             {/* Actions */}
                             <motion.button
-                                whileTap={{ scale: 0.98 }}
+                                whileTap={TAP}
+                                transition={TAP_TRANSITION}
                                 className="w-full h-[52px] bg-black text-white rounded-xl font-bold text-[17px] flex items-center justify-center mb-3 shadow-lg shadow-black/10"
                             >
                                 <Share size={18} className="mr-2" />
@@ -148,7 +158,8 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                             </motion.button>
 
                             <motion.button
-                                whileTap={{ scale: 0.98 }}
+                                whileTap={TAP}
+                                transition={TAP_TRANSITION}
                                 onClick={() => { haptic.trigger("medium"); onClose(); }}
                                 className="w-full h-[52px] bg-[rgba(120,120,128,0.08)] text-black rounded-xl font-semibold text-[17px] flex items-center justify-center"
                             >

@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Download, FileJson } from "lucide-react";
 import React, { useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
@@ -7,6 +7,7 @@ import {
   exportForLLM,
   getLastNDaysLogs,
 } from "../services/dataLogger";
+import { DIALOG_SPRING, FADE, TAP, TAP_TRANSITION } from "../constants/motion";
 
 /**
  * Export Data Component
@@ -42,19 +43,32 @@ export default function ExportDataButton() {
     a.href = url;
     a.download = filename;
     a.click();
-    URL.revokeObjectURL(url);
+    // Revoking synchronously can cancel the download in Safari/Firefox
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     haptic.trigger("success");
     setShowModal(false);
   };
 
   const logs = getLastNDaysLogs(7);
+  const avgCompletion = logs.length
+    ? Math.round(
+        (logs.reduce(
+          (sum, log) => sum + (log.protocol?.completion_rate || 0),
+          0,
+        ) /
+          logs.length) *
+          100,
+      )
+    : 0;
 
   return (
     <>
       {/* Trigger Button */}
       <motion.button
-        whileTap={{ scale: 0.95 }}
+        whileTap={TAP}
+        transition={TAP_TRANSITION}
+        aria-label="Export data"
         onClick={() => {
           haptic.trigger("medium");
           setShowModal(true);
@@ -65,18 +79,27 @@ export default function ExportDataButton() {
       </motion.button>
 
       {/* Modal */}
+      <AnimatePresence>
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <div
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={FADE}
             onClick={() => setShowModal(false)}
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
           />
 
           {/* Modal Content */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.97, opacity: 0, transition: FADE }}
+            transition={DIALOG_SPRING}
+            role="dialog"
+            aria-modal="true"
             className="relative bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"
           >
             <h2 className="text-[22px] font-bold text-black mb-2">
@@ -93,23 +116,14 @@ export default function ExportDataButton() {
               </p>
               <div className="flex justify-between">
                 <div>
-                  <p className="text-[24px] font-bold text-black">
+                  <p className="text-[24px] font-bold text-black tabular-nums">
                     {logs.length}
                   </p>
                   <p className="text-[13px] text-[#86868B]">Days Tracked</p>
                 </div>
                 <div>
-                  <p className="text-[24px] font-bold text-[#007AFF]">
-                    {Math.round(
-                      (logs.reduce(
-                        (sum, log) =>
-                          sum + (log.protocol?.completion_rate || 0),
-                        0
-                      ) /
-                        logs.length) *
-                        100
-                    )}
-                    %
+                  <p className="text-[24px] font-bold text-[#007AFF] tabular-nums">
+                    {avgCompletion}%
                   </p>
                   <p className="text-[13px] text-[#86868B]">Avg Completion</p>
                 </div>
@@ -143,7 +157,8 @@ export default function ExportDataButton() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setExportType("json")}
-                    className={`flex-1 px-4 py-3 rounded-xl text-[15px] font-medium transition-colors ${
+                    aria-pressed={exportType === "json"}
+                    className={`flex-1 px-4 py-3 rounded-xl text-[15px] font-medium transition-[background-color,color,scale] duration-150 active:scale-[0.96] ${
                       exportType === "json"
                         ? "bg-[#007AFF] text-white"
                         : "bg-[#F2F2F7] text-black"
@@ -153,7 +168,8 @@ export default function ExportDataButton() {
                   </button>
                   <button
                     onClick={() => setExportType("prompt")}
-                    className={`flex-1 px-4 py-3 rounded-xl text-[15px] font-medium transition-colors ${
+                    aria-pressed={exportType === "prompt"}
+                    className={`flex-1 px-4 py-3 rounded-xl text-[15px] font-medium transition-[background-color,color,scale] duration-150 active:scale-[0.96] ${
                       exportType === "prompt"
                         ? "bg-[#007AFF] text-white"
                         : "bg-[#F2F2F7] text-black"
@@ -169,13 +185,13 @@ export default function ExportDataButton() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-3 rounded-xl text-[17px] font-semibold text-[#007AFF] bg-[#F2F2F7]"
+                className="flex-1 px-4 py-3 rounded-xl text-[17px] font-semibold text-[#007AFF] bg-[#F2F2F7] active:scale-[0.96] transition-[scale] duration-150"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExport}
-                className="flex-1 px-4 py-3 rounded-xl text-[17px] font-semibold text-white bg-[#007AFF] flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 rounded-xl text-[17px] font-semibold text-white bg-[#007AFF] flex items-center justify-center gap-2 active:scale-[0.96] transition-[scale] duration-150"
               >
                 <Download size={18} />
                 Export
@@ -184,6 +200,7 @@ export default function ExportDataButton() {
           </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </>
   );
 }

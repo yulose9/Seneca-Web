@@ -53,6 +53,7 @@ import React, {
 
 // Slash Command
 import Commands from "./editor/Commands";
+import { EASE_OUT, TAP, TAP_TRANSITION } from "../constants/motion";
 import EditorBubbleMenu from "./editor/EditorBubbleMenu";
 import suggestion from "./editor/suggestion";
 
@@ -113,12 +114,15 @@ const FLOATING_ACTIONS = [
 const ToolbarButton = ({ onClick, isActive, disabled, children, title }) => (
   <motion.button
     type="button"
-    whileTap={{ scale: 0.9 }}
+    whileTap={disabled ? undefined : TAP}
+    transition={TAP_TRANSITION}
     onClick={onClick}
     disabled={disabled}
     title={title}
+    aria-label={title}
+    aria-pressed={isActive}
     className={clsx(
-      "w-10 h-10 rounded-lg flex items-center justify-center transition-colors shrink-0",
+      "w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-150 shrink-0",
       isActive
         ? "bg-[#007AFF] text-white"
         : "bg-transparent text-[rgba(60,60,67,0.6)] hover:bg-[rgba(120,120,128,0.12)]",
@@ -211,7 +215,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
     editorProps: {
       attributes: {
         class: clsx(
-          "prose prose-base max-w-none focus:outline-none min-h-[120px] px-4 py-8 text-[17px] text-black prose-img:rounded-lg",
+          "prose prose-base max-w-none focus:outline-none min-h-[120px] px-4 py-8 text-[17px] text-black prose-img:rounded-lg prose-img:outline prose-img:outline-1 prose-img:-outline-offset-1 prose-img:outline-[oklch(0_0_0/0.1)]",
           className,
         ),
       },
@@ -346,7 +350,8 @@ const RichTextEditor = forwardRef(function RichTextEditor(
                     editor.chain().focus().toggleHighlight({ color: c }).run();
                     setShowHighlightPicker(false);
                   }}
-                  className="w-6 h-6 rounded-full border border-gray-200 hover:scale-110 transition-transform"
+                  aria-label={`Highlight ${c}`}
+                  className="w-6 h-6 rounded-full border border-gray-200 active:scale-[0.96] transition-[scale] duration-150"
                   style={{ backgroundColor: c }}
                 />
               ))}
@@ -478,9 +483,11 @@ const RichTextEditor = forwardRef(function RichTextEditor(
         <div className="floating-menu-wrapper">
           <motion.button
             type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={TAP}
+            transition={TAP_TRANSITION}
             onClick={() => setShowFloatingActions(!showFloatingActions)}
+            aria-label="Insert block"
+            aria-expanded={showFloatingActions}
             className="floating-menu-trigger"
           >
             <Plus size={16} />
@@ -488,10 +495,11 @@ const RichTextEditor = forwardRef(function RichTextEditor(
           <AnimatePresence>
             {showFloatingActions && (
               <motion.div
-                initial={{ opacity: 0, x: -10, scale: 0.95 }}
+                initial={{ opacity: 0, x: -4, scale: 0.97 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
+                exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.1, ease: EASE_OUT } }}
+                transition={{ duration: 0.12, ease: EASE_OUT }}
+                style={{ transformOrigin: "left center" }}
                 className="floating-menu-actions"
               >
                 {FLOATING_ACTIONS.map((action) => {
@@ -506,6 +514,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
                       }}
                       className="floating-menu-action"
                       title={action.label}
+                      aria-label={action.label}
                     >
                       <Icon size={16} />
                     </button>

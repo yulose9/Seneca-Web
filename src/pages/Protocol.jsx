@@ -13,6 +13,14 @@ import AddTaskSheet from "../components/AddTaskSheet";
 import HabitDetailSheet from "../components/HabitDetailSheet";
 import { TasksReminderSettingsSheet } from "../components/ObligationReminder";
 import PageTransition from "../components/PageTransition";
+import {
+  ICON_ENTER,
+  ICON_SPRING,
+  ICON_VISIBLE,
+  LAYOUT_SPRING,
+  TAP,
+  TAP_TRANSITION,
+} from "../constants/motion";
 import { useProtocol } from "../context/ProtocolContext";
 
 // Format current date iOS style
@@ -26,7 +34,10 @@ const formatDate = () => {
 const Checkbox = ({ done, onClick }) => {
   return (
     <motion.button
-      whileTap={{ scale: 0.85 }}
+      whileTap={TAP}
+      transition={TAP_TRANSITION}
+      aria-pressed={done}
+      aria-label={done ? "Mark as not done" : "Mark as done"}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -36,20 +47,25 @@ const Checkbox = ({ done, onClick }) => {
         done && "checked"
       )}
     >
-      {done && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        >
-          <Check
-            size={14}
-            strokeWidth={3}
-            className="ios-checkbox-icon"
-            style={{ opacity: 1, transform: "scale(1)" }}
-          />
-        </motion.div>
-      )}
+      <AnimatePresence initial={false}>
+        {done && (
+          <motion.div
+            key="check"
+            initial={ICON_ENTER}
+            animate={ICON_VISIBLE}
+            exit={ICON_ENTER}
+            transition={ICON_SPRING}
+            className="flex items-center justify-center"
+          >
+            <Check
+              size={14}
+              strokeWidth={3}
+              className="ios-checkbox-icon"
+              style={{ opacity: 1, transform: "none" }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.button>
   );
 };
@@ -163,7 +179,7 @@ const LongPressReorderItem = ({ children, value, className }) => {
         animate={
           isHolding ? { scale: 1.01, opacity: 0.92 } : { scale: 1, opacity: 1 }
         }
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        transition={LAYOUT_SPRING}
       >
         {children}
       </motion.div>
@@ -188,7 +204,7 @@ const TaskRow = ({ task, onToggle, onClick, isLast }) => {
       <span className="text-2xl mx-3 select-none">{task.emoji}</span>
       <span
         className={clsx(
-          "flex-1 text-[17px] transition-all duration-200",
+          "flex-1 text-[17px] transition-colors duration-150",
           task.done
             ? "text-[rgba(60,60,67,0.3)] line-through decoration-[rgba(60,60,67,0.2)]"
             : "text-black",
@@ -239,24 +255,22 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
                   : "none",
               }}
               layout
-              transition={{
-                layout: { type: "spring", stiffness: 500, damping: 35 },
-              }}
-              whileTap={{ scale: 0.95 }}
+              transition={{ layout: LAYOUT_SPRING, scale: TAP_TRANSITION }}
+              whileTap={TAP}
+              aria-pressed={isActive}
+              aria-label={cat.label}
             >
               <motion.div
                 className="protocol-pill-content"
                 layout
-                transition={{
-                  layout: { type: "spring", stiffness: 500, damping: 35 },
-                }}
+                transition={{ layout: LAYOUT_SPRING }}
               >
                 <IconComp
                   size={18}
                   strokeWidth={2}
                   className="protocol-pill-icon"
                 />
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="popLayout" initial={false}>
                   {isActive && (
                     <motion.span
                       key={`label-${cat.id}`}
@@ -265,9 +279,9 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
                       animate={{ maxWidth: 120, opacity: 1, marginLeft: 4 }}
                       exit={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
                       transition={{
-                        maxWidth: { type: "spring", stiffness: 500, damping: 35 },
+                        maxWidth: LAYOUT_SPRING,
                         opacity: { duration: 0.15, delay: 0.05 },
-                        marginLeft: { type: "spring", stiffness: 500, damping: 35 },
+                        marginLeft: LAYOUT_SPRING,
                       }}
                       style={{ overflow: "hidden", whiteSpace: "nowrap", display: "inline-block" }}
                     >
@@ -288,9 +302,9 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
 const EmptyCategoryState = ({ categoryLabel }) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      transition={LAYOUT_SPRING}
       className="protocol-empty-state"
     >
       <div className="protocol-empty-icon">📋</div>
@@ -322,7 +336,16 @@ const PhaseSection = ({
     <section className="ios-list-section">
       {/* Section Header */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
         onClick={() => onToggleExpand(phaseId)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggleExpand(phaseId);
+          }
+        }}
         className="flex items-center justify-between px-4 mb-2 cursor-pointer"
       >
         <h3 className="ios-list-header px-0 pb-0">{phase.title}</h3>
@@ -332,8 +355,9 @@ const PhaseSection = ({
           )}
           {isPhaseComplete && (
             <motion.span
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
+              transition={ICON_SPRING}
               className="ios-pill ios-pill-green text-[11px]"
             >
               Completed
@@ -341,7 +365,7 @@ const PhaseSection = ({
           )}
           <motion.div
             animate={{ rotate: isExpanded ? 90 : 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            transition={LAYOUT_SPRING}
           >
             <ChevronRight size={16} className="text-[#C7C7CC]" />
           </motion.div>
@@ -362,12 +386,7 @@ const PhaseSection = ({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{
-                type: "spring",
-                damping: 25,
-                stiffness: 300,
-                opacity: { duration: 0.2 },
-              }}
+              transition={{ ...LAYOUT_SPRING, opacity: { duration: 0.2 } }}
               className="overflow-hidden"
             >
               <Reorder.Group
@@ -399,11 +418,7 @@ const PhaseSection = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{
-                type: "spring",
-                damping: 25,
-                stiffness: 300,
-              }}
+              transition={LAYOUT_SPRING}
               onClick={() => onToggleExpand(phaseId)}
               whileTap={{ scale: 0.98 }}
               className={clsx(
@@ -415,7 +430,7 @@ const PhaseSection = ({
                 <span className="text-2xl">{phase.emoji}</span>
                 <span
                   className={clsx(
-                    "text-[17px] font-medium transition-colors",
+                    "text-[17px] font-medium tabular-nums transition-colors",
                     isPhaseComplete ? "text-white" : "text-black",
                   )}
                 >
@@ -547,13 +562,14 @@ export default function Protocol() {
             <h1 className="ios-large-title">Protocol</h1>
           </div>
           <div className="flex items-center gap-2">
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {isOrderCustomized && (
                 <motion.button
-                  initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
+                  initial={ICON_ENTER}
+                  animate={ICON_VISIBLE}
+                  exit={ICON_ENTER}
+                  transition={ICON_SPRING}
+                  whileTap={TAP}
                   onClick={() => { haptic.trigger("medium"); resetTaskOrder(); }}
                   className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-200"
                   aria-label="Reset Order"
@@ -563,7 +579,8 @@ export default function Protocol() {
               )}
             </AnimatePresence>
             <motion.button
-              whileTap={{ scale: 0.9 }}
+              whileTap={TAP}
+              transition={TAP_TRANSITION}
               onClick={() => { haptic.trigger("light"); setTasksReminderSettings(true); }}
               className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-200"
               aria-label="Reminder Settings"
@@ -571,9 +588,11 @@ export default function Protocol() {
               <Bell size={20} className="text-[#FF9500]" />
             </motion.button>
             <motion.button
-              whileTap={{ scale: 0.9 }}
+              whileTap={TAP}
+              transition={TAP_TRANSITION}
               onClick={() => { haptic.trigger("medium"); setAddTaskSheetVisible(true); }}
               className="w-10 h-10 rounded-full bg-[#007AFF] flex items-center justify-center shadow-lg shadow-[#007AFF]/25"
+              aria-label="Add Task"
             >
               <Plus size={22} strokeWidth={2.5} className="text-white" />
             </motion.button>
@@ -589,13 +608,13 @@ export default function Protocol() {
       />
 
       {/* Phase Sections */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={protocolCategory}
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          exit={{ opacity: 0, x: -12, transition: { duration: 0.12 } }}
+          transition={LAYOUT_SPRING}
         >
           {hasTasks ? (
             phaseOrder

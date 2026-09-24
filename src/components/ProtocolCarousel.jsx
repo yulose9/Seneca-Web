@@ -11,6 +11,13 @@ import React, {
 import { useNavigate } from "react-router-dom";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
+import {
+  EASE_DRAWER,
+  EASE_OUT,
+  LAYOUT_SPRING,
+  TAP,
+  TAP_TRANSITION,
+} from "../constants/motion";
 import { useStudyGoal } from "../context/StudyGoalContext";
 import LiquidGlass from "./LiquidGlass";
 
@@ -36,8 +43,9 @@ const getTodayStr = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-// Swipe threshold in pixels
+// Swipe threshold in pixels â€” a quick flick past SWIPE_VELOCITY also counts
 const SWIPE_THRESHOLD = 50;
+const SWIPE_VELOCITY = 400;
 
 // Slide variants for animation
 const slideVariants = {
@@ -131,22 +139,23 @@ export default function ProtocolCarousel() {
   // Clamp active index when cards change
   const safeIndex = Math.min(activeIndex, Math.max(cards.length - 1, 0));
 
+  // Side effects (haptics) stay out of the state updater so they fire exactly once,
+  // and paging starts from the clamped index so it never skips after a card is removed.
   const paginate = useCallback(
     (newDirection) => {
-      setPage(([prev]) => {
-        const next = prev + newDirection;
-        if (next < 0 || next >= cards.length) return [prev, 0];
-        haptic.trigger('selection');
-        return [next, newDirection];
-      });
+      const next = safeIndex + newDirection;
+      if (next < 0 || next >= cards.length) return;
+      haptic.trigger('selection');
+      setPage([next, newDirection]);
     },
-    [cards.length, haptic],
+    [safeIndex, cards.length, haptic],
   );
 
   const goTo = useCallback((idx) => {
+    if (idx === safeIndex) return;
     haptic.trigger('selection');
-    setPage(([prev]) => [idx, idx > prev ? 1 : -1]);
-  }, [haptic]);
+    setPage([idx, idx > safeIndex ? 1 : -1]);
+  }, [safeIndex, haptic]);
 
   // Trigger feedback animation, then fire the action after a brief delay
   const triggerFeedback = useCallback((cardId, type, action) => {
@@ -164,8 +173,9 @@ export default function ProtocolCarousel() {
   if (cards.length === 0 && !feedback) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: EASE_OUT }}
         className="rounded-2xl p-5 bg-[#34C759]/8 border border-[#34C759]/15"
         style={{
           backgroundColor: "rgba(52, 199, 89, 0.08)",
@@ -235,14 +245,16 @@ export default function ProtocolCarousel() {
   return (
     <div className="relative">
       {/* Card Container */}
-      <LiquidGlass layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="overflow-hidden rounded-2xl border border-[rgba(0,0,0,0.04)] shadow-sm">
+      <LiquidGlass layout transition={LAYOUT_SPRING} className="overflow-hidden rounded-2xl border border-[rgba(0,0,0,0.04)] shadow-sm">
         {/* Header with dots + arrows */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           {/* Left arrow */}
           <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => { haptic.trigger("selection"); paginate(-1); }}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-opacity ${
+            whileTap={TAP}
+            transition={TAP_TRANSITION}
+            onClick={() => paginate(-1)}
+            aria-label="Previous card"
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-opacity duration-150 ${
               safeIndex === 0
                 ? "opacity-20 pointer-events-none"
                 : "opacity-60 active:opacity-100"
@@ -257,21 +269,27 @@ export default function ProtocolCarousel() {
               <motion.button
                 key={card.id}
                 onClick={() => goTo(i)}
-                className="w-2 h-2 rounded-full transition-all duration-300"
+                aria-label={`Show ${card.label}`}
+                aria-current={i === safeIndex ? "true" : undefined}
+                className="relative w-2 h-2 rounded-full after:absolute after:-inset-2 after:content-['']"
+                initial={false}
                 animate={{
                   backgroundColor:
                     i === safeIndex ? "#007AFF" : "rgba(120,120,128,0.2)",
                   scale: i === safeIndex ? 1.3 : 1,
                 }}
+                transition={{ duration: 0.2, ease: EASE_OUT }}
               />
             ))}
           </div>
 
           {/* Right arrow */}
           <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => { haptic.trigger("selection"); paginate(1); }}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-opacity ${
+            whileTap={TAP}
+            transition={TAP_TRANSITION}
+            onClick={() => paginate(1)}
+            aria-label="Next card"
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-opacity duration-150 ${
               safeIndex === cards.length - 1
                 ? "opacity-20 pointer-events-none"
                 : "opacity-60 active:opacity-100"
@@ -291,13 +309,14 @@ export default function ProtocolCarousel() {
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+              transition={{ duration: 0.3, ease: EASE_DRAWER }}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.15}
               onDragEnd={(_, info) => {
-                if (info.offset.x < -SWIPE_THRESHOLD) paginate(1);
-                else if (info.offset.x > SWIPE_THRESHOLD) paginate(-1);
+                const { offset, velocity } = info;
+                if (offset.x < -SWIPE_THRESHOLD || velocity.x < -SWIPE_VELOCITY) paginate(1);
+                else if (offset.x > SWIPE_THRESHOLD || velocity.x > SWIPE_VELOCITY) paginate(-1);
               }}
               className="px-5 pb-5"
             >
@@ -319,11 +338,11 @@ export default function ProtocolCarousel() {
                         <h4 className="text-[17px] font-semibold text-black">
                           {getCurrentStatus().phase}
                         </h4>
-                        <p className="text-[15px] text-[rgba(60,60,67,0.6)] mt-0.5">
+                        <p className="text-[15px] text-[rgba(60,60,67,0.6)] mt-0.5 tabular-nums">
                           {completedCount} of {totalCount} tasks
                         </p>
                       </div>
-                      <span className="text-[15px] font-bold text-[#FF9500]">
+                      <span className="text-[15px] font-bold text-[#FF9500] tabular-nums">
                         {progress}%
                       </span>
                     </div>
@@ -334,7 +353,7 @@ export default function ProtocolCarousel() {
                         style={{ backgroundColor: "#FF9500" }}
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1] }}
+                        transition={{ duration: 0.5, ease: EASE_OUT }}
                       />
                     </div>
                   </div>
@@ -345,7 +364,7 @@ export default function ProtocolCarousel() {
               {currentCard.id === "study" && (
                 <div>
                   <div
-                    className="flex justify-between items-center mb-1"
+                    className="flex justify-between items-center mb-1 cursor-pointer"
                     onClick={() => navigate("/growth")}
                   >
                     <span className="text-[13px] font-semibold text-[#007AFF] uppercase tracking-wide">
@@ -369,7 +388,7 @@ export default function ProtocolCarousel() {
                     </div>
                     {getStudyStreak() > 0 && (
                       <div className="text-right ml-3">
-                        <p className="text-[20px] font-bold text-[#007AFF]">
+                        <p className="text-[20px] font-bold text-[#007AFF] tabular-nums">
                           {getStudyStreak()}
                         </p>
                         <p className="text-[11px] text-[rgba(60,60,67,0.6)]">
@@ -385,7 +404,8 @@ export default function ProtocolCarousel() {
                     </p>
                     <div className="flex gap-3">
                       <motion.button
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
                         onClick={() =>
                           triggerFeedback("study", "yes", () =>
                             markStudiedToday(true, markLearnStuffDone),
@@ -397,7 +417,8 @@ export default function ProtocolCarousel() {
                         <Check size={18} strokeWidth={3} /> Yes
                       </motion.button>
                       <motion.button
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
                         onClick={() =>
                           triggerFeedback("study", "no", () =>
                             markStudiedToday(false),
@@ -417,7 +438,7 @@ export default function ProtocolCarousel() {
               {currentCard.id === "noporn" && (
                 <div>
                   <div
-                    className="flex justify-between items-center mb-1"
+                    className="flex justify-between items-center mb-1 cursor-pointer"
                     onClick={() => navigate("/growth")}
                   >
                     <span className="text-[13px] font-semibold text-[#8B5CF6] uppercase tracking-wide">
@@ -449,7 +470,8 @@ export default function ProtocolCarousel() {
                     </p>
                     <div className="flex gap-3">
                       <motion.button
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
                         onClick={() =>
                           triggerFeedback("noporn", "yes", () =>
                             handleNoPornCheck(true),
@@ -461,7 +483,8 @@ export default function ProtocolCarousel() {
                         <Check size={18} strokeWidth={3} /> Yes
                       </motion.button>
                       <motion.button
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
                         onClick={() =>
                           triggerFeedback("noporn", "no", () =>
                             handleNoPornCheck(false),
@@ -481,7 +504,7 @@ export default function ProtocolCarousel() {
               {currentCard.id === "exercise" && (
                 <div>
                   <div
-                    className="flex justify-between items-center mb-1"
+                    className="flex justify-between items-center mb-1 cursor-pointer"
                     onClick={() => navigate("/growth")}
                   >
                     <span className="text-[13px] font-semibold text-[#007AFF] uppercase tracking-wide">
@@ -513,7 +536,8 @@ export default function ProtocolCarousel() {
                     </p>
                     <div className="flex gap-3">
                       <motion.button
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
                         onClick={() =>
                           triggerFeedback("exercise", "yes", () =>
                             handleExerciseCheck(true),
@@ -525,7 +549,8 @@ export default function ProtocolCarousel() {
                         <Check size={18} strokeWidth={3} /> Yes
                       </motion.button>
                       <motion.button
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
                         onClick={() =>
                           triggerFeedback("exercise", "no", () =>
                             handleExerciseCheck(false),
@@ -548,7 +573,7 @@ export default function ProtocolCarousel() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25 }}
+                    transition={{ duration: 0.2, ease: EASE_OUT }}
                     className="absolute inset-0 flex items-center justify-center z-20 rounded-2xl"
                     style={{
                       backgroundColor:
@@ -559,13 +584,13 @@ export default function ProtocolCarousel() {
                   >
                     <div className="flex flex-col items-center gap-2">
                       <motion.div
-                        initial={{ scale: 0, rotate: -30 }}
-                        animate={{ scale: 1, rotate: 0 }}
+                        initial={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                         transition={{
                           type: "spring",
-                          damping: 12,
-                          stiffness: 200,
-                          delay: 0.1,
+                          duration: 0.4,
+                          bounce: 0.2,
+                          delay: 0.05,
                         }}
                       >
                         <span className="text-[52px] block">
@@ -575,7 +600,7 @@ export default function ProtocolCarousel() {
                       <motion.div
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.25, duration: 0.3 }}
+                        transition={{ delay: 0.15, duration: 0.3, ease: EASE_OUT }}
                         className="text-center"
                       >
                         <p

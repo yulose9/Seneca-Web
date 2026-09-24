@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { motion } from "framer-motion";
+import { EASE_OUT } from "../../constants/motion";
 import React, {
   forwardRef,
   useEffect,
@@ -12,7 +13,7 @@ import React, {
 const CommandIcon = ({ icon, color = "bg-gray-100" }) => (
   <div
     className={clsx(
-      "w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 transition-transform group-hover:scale-110",
+      "w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0",
       color
     )}
   >
@@ -100,10 +101,8 @@ const CommandsList = forwardRef((props, ref) => {
   // Scroll selected item into view
   useEffect(() => {
     if (selectedRef.current && listRef.current) {
-      selectedRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
+      // Instant: keyboard navigation must never lag behind the key press
+      selectedRef.current.scrollIntoView({ block: "nearest" });
     }
   }, [selectedIndex]);
 
@@ -160,10 +159,11 @@ const CommandsList = forwardRef((props, ref) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      transition={{ type: "spring", damping: 25, stiffness: 400 }}
+      // Opens on every "/" keystroke: opacity only, near-instant.
+      // (Floating UI may flip it above the caret, so no directional motion.)
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.1, ease: EASE_OUT }}
       className="slash-command-menu"
       ref={listRef}
     >
@@ -173,10 +173,10 @@ const CommandsList = forwardRef((props, ref) => {
             <div key={category} className="slash-command-group">
               <div className="slash-command-category">{category}</div>
               {items.map((item) => (
-                <motion.button
+                <button
+                  type="button"
                   key={item.globalIndex}
                   ref={item.globalIndex === selectedIndex ? selectedRef : null}
-                  whileTap={{ scale: 0.98 }}
                   className={clsx(
                     "slash-command-item group",
                     item.globalIndex === selectedIndex && "is-selected"
@@ -205,7 +205,7 @@ const CommandsList = forwardRef((props, ref) => {
                       </span>
                     )}
                   </div>
-                </motion.button>
+                </button>
               ))}
             </div>
           ))}

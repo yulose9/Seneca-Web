@@ -2,6 +2,18 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bell, Check, Clock, X } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import {
+  DIALOG_SPRING,
+  EASE_OUT,
+  FADE,
+  ICON_ENTER,
+  ICON_SPRING,
+  ICON_VISIBLE,
+  SHEET_EXIT,
+  SHEET_SPRING,
+  TAP,
+  TAP_TRANSITION,
+} from "../constants/motion";
 import { subscribeToGlobalData } from "../services/dataLogger";
 
 // LocalStorage keys for snooze
@@ -65,15 +77,36 @@ const getSnoozeInfoKey = (key) => {
   }
 };
 
+// Which snooze option is currently in effect: 0 when not snoozed, otherwise the
+// smallest option that still covers the remaining time.
+const getActiveSnoozeMsKey = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return 0;
+    const remaining = JSON.parse(raw) - Date.now();
+    if (remaining <= 0) return 0;
+    const match = SNOOZE_OPTIONS.find((o) => o.ms > 0 && remaining <= o.ms);
+    return match ? match.ms : null;
+  } catch {
+    return 0;
+  }
+};
+
 // Convenience wrappers for obligation
 const isObligationSnoozed = () => isSnoozedKey(SNOOZE_KEY);
 const setObligationSnooze = (ms) => setSnoozeKey(SNOOZE_KEY, ms);
-const getObligationSnoozeInfo = () => getSnoozeInfoKey(SNOOZE_KEY);
+const getObligationSnoozeInfo = () => ({
+  ...getSnoozeInfoKey(SNOOZE_KEY),
+  activeMs: getActiveSnoozeMsKey(SNOOZE_KEY),
+});
 
 // Convenience wrappers for tasks
 const isTasksSnoozed = () => isSnoozedKey(TASKS_SNOOZE_KEY);
 const setTasksSnooze = (ms) => setSnoozeKey(TASKS_SNOOZE_KEY, ms);
-const getTasksSnoozeInfo = () => getSnoozeInfoKey(TASKS_SNOOZE_KEY);
+const getTasksSnoozeInfo = () => ({
+  ...getSnoozeInfoKey(TASKS_SNOOZE_KEY),
+  activeMs: getActiveSnoozeMsKey(TASKS_SNOOZE_KEY),
+});
 
 // ─── Notification Popup (shows on app open) ─────────────────────────
 // Load liabilities instantly from localStorage, preferring Firestore cache
@@ -188,17 +221,20 @@ export default function ObligationReminder({ isOpen, onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={FADE}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999]"
             onClick={handleDismiss}
           />
 
           {/* Card */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            transition={{ type: "spring", damping: 28, stiffness: 350 }}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15, ease: EASE_OUT } }}
+            transition={DIALOG_SPRING}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Obligation Reminder"
             className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[10000] max-w-md mx-auto"
           >
             <div className="bg-white rounded-3xl overflow-hidden shadow-2xl select-none">
@@ -206,12 +242,11 @@ export default function ObligationReminder({ isOpen, onClose }) {
               <div className="bg-gradient-to-r from-[#FF3B30] to-[#FF6B5E] px-6 pt-6 pb-5 relative">
                 {/* Close button */}
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => {
-                    haptic.trigger("medium");
-                    handleDismiss();
-                  }}
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"
+                  whileTap={TAP}
+                  transition={TAP_TRANSITION}
+                  onClick={handleDismiss}
+                  aria-label="Close"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
                 >
                   <X size={16} className="text-white" />
                 </motion.button>
@@ -229,7 +264,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
                     </p>
                   </div>
                 </div>
-                <p className="text-[32px] font-bold text-white tracking-tight">
+                <p className="text-[32px] font-bold text-white tracking-tight tabular-nums">
                   ₱{totalObligations.toLocaleString()}
                 </p>
               </div>
@@ -255,7 +290,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
                               </p>
                             </div>
                           </div>
-                          <p className="text-[17px] font-bold text-[#FF3B30]">
+                          <p className="text-[17px] font-bold text-[#FF3B30] tabular-nums">
                             ₱{(kuyaLoan.amount || 0).toLocaleString()}
                           </p>
                         </div>
@@ -273,8 +308,8 @@ export default function ObligationReminder({ isOpen, onClose }) {
                                   </div>
                                   <p className="text-[11px] text-[rgba(60,60,67,0.6)] font-medium">
                                     Paid{" "}
-                                    <span className="font-semibold text-[#34C759]">
-                                      ₱{lastPay.amount.toLocaleString()}
+                                    <span className="font-semibold text-[#34C759] tabular-nums">
+                                      ₱{(lastPay.amount || 0).toLocaleString()}
                                     </span>{" "}
                                     · {formatRelativeTime(lastPay.date)}
                                   </p>
@@ -313,7 +348,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
                               </p>
                             </div>
                           </div>
-                          <p className="text-[17px] font-bold text-[rgba(60,60,67,0.8)]">
+                          <p className="text-[17px] font-bold text-[rgba(60,60,67,0.8)] tabular-nums">
                             ₱{(loan.amount || 0).toLocaleString()}
                           </p>
                         </div>
@@ -331,8 +366,8 @@ export default function ObligationReminder({ isOpen, onClose }) {
                                   </div>
                                   <p className="text-[11px] text-[rgba(60,60,67,0.6)] font-medium">
                                     Paid{" "}
-                                    <span className="font-semibold text-[#34C759]">
-                                      ₱{lastPay.amount.toLocaleString()}
+                                    <span className="font-semibold text-[#34C759] tabular-nums">
+                                      ₱{(lastPay.amount || 0).toLocaleString()}
                                     </span>{" "}
                                     · {formatRelativeTime(lastPay.date)}
                                   </p>
@@ -360,7 +395,8 @@ export default function ObligationReminder({ isOpen, onClose }) {
               {/* Dismiss action */}
               <div className="px-6 pb-6">
                 <motion.button
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={TAP}
+                  transition={TAP_TRANSITION}
                   onClick={handleDismiss}
                   className="w-full py-3.5 rounded-xl bg-[rgba(120,120,128,0.08)] text-[15px] font-semibold text-[rgba(60,60,67,0.8)] flex items-center justify-center gap-2"
                 >
@@ -400,6 +436,7 @@ export function ReminderSettingsSheet({ visible, onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
             onClick={onClose}
           />
@@ -408,8 +445,10 @@ export function ReminderSettingsSheet({ visible, onClose }) {
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 350 }}
+            exit={{ y: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
+            role="dialog"
+            aria-modal="true"
             className="fixed inset-x-0 bottom-0 z-[9999] max-w-md mx-auto"
           >
             <div className="bg-white rounded-t-3xl shadow-2xl pb-10">
@@ -429,9 +468,11 @@ export function ReminderSettingsSheet({ visible, onClose }) {
                   </p>
                 </div>
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={TAP}
+                  transition={TAP_TRANSITION}
                   onClick={onClose}
-                  className="w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center"
+                  aria-label="Close"
+                  className="relative w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
                 >
                   <X size={16} className="text-[rgba(60,60,67,0.6)]" />
                 </motion.button>
@@ -447,12 +488,14 @@ export function ReminderSettingsSheet({ visible, onClose }) {
               {/* Options */}
               <div className="px-6 space-y-1">
                 {SNOOZE_OPTIONS.map((opt) => {
-                  const isActive = opt.ms === 0 ? !snoozeInfo.snoozed : false; // Current selection indicator
+                  const isActive = snoozeInfo.activeMs === opt.ms;
 
                   return (
                     <motion.button
                       key={opt.label}
                       whileTap={{ scale: 0.98 }}
+                      transition={TAP_TRANSITION}
+                      aria-pressed={isActive}
                       onClick={() => {
                         haptic.trigger("selection");
                         handleSetSnooze(opt.ms);
@@ -491,9 +534,19 @@ export function ReminderSettingsSheet({ visible, onClose }) {
                           </p>
                         </div>
                       </div>
-                      {isActive && (
-                        <Check size={18} className="text-[#007AFF]" />
-                      )}
+                      <AnimatePresence initial={false}>
+                        {isActive && (
+                          <motion.span
+                            key="check"
+                            initial={ICON_ENTER}
+                            animate={ICON_VISIBLE}
+                            exit={ICON_ENTER}
+                            transition={ICON_SPRING}
+                          >
+                            <Check size={18} className="text-[#007AFF]" />
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                     </motion.button>
                   );
                 })}
@@ -582,6 +635,7 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
             onClick={onClose}
           />
@@ -589,8 +643,10 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 350 }}
+            exit={{ y: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
+            role="dialog"
+            aria-modal="true"
             className="fixed inset-x-0 bottom-0 z-[9999] max-w-md mx-auto"
           >
             <div className="bg-white rounded-t-3xl shadow-2xl pb-10">
@@ -608,9 +664,11 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
                   </p>
                 </div>
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={TAP}
+                  transition={TAP_TRANSITION}
                   onClick={onClose}
-                  className="w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center"
+                  aria-label="Close"
+                  className="relative w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
                 >
                   <X size={16} className="text-[rgba(60,60,67,0.6)]" />
                 </motion.button>
@@ -624,12 +682,14 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
 
               <div className="px-6 space-y-1">
                 {SNOOZE_OPTIONS.map((opt) => {
-                  const isActive = opt.ms === 0 ? !snoozeInfo.snoozed : false;
+                  const isActive = snoozeInfo.activeMs === opt.ms;
 
                   return (
                     <motion.button
                       key={opt.label}
                       whileTap={{ scale: 0.98 }}
+                      transition={TAP_TRANSITION}
+                      aria-pressed={isActive}
                       onClick={() => {
                         haptic.trigger("selection");
                         handleSetSnooze(opt.ms);
@@ -668,9 +728,19 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
                           </p>
                         </div>
                       </div>
-                      {isActive && (
-                        <Check size={18} className="text-[#FF9500]" />
-                      )}
+                      <AnimatePresence initial={false}>
+                        {isActive && (
+                          <motion.span
+                            key="check"
+                            initial={ICON_ENTER}
+                            animate={ICON_VISIBLE}
+                            exit={ICON_ENTER}
+                            transition={ICON_SPRING}
+                          >
+                            <Check size={18} className="text-[#FF9500]" />
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
                     </motion.button>
                   );
                 })}

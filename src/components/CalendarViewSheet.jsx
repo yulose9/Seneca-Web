@@ -1,7 +1,9 @@
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
-import React, { useMemo, useRef, useLayoutEffect, useState } from "react";
+import { X } from "lucide-react";
+import React, { useMemo } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import { FADE, SHEET_EXIT, SHEET_SPRING } from "../constants/motion";
 
 // Helper to determine quarter from target string
 const getQuarterFromTarget = (target) => {
@@ -112,6 +114,7 @@ export default function CalendarViewSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             onClick={onClose}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
           />
@@ -120,14 +123,19 @@ export default function CalendarViewSheet({
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            exit={{ y: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Certification Roadmap"
             className="fixed bottom-0 left-0 right-0 z-50 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden flex flex-col"
           >
             {/* Drag Handle */}
             <div
               className="flex justify-center pt-3 pb-2 bg-white/50 backdrop-blur-md cursor-pointer"
               onClick={onClose}
+              aria-hidden="true"
+              aria-hidden="true"
             >
               <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
             </div>
@@ -142,9 +150,10 @@ export default function CalendarViewSheet({
                   haptic.trigger("light");
                   onClose();
                 }}
-                className="absolute right-4 w-7 h-7 bg-[#EEE] rounded-full flex items-center justify-center text-[#8E8E93]"
+                aria-label="Close"
+                className="absolute right-4 w-7 h-7 bg-[#EEE] rounded-full flex items-center justify-center text-[#8E8E93] after:absolute after:-inset-2 after:content-[''] active:scale-[0.96] transition-transform duration-150"
               >
-                <span className="text-sm font-bold">✕</span>
+                <X size={14} strokeWidth={2.5} />
               </button>
             </div>
 
@@ -158,7 +167,7 @@ export default function CalendarViewSheet({
                   <div className="grid gap-3">
                     {groupedCerts[quarter].map((cert, idx) => (
                       <div
-                        key={idx}
+                        key={cert.id ?? `${cert.category}-${cert.name}-${idx}`}
                         className="bg-white rounded-xl p-4 border border-black/[0.04] shadow-sm flex items-center gap-3"
                       >
                         <div

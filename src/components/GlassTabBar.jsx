@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWebHaptics } from 'web-haptics/react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import { Home, Flame, Trophy, Landmark, BookOpen } from 'lucide-react';
 import clsx from 'clsx';
 import LiquidGlass from './LiquidGlass';
+import { EASE_IN_OUT, TAP, TAP_TRANSITION } from '../constants/motion';
+
+const PILL_SPRING = { type: "spring", duration: 0.4, bounce: 0 };
 
 const tabs = [
     { path: "/", icon: Home, label: "Home" },
@@ -17,8 +20,10 @@ const tabs = [
 export default function GlassTabBar() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [activeIndex, setActiveIndex] = useState(0);
-    const [prevIndex, setPrevIndex] = useState(0);
+    const matchedIndex = tabs.findIndex(tab => tab.path === location.pathname);
+    // Start on the current route so a deep link doesn't slide the pill in from Home
+    const [activeIndex, setActiveIndex] = useState(matchedIndex === -1 ? 0 : matchedIndex);
+    const [prevIndex, setPrevIndex] = useState(activeIndex);
     const pillControls = useAnimation();
     const haptic = useWebHaptics();
 
@@ -27,13 +32,11 @@ export default function GlassTabBar() {
     const ITEM_WIDTH = 68;
     const GAP = 4;
 
-    useEffect(() => {
-        const index = tabs.findIndex(tab => tab.path === location.pathname);
-        if (index !== -1 && index !== activeIndex) {
-            setPrevIndex(activeIndex);
-            setActiveIndex(index);
-        }
-    }, [location.pathname]);
+    // Derive during render (no effect round-trip) when the route changes
+    if (matchedIndex !== -1 && matchedIndex !== activeIndex) {
+        setPrevIndex(activeIndex);
+        setActiveIndex(matchedIndex);
+    }
 
     // Calculate position for the single active pill
     // x = padding + (index * (width + gap))
@@ -48,17 +51,16 @@ export default function GlassTabBar() {
             // If no movement (initial load), just set position
             if (distance === 0) return;
 
-            // Animate width to simulate stretching
-            // A simple "squash and stretch" based on velocity/distance
-            // We widen the pill during the move, then span it back
-            const stretchWidth = ITEM_WIDTH + (Math.min(distance, 2) * 20); // Cap stretch
+            // Squash-and-stretch via scaleX (GPU-composited) instead of width,
+            // which would trigger layout on every frame
+            const stretch = (ITEM_WIDTH + (Math.min(distance, 2) * 20)) / ITEM_WIDTH; // Cap stretch
 
             await pillControls.start({
-                width: [ITEM_WIDTH, stretchWidth, ITEM_WIDTH],
+                scaleX: [1, stretch, 1],
                 transition: {
                     duration: 0.4,
                     times: [0, 0.5, 1],
-                    ease: "easeInOut"
+                    ease: EASE_IN_OUT
                 }
             });
         };
@@ -73,28 +75,14 @@ export default function GlassTabBar() {
             className="liquid-nav"
             initial={{ y: 100, opacity: 0, x: "-50%" }}
             animate={{ y: 0, opacity: 1, x: "-50%" }}
-            transition={{
-                type: "spring",
-                stiffness: 260,
-                damping: 25,
-                delay: 0.2
-            }}
+            transition={{ type: "spring", duration: 0.5, bounce: 0, delay: 0.2 }}
         >
             {/* Single Floating Active Pill */}
             <motion.div
                 className="liquid-active-tab"
                 initial={false}
-                animate={{
-                    x: currentX,
-                    // We can also add a subtle scale bounce here if we want
-                    // but the main position slide is handled here
-                }}
-                transition={{
-                    type: "spring",
-                    stiffness: 280,
-                    damping: 24,
-                    mass: 1 // Slightly heavier for premium feel
-                }}
+                animate={{ x: currentX }}
+                transition={PILL_SPRING}
                 style={{
                     position: 'absolute',
                     left: 0, // We animate x from 0
@@ -114,15 +102,18 @@ export default function GlassTabBar() {
                 const Icon = tab.icon;
 
                 return (
-                    <motion.div
+                    <motion.button
                         key={tab.path}
+                        type="button"
+                        aria-label={tab.label}
+                        aria-current={isActive ? "page" : undefined}
                         onClick={() => {
                             if (!isActive) haptic.trigger('selection');
                             navigate(tab.path);
                         }}
                         className={clsx("liquid-nav-item", isActive && "active")}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ duration: 0.1 }}
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
                     >
                         {/* Icon with refined animations */}
                         <motion.div
@@ -134,32 +125,20 @@ export default function GlassTabBar() {
                                 y: 0,
                                 scale: 1
                             }}
-                            transition={{
-                                type: "spring",
-                                stiffness: 500,
-                                damping: 15
-                            }}
+                            transition={PILL_SPRING}
                         >
+                            {/* One stroke weight for the set — 2px matches the semibold label; state reads from color + pill */}
                             <Icon
                                 size={26}
-                                strokeWidth={isActive ? 2.5 : 2}
+                                strokeWidth={2}
                                 className="liquid-icon"
+                                aria-hidden="true"
                             />
-                            <motion.span
-                                className="liquid-label"
-                                initial={{ opacity: 0.8, fontWeight: 600 }}
-                                animate={isActive ? {
-                                    opacity: 1,
-                                    fontWeight: 700
-                                } : {
-                                    opacity: 0.8,
-                                    fontWeight: 600
-                                }}
-                            >
+                            <span className="liquid-label">
                                 {tab.label}
-                            </motion.span>
+                            </span>
                         </motion.div>
-                    </motion.div>
+                    </motion.button>
                 );
             })}
         </LiquidGlass>

@@ -71,7 +71,7 @@ export default function FirebaseUsageMonitor() {
     }
 
     return (
-        <div className="fixed bottom-20 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 border border-gray-200 w-80">
+        <div className="fixed bottom-20 right-4 z-50 bg-white rounded-2xl shadow-2xl p-4 border border-gray-200 w-80 tabular-nums">
             <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold text-sm flex items-center gap-2">
                     <span className="text-xl">🔥</span>
@@ -79,7 +79,8 @@ export default function FirebaseUsageMonitor() {
                 </h3>
                 <button
                     onClick={() => setIsVisible(false)}
-                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Close monitor"
+                    className="text-gray-400 hover:text-gray-600 transition-colors duration-150"
                 >
                     ✕
                 </button>
@@ -145,7 +146,7 @@ export default function FirebaseUsageMonitor() {
             {/* Health Indicator */}
             <div className="mt-3 p-2 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2">
-                    <span className={`text-2xl ${monthlyCost < 1 ? '🟢' : monthlyCost < 5 ? '🟡' : '🔴'}`}>
+                    <span className="text-2xl">
                         {monthlyCost < 1 ? '🟢' : monthlyCost < 5 ? '🟡' : '🔴'}
                     </span>
                     <div className="text-xs">

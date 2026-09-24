@@ -1,35 +1,33 @@
 import React, { useRef } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
-import clsx from 'clsx';
 
-export default function GsapText({ children, className, delay = 0, stagger = 0.03, type = 'chars' }) {
+export default function GsapText({ children, className, delay = 0 }) {
     const textRef = useRef(null);
 
     useGSAP(() => {
         if (!textRef.current) return;
 
-        // Simple fade up animation for now, we can make it more complex later
-        // If we want to split text, we usually need the SplitText plugin (paid)
-        // or a custom implementation. For open source, we'll do word/line animation if possible
-        // or just a nice stagger of the container if it's a list.
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        // Since we don't have SplitText, let's just animate the element itself nicely
+        // Fade up with a light blur to soften the entrance
         gsap.fromTo(textRef.current,
-            { y: 20, opacity: 0, filter: 'blur(10px)' },
+            { y: reduceMotion ? 0 : 8, opacity: 0, filter: reduceMotion ? 'blur(0px)' : 'blur(4px)' },
             {
                 y: 0,
                 opacity: 1,
                 filter: 'blur(0px)',
-                duration: 1,
+                duration: 0.5,
                 ease: "power3.out",
-                delay: delay
+                delay: delay,
+                // Drop inline transform/filter once settled so the text isn't left on its own layer
+                clearProps: "transform,filter"
             }
         );
     }, { scope: textRef, dependencies: [] });
 
     return (
-        <div ref={textRef} className={clsx(className, "will-change-transform")}>
+        <div ref={textRef} className={className}>
             {children}
         </div>
     );

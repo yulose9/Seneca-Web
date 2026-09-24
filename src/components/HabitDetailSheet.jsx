@@ -4,6 +4,8 @@ import { Check, Trash2, X } from "lucide-react";
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebHaptics } from "web-haptics/react";
+import { FADE, SHEET_EXIT, SHEET_SPRING, TAP } from "../constants/motion";
+import { getPhDateKey } from "../utils/timeUtils";
 
 // iOS 18 System Colors
 const SystemColors = {
@@ -200,21 +202,20 @@ const HABIT_INFO = {
   },
 };
 
-// Helper to get past dates
-const getPastDates = (days) => {
-  const dates = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().split("T")[0]);
-  }
-  return dates;
+// Date keys follow the app-wide Manila calendar (see utils/timeUtils) so the
+// sheet's "today" matches ProtocolContext. Keys are built from local date
+// parts — toISOString() would shift them to UTC.
+const toDateKey = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const parseDateKey = (key) => {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
 };
 
 // Streak Calendar Component - Habit Pixel / GitHub Style Heatmap
 const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
   const calendarData = useMemo(() => {
-    const today = new Date();
+    const today = parseDateKey(getPhDateKey());
     const weeksToShow = 20; // Reduced slighty for mobile width fit, but scrollable is fine
     const daysToGenerate = weeksToShow * 7;
 
@@ -236,7 +237,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
     for (let i = daysToGenerate - 1; i >= 0; i--) {
       const d = new Date(endOfWeek);
       d.setDate(d.getDate() - i);
-      dates.push(d.toISOString().split("T")[0]);
+      dates.push(toDateKey(d));
     }
 
     // Generate Month Labels
@@ -246,7 +247,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
     dates.forEach((dateStr, index) => {
       // Only check first day of each week (every 7th day) to place label above column
       if (index % 7 === 0) {
-        const date = new Date(dateStr);
+        const date = parseDateKey(dateStr);
         const month = date.getMonth();
         if (month !== lastMonth) {
           monthLabels.push({
@@ -262,32 +263,20 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
   }, []);
 
   const { dates, monthLabels } = calendarData;
+  const todayKey = getPhDateKey();
   const weekDays = ["M", "T", "W", "T", "F", "S", "S"];
 
   // Calculate Streak Stats
   const stats = useMemo(() => {
-    const sortedDates = Object.keys(history)
-      .filter((d) => history[d])
-      .sort()
-      .reverse();
-    let currentStreak = 0;
-    const todayStr = new Date().toISOString().split("T")[0];
-
-    // Check if today is done, if not, check yesterday to keep streak alive
-    const todayIndex = sortedDates.indexOf(todayStr);
-    let checkDate = new Date();
-
-    // If today is not done, check if yesterday was done to allow "continuation" before failure
-    // Re-implementing simple streak logic
     let streak = 0;
-    let d = new Date();
+    let d = parseDateKey(getPhDateKey());
     // If today not done, check if yesterday was done (allow missed entry for today to not break streak yet)
-    if (!history[d.toISOString().split("T")[0]]) {
+    if (!history[toDateKey(d)]) {
       d.setDate(d.getDate() - 1);
     }
 
     while (true) {
-      const dateStr = d.toISOString().split("T")[0];
+      const dateStr = toDateKey(d);
       if (history[dateStr]) {
         streak++;
         d.setDate(d.getDate() - 1);
@@ -394,11 +383,9 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
               >
                 {dates.map((date) => {
                   const isDone = !!history[date];
-                  const isToday =
-                    date === new Date().toISOString().split("T")[0];
-                  const dateObj = new Date(date);
-                  const isFuture = dateObj > new Date();
-                  const dayNum = dateObj.getDate();
+                  const isToday = date === todayKey;
+                  const isFuture = date > todayKey;
+                  const dayNum = parseDateKey(date).getDate();
 
                   return (
                     <motion.div
@@ -409,9 +396,9 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
                           onToggle(date);
                         }
                       }}
-                      whileTap={{ scale: 0.85 }}
+                      whileTap={TAP}
                       className={clsx(
-                        "rounded-[10px] cursor-pointer flex items-center justify-center transition-all duration-300 relative overflow-hidden",
+                        "rounded-[10px] cursor-pointer flex items-center justify-center transition-[background-color,box-shadow] duration-150 relative overflow-hidden",
                         isFuture ? "opacity-0 pointer-events-none" : "",
                       )}
                       style={{
@@ -428,7 +415,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
                       {/* Date Number */}
                       <span
                         className={clsx(
-                          "text-[13px] font-bold",
+                          "text-[13px] font-bold tabular-nums",
                           isDone ? "text-white" : "text-[rgba(255,255,255,0.4)]",
                           isToday && !isDone ? "text-[color:var(--color)]" : "",
                         )}
@@ -519,7 +506,7 @@ export default function HabitDetailSheet({
   };
 
   const history = getHistory ? getHistory(habit.phaseId, habit.id) : {};
-  const today = new Date().toISOString().split("T")[0];
+  const today = getPhDateKey();
   const isTodayDone = !!history[today];
 
   const handleActionButton = () => {
@@ -537,6 +524,7 @@ export default function HabitDetailSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             onClick={onClose}
             className="ios-sheet-backdrop"
           />
@@ -545,8 +533,8 @@ export default function HabitDetailSheet({
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            exit={{ y: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
             className="ios-sheet"
           >
             {/* Handle */}
@@ -567,7 +555,7 @@ export default function HabitDetailSheet({
                     </h2>
                     {isCustomTask && (
                       <motion.button
-                        whileTap={{ scale: 0.9 }}
+                        whileTap={TAP}
                         onClick={handleDeleteTask}
                         className="w-10 h-10 rounded-full bg-[#FF3B30]/10 flex items-center justify-center ml-3"
                       >
@@ -827,7 +815,7 @@ export default function HabitDetailSheet({
                       handleActionButton();
                     }}
                     className={clsx(
-                      "w-full h-[56px] rounded-2xl flex items-center justify-center text-[18px] font-bold transition-all duration-200",
+                      "w-full h-[56px] rounded-2xl flex items-center justify-center text-[18px] font-bold transition-[background-color,color,box-shadow] duration-200",
                       isTodayDone
                         ? "text-white shadow-xl bg-opacity-100"
                         : "bg-[rgba(120,120,128,0.12)] text-black",

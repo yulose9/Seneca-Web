@@ -1,7 +1,14 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ListChecks, X } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import {
+  DIALOG_SPRING,
+  EASE_OUT,
+  FADE,
+  TAP,
+  TAP_TRANSITION,
+} from "../constants/motion";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
@@ -16,7 +23,6 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
   const {
     phaseTasks,
     phaseOrder,
-    phases,
     allPhasesComplete,
     getTotalProgress,
   } = useProtocol();
@@ -98,19 +104,17 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
     allPhasesComplete,
     phaseTasks,
     phaseOrder,
-    phases,
     activeStudyGoal,
     studiedToday,
     noPornToday,
     exerciseToday,
   ]);
 
-  // If nothing pending, don't show
-  if (pendingItems.length === 0 && isOpen) {
-    // Auto-dismiss if everything's done
-    onClose?.();
-    return null;
-  }
+  // Auto-dismiss once everything is done. Runs as an effect so we never
+  // update the parent's state during render.
+  useEffect(() => {
+    if (isOpen && pendingItems.length === 0) onClose?.();
+  }, [isOpen, pendingItems.length, onClose]);
 
   // Group by category (Protocol vs Growth)
   const grouped = useMemo(() => {
@@ -159,17 +163,20 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={FADE}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999]"
             onClick={onClose}
           />
 
           {/* Card */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            transition={{ type: "spring", damping: 28, stiffness: 350 }}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15, ease: EASE_OUT } }}
+            transition={DIALOG_SPRING}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Today's Remaining"
             className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[10000] max-w-md mx-auto"
           >
             <div className="bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[80vh] flex flex-col select-none">
@@ -177,12 +184,14 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
               <div className="bg-gradient-to-r from-[#FF9500] to-[#FFAD33] px-6 pt-6 pb-5 relative shrink-0">
                 {/* Close button */}
                 <motion.button
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={TAP}
+                  transition={TAP_TRANSITION}
                   onClick={() => {
                     haptic.trigger("medium");
                     onClose();
                   }}
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"
+                  aria-label="Close"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
                 >
                   <X size={16} className="text-white" />
                 </motion.button>
@@ -195,7 +204,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                     <h3 className="text-[17px] font-bold text-white">
                       Today's Remaining
                     </h3>
-                    <p className="text-[12px] text-white/70 font-medium">
+                    <p className="text-[12px] text-white/70 font-medium tabular-nums">
                       {totalDone}/{totalTasks} completed • {completionPct}%
                     </p>
                   </div>
@@ -207,7 +216,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                     className="h-full rounded-full bg-white"
                     initial={{ width: 0 }}
                     animate={{ width: `${completionPct}%` }}
-                    transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1] }}
+                    transition={{ duration: 0.5, ease: EASE_OUT }}
                   />
                 </div>
               </div>
@@ -217,7 +226,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                 {Object.entries(grouped).map(([category, { color, items }]) => (
                   <div key={category}>
                     <p
-                      className="text-[12px] font-semibold uppercase tracking-wide mb-2"
+                      className="text-[12px] font-semibold uppercase tracking-wide mb-2 tabular-nums"
                       style={{ color }}
                     >
                       {category} — {items.length} remaining
@@ -253,7 +262,8 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
               {/* Dismiss */}
               <div className="px-6 pb-6 shrink-0">
                 <motion.button
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={TAP}
+                  transition={TAP_TRANSITION}
                   onClick={() => {
                     haptic.trigger("light");
                     onClose();

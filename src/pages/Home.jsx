@@ -10,6 +10,7 @@ import PageTransition from "../components/PageTransition";
 import ProtocolCarousel from "../components/ProtocolCarousel";
 import SystemCard from "../components/SystemCard";
 import WeatherWidget from "../components/WeatherWidget";
+import { FADE, LAYOUT_SPRING, TAP, TAP_TRANSITION } from "../constants/motion";
 import { useProtocol } from "../context/ProtocolContext";
 import { getGlobalData, subscribeToGlobalData } from "../services/dataLogger";
 import { auth } from "../services/firebase";
@@ -253,9 +254,14 @@ export default function Home() {
     }
   };
 
-  const { progress } = useProtocol();
+  // Release the previous blob URL whenever the avatar changes or the page unmounts
+  useEffect(() => {
+    return () => {
+      if (profileImage) URL.revokeObjectURL(profileImage);
+    };
+  }, [profileImage]);
 
-  const netWorth = wealthData.netWorth;
+  const { progress } = useProtocol();
 
   const greeting = getTimeBasedGreeting(hasJournalToday, progress);
 
@@ -303,7 +309,8 @@ export default function Home() {
         <div className="flex justify-between items-center mb-1">
           <p className="ios-nav-date">{formatDate()}</p>
           <motion.button
-            whileTap={{ scale: 0.95 }}
+            whileTap={TAP}
+            transition={TAP_TRANSITION}
             onClick={() => { haptic.trigger("light"); setIsEditMode(!isEditMode); }}
             className="text-[17px] font-normal text-[#007AFF] active:opacity-60"
           >
@@ -321,22 +328,23 @@ export default function Home() {
             <WeatherWidget />
 
             {/* Profile Avatar */}
-            <label className="relative cursor-pointer shrink-0">
+            <label className="relative cursor-pointer shrink-0" aria-label="Change profile photo">
               <input
                 type="file"
                 accept="image/*"
-                className="hidden"
+                className="sr-only"
                 onChange={handleImageUpload}
               />
               <motion.div
-                whileTap={{ scale: 0.95 }}
-                className="w-10 h-10 rounded-full overflow-hidden border border-black/5 shadow-sm"
+                whileTap={TAP}
+                transition={TAP_TRANSITION}
+                className="w-10 h-10 rounded-full overflow-hidden shadow-sm"
               >
                 {profileImage ? (
                   <img
                     src={profileImage}
                     alt="Profile"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-full outline outline-1 -outline-offset-1 outline-black/10"
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center text-white font-bold text-sm">
@@ -350,12 +358,12 @@ export default function Home() {
       </header>
 
       {/* Protocol Carousel — swipeable goal cards */}
-      <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="px-5 mb-3">
+      <motion.div layout transition={LAYOUT_SPRING} className="px-5 mb-3">
         <ProtocolCarousel />
       </motion.div>
 
       {/* Reorderable Cards */}
-      <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }}>
+      <motion.div layout transition={LAYOUT_SPRING}>
         <Reorder.Group
           axis="y"
           values={cardOrder}
@@ -409,7 +417,7 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="flex items-baseline justify-between">
-                        <span className="text-[28px] font-bold text-[#FF3B30] tracking-tight">
+                        <span className="text-[28px] font-bold text-[#FF3B30] tracking-tight tabular-nums">
                           ₱
                           {(
                             wealthData.priorityLiability?.amount || 0
@@ -429,7 +437,7 @@ export default function Home() {
                     onClick={
                       isEditMode ? undefined : () => { haptic.trigger("light"); navigate("/journal"); }
                     }
-                    className="relative overflow-hidden rounded-2xl p-5 cursor-pointer transition-all duration-200"
+                    className="relative overflow-hidden rounded-2xl p-5 cursor-pointer"
                     style={{
                       backgroundColor: "rgba(88, 86, 214, 0.08)",
                       border: "0.5px solid rgba(88, 86, 214, 0.15)",
@@ -448,8 +456,9 @@ export default function Home() {
                     </p>
                     {!isEditMode && (
                       <motion.button
-                        whileTap={{ scale: 0.97 }}
-                        className={`w-full py-3.5 rounded-xl font-semibold text-[15px] shadow-lg ${hasJournalToday
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
+                        className={`w-full py-3.5 rounded-xl font-semibold text-[15px] shadow-lg transition-colors duration-150 ${hasJournalToday
                           ? "bg-[#34C759] text-white shadow-[#34C759]/25"
                           : "bg-[#5856D6] text-white shadow-[#5856D6]/25"
                           }`}
@@ -483,6 +492,7 @@ export default function Home() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  transition={FADE}
                   className="absolute left-0 top-0 bottom-0 w-12 z-10 flex items-center justify-center"
                 >
                   <div className="w-10 h-10 rounded-full bg-[rgba(120,120,128,0.2)] flex items-center justify-center">
@@ -505,9 +515,10 @@ export default function Home() {
       </motion.div>
 
       {/* Logout Button */}
-      <motion.div layout transition={{ type: "spring", bounce: 0, duration: 0.4 }} className="px-5 mt-6 mb-8">
+      <motion.div layout transition={LAYOUT_SPRING} className="px-5 mt-6 mb-8">
         <motion.button
           whileTap={{ scale: 0.98 }}
+          transition={TAP_TRANSITION}
           onClick={async () => {
             haptic.trigger("medium");
             if (confirm("Are you sure you want to log out?")) {

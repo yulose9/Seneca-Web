@@ -1,6 +1,7 @@
 import { BubbleMenu } from "@tiptap/react/menus";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
+import { EASE_OUT } from "../../constants/motion";
 import {
   Bold,
   CheckSquare,
@@ -21,6 +22,15 @@ import {
   Underline,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+
+// Dropdowns hang below their trigger (top: 100%; left: 0), so grow from the top-left.
+const DROPDOWN_MOTION = {
+  initial: { opacity: 0, scale: 0.97, y: -4 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.97, transition: { duration: 0.1, ease: EASE_OUT } },
+  transition: { duration: 0.12, ease: EASE_OUT },
+  style: { transformOrigin: "top left" },
+};
 
 const HIGHLIGHT_COLORS = [
   { color: "#FFFF00", name: "Yellow" },

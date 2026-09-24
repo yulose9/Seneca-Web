@@ -3,12 +3,29 @@ import {
   animate,
   AnimatePresence,
   motion,
-  useAnimation,
   useMotionValue,
 } from "framer-motion";
 import { Check, Loader2, MapPin, X } from "lucide-react";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import {
+  DIALOG_SPRING,
+  EASE_OUT,
+  FADE,
+  LAYOUT_SPRING,
+  SHEET_EXIT,
+  SHEET_SPRING,
+  TAP,
+  TAP_TRANSITION,
+} from "../constants/motion";
+
+// Step-to-step slide inside the sheet
+const STEP_MOTION = {
+  initial: { opacity: 0, x: 16 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -16 },
+  transition: { duration: 0.2, ease: EASE_OUT },
+};
 
 // iOS-style Selection Row
 const SelectionRow = ({
@@ -53,8 +70,8 @@ const RollingNumber = ({ value, displayValue, prefix = "", className }) => {
 
   useEffect(() => {
     const controls = animate(motionValue, value, {
-      duration: 0.5,
-      ease: [0.32, 0.72, 0, 1],
+      duration: 0.15,
+      ease: EASE_OUT,
       onUpdate: (latest) => {
         if (ref.current) {
           if (Math.abs(latest - value) < 0.5) {
@@ -71,7 +88,7 @@ const RollingNumber = ({ value, displayValue, prefix = "", className }) => {
       },
     });
     return () => controls.stop();
-  }, [value, displayValue, prefix]); // Re-run if value changes
+  }, [value, displayValue, prefix, motionValue]); // Re-run if value changes
 
   return (
     <span ref={ref} className={className}>
@@ -109,7 +126,7 @@ const NumberPad = ({ value, onChange, onClear, maxLength = 10 }) => {
     }
   };
 
-  const handleTouchStart = (key) => {
+  const handlePointerDown = (key) => {
     if (key === "⌫") {
       isLongPress.current = false;
       longPressTimer.current = setTimeout(() => {
@@ -120,7 +137,7 @@ const NumberPad = ({ value, onChange, onClear, maxLength = 10 }) => {
     }
   };
 
-  const handleTouchEnd = () => {
+  const handlePointerUp = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
@@ -133,13 +150,14 @@ const NumberPad = ({ value, onChange, onClear, maxLength = 10 }) => {
         <motion.button
           key={key}
           type="button"
-          whileTap={{ scale: 0.9, backgroundColor: "rgba(0,0,0,0.1)" }}
+          aria-label={key === "⌫" ? "Delete (hold to clear)" : key === "." ? "Decimal point" : key}
+          whileTap={{ scale: 0.96, backgroundColor: "rgba(0,0,0,0.1)" }}
+          transition={TAP_TRANSITION}
           onClick={() => handlePress(key)}
-          onTouchStart={() => handleTouchStart(key)}
-          onTouchEnd={handleTouchEnd}
-          onMouseDown={() => handleTouchStart(key)}
-          onMouseUp={handleTouchEnd}
-          onMouseLeave={handleTouchEnd}
+          onPointerDown={() => handlePointerDown(key)}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           className="h-12 rounded-xl bg-[rgba(120,120,128,0.08)] text-[22px] font-semibold text-black flex items-center justify-center select-none"
           style={{ touchAction: "manipulation" }}
         >
@@ -171,12 +189,7 @@ const AnimatedHeight = ({ children, className }) => {
   return (
     <motion.div
       animate={{ height }}
-      transition={{
-        type: "spring",
-        stiffness: 500,
-        damping: 40,
-        mass: 1,
-      }}
+      transition={LAYOUT_SPRING}
       className={clsx("overflow-hidden", className)}
     >
       <div ref={containerRef}>{children}</div>
@@ -223,7 +236,8 @@ export default function AddTransactionSheet({
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pasteValue, setPasteValue] = useState("");
 
-  const amountControls = useAnimation();
+  const closeTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
   useEffect(() => {
     if (isSheetOpen) {
@@ -326,7 +340,7 @@ export default function AddTransactionSheet({
       } else {
         throw new Error("Clipboard unavailable");
       }
-    } catch (err) {
+    } catch {
       // Fallback: Open custom modal
       setPasteValue("");
       setShowPasteModal(true);
@@ -372,7 +386,8 @@ export default function AddTransactionSheet({
     haptic.trigger("success");
     setStep("success");
 
-    setTimeout(() => {
+    clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
       onClose();
     }, 1500);
   };
@@ -419,14 +434,16 @@ export default function AddTransactionSheet({
   };
 
   return (
+    <>
     <AnimatePresence>
       {isSheetOpen && (
-        <>
+        <React.Fragment key="add-transaction-sheet">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             onClick={() => { haptic.trigger("medium"); onClose(); }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[400]"
           />
@@ -435,8 +452,8 @@ export default function AddTransactionSheet({
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            exit={{ y: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
             className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl z-[401] overflow-hidden"
             style={{ maxHeight: "90vh" }}
           >
@@ -455,7 +472,8 @@ export default function AddTransactionSheet({
                   <motion.button
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    whileTap={{ scale: 0.9 }}
+                    transition={{ duration: 0.2, ease: EASE_OUT }}
+                    whileTap={TAP}
                     onClick={handleBack}
                     className="text-[17px] text-[#007AFF] font-medium"
                   >
@@ -467,13 +485,15 @@ export default function AddTransactionSheet({
                 key={step + transactionType}
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.2, ease: EASE_OUT }}
                 className="text-[17px] font-semibold text-black"
               >
                 {getTitle()}
               </motion.h2>
               <motion.button
-                whileTap={{ scale: 0.9 }}
+                whileTap={TAP}
+                transition={TAP_TRANSITION}
+                aria-label="Close"
                 onClick={() => { haptic.trigger("medium"); onClose(); }}
                 className="w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center"
               >
@@ -488,10 +508,7 @@ export default function AddTransactionSheet({
                 {step === "type" && (
                   <motion.div
                     key="type"
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -30 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    {...STEP_MOTION}
                     className="p-5"
                   >
                     <p className="text-[15px] text-[rgba(60,60,67,0.6)] mb-4">
@@ -526,10 +543,7 @@ export default function AddTransactionSheet({
                 {step === "account" && (
                   <motion.div
                     key="account"
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -30 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    {...STEP_MOTION}
                     className="p-5"
                   >
                     <p className="text-[15px] text-[rgba(60,60,67,0.6)] mb-4">
@@ -566,10 +580,7 @@ export default function AddTransactionSheet({
                 {step === "amount" && (
                   <motion.div
                     key="amount"
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -30 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    {...STEP_MOTION}
                     className="flex flex-col"
                   >
                     {/* Amount Display */}
@@ -593,7 +604,7 @@ export default function AddTransactionSheet({
                         />
                       </div>
                       {transactionType === "liability" && selectedAccount && (
-                        <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-1">
+                        <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-1 tabular-nums">
                           Remaining: ₱
                           {Math.max(
                             0,
@@ -605,9 +616,10 @@ export default function AddTransactionSheet({
 
                     {/* Location & Note */}
                     <div className="px-5 space-y-2 mb-2">
-                      <div
+                      <button
+                        type="button"
                         onClick={getLocation}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-[rgba(120,120,128,0.08)] rounded-xl cursor-pointer active:scale-95 transition-transform"
+                        className="w-full text-left flex items-center gap-2 px-4 py-2.5 bg-[rgba(120,120,128,0.08)] rounded-xl cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
                       >
                         {isGettingLocation ? (
                           <Loader2
@@ -622,7 +634,7 @@ export default function AddTransactionSheet({
                             ? "Getting location..."
                             : locationName || "Tap to add location (Optional)"}
                         </span>
-                      </div>
+                      </button>
 
                       <input
                         type="text"
@@ -636,7 +648,8 @@ export default function AddTransactionSheet({
                     <div className="px-5 mb-2">
                       <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 no-scrollbar">
                         <motion.button
-                          whileTap={{ scale: 0.9 }}
+                          whileTap={TAP}
+                          transition={TAP_TRANSITION}
                           onClick={handlePaste}
                           className="shrink-0 h-9 px-4 rounded-full bg-[rgba(118,118,128,0.12)] text-[14px] font-semibold text-black/80 flex items-center justify-center border border-[rgba(0,0,0,0.02)]"
                         >
@@ -645,7 +658,8 @@ export default function AddTransactionSheet({
                         {[5, 10, 50, 100, 1000, 5000].map((val) => (
                           <motion.button
                             key={val}
-                            whileTap={{ scale: 0.9 }}
+                            whileTap={TAP}
+                            transition={TAP_TRANSITION}
                             onClick={() => handleQuickAdd(val)}
                             className="shrink-0 h-9 px-4 rounded-full bg-[rgba(120,120,128,0.08)] text-[14px] font-semibold text-black/80 flex items-center justify-center border border-[rgba(0,0,0,0.02)]"
                           >
@@ -665,11 +679,12 @@ export default function AddTransactionSheet({
                     {/* Submit Button */}
                     <div className="px-5 pb-8 pt-2">
                       <motion.button
-                        whileTap={{ scale: 0.98 }}
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
                         onClick={handleSubmit}
                         disabled={!amount || parseFloat(amount) <= 0}
                         className={clsx(
-                          "w-full py-3.5 rounded-xl font-semibold text-[16px] transition-all",
+                          "w-full py-3.5 rounded-xl font-semibold text-[16px] transition-[background-color,color,box-shadow] duration-200 ease-out",
                           amount && parseFloat(amount) > 0
                             ? transactionType === "liability"
                               ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
@@ -691,7 +706,7 @@ export default function AddTransactionSheet({
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+                    transition={{ duration: 0.3, ease: EASE_OUT }}
                     className="p-10 flex flex-col items-center justify-center text-center min-h-[300px]"
                   >
                     <div className="w-24 h-24 bg-[#34C759] rounded-full flex items-center justify-center mb-6 shadow-xl shadow-[#34C759]/40">
@@ -707,9 +722,9 @@ export default function AddTransactionSheet({
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
                         transition={{
-                          duration: 0.6,
-                          ease: "easeOut",
-                          delay: 0.2,
+                          duration: 0.4,
+                          ease: EASE_OUT,
+                          delay: 0.1,
                         }}
                       >
                         <motion.path d="M20 6L9 17l-5-5" />
@@ -718,7 +733,7 @@ export default function AddTransactionSheet({
                     <motion.h3
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
+                      transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.15 }}
                       className="text-[24px] font-bold text-black mb-2 tracking-tight"
                     >
                       {transactionType === "liability"
@@ -728,7 +743,7 @@ export default function AddTransactionSheet({
                     <motion.p
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
+                      transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.2 }}
                       className="text-[17px] text-[rgba(60,60,67,0.6)] font-medium"
                     >
                       {transactionType === "liability"
@@ -744,23 +759,30 @@ export default function AddTransactionSheet({
               </AnimatePresence>
             </AnimatedHeight>
           </motion.div>
-        </>
+        </React.Fragment>
       )}
+    </AnimatePresence>
 
-      {/* Custom Paste Modal */}
+    {/* Custom Paste Modal — own AnimatePresence so its exit actually plays */}
+    <AnimatePresence>
       {showPasteModal && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-5">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+        <motion.div
+          key="paste-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={FADE}
+          className="fixed inset-0 z-[500] flex items-center justify-center p-5"
+        >
+          <div
             onClick={() => setShowPasteModal(false)}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.95 }}
+            transition={DIALOG_SPRING}
             className="relative bg-white w-full max-w-xs rounded-2xl p-5 shadow-2xl space-y-4"
           >
             <div className="text-center">
@@ -776,26 +798,27 @@ export default function AddTransactionSheet({
               pattern="[0-9]*"
               value={pasteValue}
               onChange={(e) => setPasteValue(e.target.value)}
-              className="w-full bg-gray-100 rounded-xl px-4 py-3 text-center text-lg font-semibold outline-none focus:ring-2 focus:ring-[#007AFF] transition-all"
+              className="w-full bg-gray-100 rounded-xl px-4 py-3 text-center text-lg font-semibold outline-none focus:ring-2 focus:ring-[#007AFF] transition-shadow duration-150"
               placeholder="0.00"
             />
             <div className="flex gap-2">
               <button
                 onClick={() => setShowPasteModal(false)}
-                className="flex-1 py-2.5 rounded-xl font-medium bg-gray-100 text-gray-600 active:scale-95 transition-transform"
+                className="flex-1 py-2.5 rounded-xl font-medium bg-gray-100 text-gray-600 active:scale-[0.96] transition-transform duration-150 ease-out"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmPaste}
-                className="flex-1 py-2.5 rounded-xl font-semibold bg-[#007AFF] text-white active:scale-95 transition-transform"
+                className="flex-1 py-2.5 rounded-xl font-semibold bg-[#007AFF] text-white active:scale-[0.96] transition-transform duration-150 ease-out"
               >
                 Confirm
               </button>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
+    </>
   );
 }

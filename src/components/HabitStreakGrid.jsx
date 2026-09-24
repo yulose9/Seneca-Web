@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
+import { EASE_OUT } from '../constants/motion';
 import { useProtocol } from '../context/ProtocolContext';
 
 export default function HabitStreakGrid({
@@ -161,11 +162,11 @@ export default function HabitStreakGrid({
                 {dates.map((date, index) => {
                     const isFuture = date > gridToday;
                     if (isFuture) {
-                        return <div key={index} className="aspect-square rounded-[6px] bg-[rgba(120,120,128,0.08)] opacity-30" />;
+                        return <div key={index} className="aspect-square rounded-[4px] bg-[rgba(120,120,128,0.08)] opacity-30" />;
                     }
 
                     const dateStr = formatDateKey(date);
-                    const { completed, total, percentage } = getDailyStats(dateStr);
+                    const { completed, percentage } = getDailyStats(dateStr);
                     const isToday = formatDateKey(date) === formatDateKey(today);
                     const isComplete = percentage === 1;
 
@@ -194,26 +195,24 @@ export default function HabitStreakGrid({
                         } else {
                             stepOpacity = 0.9;
                         }
-                        bgStyle = { backgroundColor: color, opacity: stepOpacity };
+                        bgStyle = { backgroundColor: `color-mix(in srgb, ${color} ${stepOpacity * 100}%, transparent)` };
                     }
 
                     return (
                         <motion.div
                             key={index}
                             className={clsx(
-                                "aspect-square rounded-[4px] relative transition-all duration-300",
-                                isToday && "ring-2 ring-offset-2 ring-offset-white ring-[#007AFF]",
-                                isComplete && "scale-100"
+                                "aspect-square rounded-[4px] relative transition-[background-color,box-shadow] duration-150",
+                                isToday && "ring-2 ring-offset-2 ring-offset-white ring-[#007AFF]"
                             )}
                             style={{ ...bgStyle, ...glowStyle }}
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{
-                                scale: isComplete && isToday ? 1.05 : 1,
-                                opacity: bgStyle.opacity || 1
-                            }}
+                            // Mount-only stagger: targets are constant so data updates
+                            // never replay the entrance delay.
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
                             transition={{
-                                delay: index * 0.02,
-                                scale: { type: "spring", stiffness: 400, damping: 25 }
+                                opacity: { delay: index * 0.012, duration: 0.2, ease: EASE_OUT },
+                                scale: { delay: index * 0.012, type: "spring", duration: 0.3, bounce: 0 }
                             }}
                         />
                     );

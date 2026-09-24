@@ -1,5 +1,4 @@
 import React, { useId, useState, useEffect } from "react";
-import { motion } from "framer-motion";
 
 export default function LiquidGlass({
   children,

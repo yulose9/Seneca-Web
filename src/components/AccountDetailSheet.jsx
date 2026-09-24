@@ -19,8 +19,16 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import {
+  EASE_OUT,
+  FADE,
+  SHEET_EXIT,
+  SHEET_SPRING,
+  TAP,
+  TAP_TRANSITION,
+} from "../constants/motion";
 import {
   Area,
   AreaChart,
@@ -51,8 +59,8 @@ const RollingNumber = ({ value, prefix = "" }) => {
 
   useEffect(() => {
     const controls = animate(motionValue, value, {
-      duration: 1.2,
-      ease: [0.16, 1, 0.3, 1], // Apple-style spring-ish ease
+      duration: 0.6,
+      ease: EASE_OUT,
       onUpdate: (latest) => {
         if (ref.current) {
           ref.current.textContent = `${prefix}${latest.toLocaleString(
@@ -63,7 +71,7 @@ const RollingNumber = ({ value, prefix = "" }) => {
       },
     });
     return () => controls.stop();
-  }, [value, prefix]);
+  }, [value, prefix, motionValue]);
 
   return (
     <span ref={ref} className="tabular-nums">
@@ -72,26 +80,22 @@ const RollingNumber = ({ value, prefix = "" }) => {
   );
 };
 
-const listVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.2 },
-  },
-};
-
+// Stagger capped so long histories don't take seconds to appear
 const itemVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.95 },
-  visible: {
+  hidden: { opacity: 0, y: 8 },
+  visible: (i = 0) => ({
     opacity: 1,
     y: 0,
-    scale: 1,
-    transition: { type: "spring", stiffness: 300, damping: 24 },
-  },
+    transition: {
+      duration: 0.3,
+      ease: EASE_OUT,
+      delay: 0.1 + Math.min(i, 8) * 0.04,
+    },
+  }),
 };
 
 export default function AccountDetailSheet({
-  account,
+  account: accountProp,
   isOpen,
   onClose,
   transactions = [],
@@ -102,6 +106,12 @@ export default function AccountDetailSheet({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const haptic = useWebHaptics();
+  const chartGradientId = useId();
+
+  // Keep the last account so the sheet can finish its exit after the parent clears it
+  const [cachedAccount, setCachedAccount] = useState(accountProp);
+  if (accountProp && accountProp !== cachedAccount) setCachedAccount(accountProp);
+  const account = accountProp || cachedAccount;
 
   const handleStartEdit = () => {
     setEditValue(account.amount.toString());
@@ -119,7 +129,6 @@ export default function AccountDetailSheet({
 
   // Safe accessors
   const isLiability = account?.category === "Liabilities";
-  const isInvestment = account?.category === "Investments";
 
   // Filter transactions for this account
   const accountTransactions = useMemo(() => {
@@ -132,12 +141,13 @@ export default function AccountDetailSheet({
   // Auto-scroll to highlighted transaction
   useEffect(() => {
     if (isOpen && highlightTransactionId) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const el = document.getElementById(`tx-${highlightTransactionId}`);
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }, 400); // Wait for sheet animation
+      return () => clearTimeout(timer);
     }
   }, [isOpen, highlightTransactionId]);
 
@@ -145,6 +155,14 @@ export default function AccountDetailSheet({
     if (!account) return [];
     return generateChartData(account.amount, account.category);
   }, [account]);
+
+  // Derived from the chart so it doesn't re-roll on every render
+  const monthChange = useMemo(() => {
+    if (chartData.length < 2 || !chartData[0].value) return 0;
+    const first = chartData[0].value;
+    const last = chartData[chartData.length - 1].value;
+    return Math.round(((last - first) / first) * 100);
+  }, [chartData]);
 
   const totalIn = useMemo(() => {
     if (!account) return 0;
@@ -173,7 +191,7 @@ export default function AccountDetailSheet({
       ? ((originalLoanEstimate - account.amount) / originalLoanEstimate) * 100
       : 0;
 
-  if (!account && !isOpen) return null;
+  if (!account) return null;
 
   return (
     <AnimatePresence>
@@ -184,6 +202,7 @@ export default function AccountDetailSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             onClick={() => { haptic.trigger("medium"); onClose(); }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[450]"
           />
@@ -192,8 +211,8 @@ export default function AccountDetailSheet({
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            exit={{ y: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
             className="fixed inset-x-0 bottom-0 h-[92vh] bg-[#F2F2F7] rounded-t-[32px] z-[451] overflow-hidden flex flex-col"
           >
             {/* Header */}
@@ -204,7 +223,8 @@ export default function AccountDetailSheet({
               />
 
               <motion.button
-                whileTap={{ scale: 0.9 }}
+                whileTap={TAP}
+                transition={TAP_TRANSITION}
                 onClick={() => { haptic.trigger("medium"); onClose(); }}
                 className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center -ml-2"
               >
@@ -218,7 +238,8 @@ export default function AccountDetailSheet({
               </div>
 
               <motion.button
-                whileTap={{ scale: 0.9 }}
+                whileTap={TAP}
+                transition={TAP_TRANSITION}
                 className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center -mr-2"
               >
                 <MoreHorizontal size={18} className="text-black/60" />
@@ -231,8 +252,9 @@ export default function AccountDetailSheet({
               <div className="bg-white pb-6 pt-2 px-6 rounded-b-[32px] shadow-sm relative z-0">
                 <div className="flex flex-col items-center">
                   <motion.div
-                    initial={{ scale: 0.5, opacity: 0 }}
+                    initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3, ease: EASE_OUT }}
                     className={clsx(
                       "w-20 h-20 rounded-[28px] flex items-center justify-center text-4xl mb-4 shadow-xl",
                       isLiability
@@ -278,10 +300,11 @@ export default function AccountDetailSheet({
                       </div>
                     ) : (
                       <motion.button
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={TAP}
+                        transition={TAP_TRANSITION}
                         onClick={handleStartEdit}
                         className={clsx(
-                          "relative flex items-center justify-center px-3 py-1 rounded-xl hover:bg-black/5 transition-colors group",
+                          "relative flex items-center justify-center px-3 py-1 rounded-xl hover:bg-black/5 transition-colors duration-150 group",
                           isLiability ? "text-[#FF3B30]" : "text-black",
                         )}
                       >
@@ -291,7 +314,7 @@ export default function AccountDetailSheet({
                             prefix={isLiability ? "-₱" : "₱"}
                           />
                         </span>
-                        <div className="absolute -right-10 w-8 h-8 rounded-full bg-black/[0.06] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute -right-10 w-8 h-8 rounded-full bg-black/[0.06] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                           <Pen size={14} className="text-black/50" />
                         </div>
                       </motion.button>
@@ -301,7 +324,8 @@ export default function AccountDetailSheet({
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 gap-3 w-full">
                     <motion.button
-                      whileTap={{ scale: 0.98 }}
+                      whileTap={TAP}
+                      transition={TAP_TRANSITION}
                       onClick={() =>
                         onAddTransaction(isLiability ? "payment" : "deposit")
                       }
@@ -321,7 +345,8 @@ export default function AccountDetailSheet({
                     </motion.button>
 
                     <motion.button
-                      whileTap={{ scale: 0.98 }}
+                      whileTap={TAP}
+                      transition={TAP_TRANSITION}
                       className="bg-[#F2F2F7] text-black py-3.5 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2"
                     >
                       {isLiability ? (
@@ -348,7 +373,7 @@ export default function AccountDetailSheet({
                         <p className="text-[13px] text-black/50 mb-1">
                           Paid Off
                         </p>
-                        <p className="text-xl font-bold text-[#34C759]">
+                        <p className="text-xl font-bold text-[#34C759] tabular-nums">
                           {liabilityProgress.toFixed(0)}%
                         </p>
                       </div>
@@ -356,17 +381,18 @@ export default function AccountDetailSheet({
                         <p className="text-[13px] text-black/50 mb-1">
                           Remaining
                         </p>
-                        <p className="text-xl font-bold text-[#FF3B30]">
+                        <p className="text-xl font-bold text-[#FF3B30] tabular-nums">
                           ₱{account.amount.toLocaleString()}
                         </p>
                       </div>
                     </div>
                     <div className="h-3 bg-[#F2F2F7] rounded-full overflow-hidden">
                       <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${liabilityProgress}%` }}
-                        transition={{ duration: 1, ease: "circOut" }}
-                        className="h-full bg-gradient-to-r from-[#34C759] to-[#22C55E]"
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: Math.min(liabilityProgress, 100) / 100 }}
+                        transition={{ duration: 0.6, ease: EASE_OUT }}
+                        style={{ originX: 0 }}
+                        className="h-full w-full rounded-full bg-gradient-to-r from-[#34C759] to-[#22C55E]"
                       />
                     </div>
                     <p className="text-center text-[12px] text-black/40 mt-3 font-medium">
@@ -389,7 +415,7 @@ export default function AccountDetailSheet({
                             This Month
                           </p>
                           <p className="text-[15px] font-bold text-[#34C759]">
-                            +{Math.floor(Math.random() * 15)}%
+                            {monthChange >= 0 ? "+" : ""}{monthChange}%
                           </p>
                         </div>
                       </div>
@@ -403,7 +429,7 @@ export default function AccountDetailSheet({
                         <AreaChart data={chartData}>
                           <defs>
                             <linearGradient
-                              id="colorValue"
+                              id={chartGradientId}
                               x1="0"
                               y1="0"
                               x2="0"
@@ -428,8 +454,8 @@ export default function AccountDetailSheet({
                             stroke={isLiability ? "#FF3B30" : "#34C759"}
                             strokeWidth={3}
                             fillOpacity={1}
-                            fill="url(#colorValue)"
-                            animationDuration={1500}
+                            fill={`url(#${chartGradientId})`}
+                            animationDuration={600}
                             animationEasing="ease-out"
                           />
                         </AreaChart>
@@ -448,7 +474,7 @@ export default function AccountDetailSheet({
                       Total In
                     </p>
                   </div>
-                  <p className="text-[17px] font-bold text-black">
+                  <p className="text-[17px] font-bold text-black tabular-nums">
                     ₱{totalIn.toLocaleString()}
                   </p>
                 </div>
@@ -459,30 +485,28 @@ export default function AccountDetailSheet({
                       Total Out
                     </p>
                   </div>
-                  <p className="text-[17px] font-bold text-black">
+                  <p className="text-[17px] font-bold text-black tabular-nums">
                     ₱{totalOut.toLocaleString()}
                   </p>
                 </div>
               </div>
 
+              <div className="mx-5">
               <h3 className="text-[13px] font-semibold text-black/40 uppercase tracking-widest mb-3 ml-1">
                 Latest Activity
               </h3>
-              <motion.div
-                variants={listVariants}
-                initial="hidden"
-                animate="visible"
-                className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden"
-              >
+              <div className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden">
                 {accountTransactions.length > 0 ? (
                   accountTransactions.map((t, i) => (
                     <motion.div
                       key={t.id}
                       id={`tx-${t.id}`}
                       variants={itemVariants}
-                      whileTap={{ backgroundColor: "rgba(0,0,0,0.02)" }}
+                      custom={i}
+                      initial="hidden"
+                      animate="visible"
                       className={clsx(
-                        "flex items-center p-4 border-b border-black/[0.04] last:border-0 cursor-pointer transition-colors",
+                        "flex items-center p-4 border-b border-black/[0.04] last:border-0 cursor-pointer transition-colors duration-150 active:bg-black/[0.02]",
                         t.id === highlightTransactionId
                           ? "bg-yellow-100/50"
                           : "",
@@ -526,7 +550,8 @@ export default function AccountDetailSheet({
                     </p>
                   </div>
                 )}
-              </motion.div>
+              </div>
+              </div>
             </div>
           </motion.div>
         </>

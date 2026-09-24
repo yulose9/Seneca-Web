@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useWebHaptics } from "web-haptics/react";
+import { FADE, SHEET_EXIT, SHEET_SPRING } from "../constants/motion";
 
 const ITEM_HEIGHT = 50;
 const VISIBLE_ITEMS = 5;
@@ -11,15 +12,18 @@ function ClockStylePicker({ items, value, onChange, label }) {
   const containerRef = useRef(null);
   const scrollTimeout = useRef(null);
 
-  // Initialize scroll position
+  // Keep scroll position in sync with value. The parent seeds the value from
+  // currentWeight after this mounts, so a mount-only scroll would sit on the
+  // stale default. Values produced by the user's own scroll are always within
+  // half an item of scrollTop, so this never fights an active drag.
   useEffect(() => {
-    if (containerRef.current) {
-      const index = items.indexOf(value);
-      if (index !== -1) {
-        containerRef.current.scrollTop = index * ITEM_HEIGHT;
-      }
+    const el = containerRef.current;
+    if (!el) return;
+    const index = items.indexOf(value);
+    if (index !== -1 && Math.abs(el.scrollTop - index * ITEM_HEIGHT) > ITEM_HEIGHT / 2) {
+      el.scrollTop = index * ITEM_HEIGHT;
     }
-  }, []);
+  }, [items, value]);
 
   const handleScroll = (e) => {
     clearTimeout(scrollTimeout.current);
@@ -65,7 +69,7 @@ function ClockStylePicker({ items, value, onChange, label }) {
               className="h-[50px] flex items-center justify-center snap-center"
             >
               <span
-                className={`text-[28px] font-light transition-all duration-150 ${isSelected ? "text-black scale-105" : "text-black/25 scale-90"
+                className={`inline-block text-[28px] font-light tabular-nums transition-[scale,color] duration-150 ease-out ${isSelected ? "text-black scale-105" : "text-black/25 scale-90"
                   }`}
               >
                 {String(item).padStart(2, "0")}
@@ -126,6 +130,7 @@ export default function WeightInputDialog({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={FADE}
             onClick={onClose}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999]"
           />
@@ -134,8 +139,8 @@ export default function WeightInputDialog({
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            exit={{ y: "100%", transition: SHEET_EXIT }}
+            transition={SHEET_SPRING}
             className="fixed bottom-0 left-0 right-0 z-[9999] bg-[#F2F2F7] rounded-t-[20px] overflow-hidden"
           >
             {/* Drag Handle */}
