@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:sync": "node tests/sync/engine.test.mjs && node tests/sync/syncedField.test.mjs && node tests/sync/pure.test.mjs"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.4",

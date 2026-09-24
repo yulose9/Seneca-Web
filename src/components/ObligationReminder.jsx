@@ -9,12 +9,11 @@ import {
   ICON_ENTER,
   ICON_SPRING,
   ICON_VISIBLE,
-  SHEET_EXIT,
-  SHEET_SPRING,
   TAP,
   TAP_TRANSITION,
 } from "../constants/motion";
-import { subscribeToGlobalData } from "../services/dataLogger";
+import { useWealthLiabilities, useWealthTransactions } from "../data/syncedData";
+import Sheet from "./Sheet";
 
 // LocalStorage keys for snooze
 const SNOOZE_KEY = "obligation_reminder_snooze";
@@ -109,45 +108,6 @@ const getTasksSnoozeInfo = () => ({
 });
 
 // ─── Notification Popup (shows on app open) ─────────────────────────
-// Load liabilities instantly from localStorage, preferring Firestore cache
-const loadLiabilitiesLocal = () => {
-  try {
-    const raw = localStorage.getItem("seneca_global_data");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.wealth?.liabilities?.length) return parsed.wealth.liabilities;
-    }
-    const saved = localStorage.getItem("wealth_liabilities");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length) return parsed;
-    }
-  } catch {
-    /* ignore */
-  }
-  return [];
-};
-
-// Load transactions from localStorage
-const loadTransactionsLocal = () => {
-  try {
-    const raw = localStorage.getItem("seneca_global_data");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.wealth?.transactions?.length)
-        return parsed.wealth.transactions;
-    }
-    const saved = localStorage.getItem("wealth_transactions");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length) return parsed;
-    }
-  } catch {
-    /* ignore */
-  }
-  return [];
-};
-
 // Format a date into a human-readable relative time
 const formatRelativeTime = (dateStr) => {
   const date = new Date(dateStr);
@@ -185,18 +145,9 @@ const findLastPayment = (transactions, liability) => {
 
 export default function ObligationReminder({ isOpen, onClose }) {
   const haptic = useWebHaptics();
-  // Load instantly from localStorage — no waiting for Firestore
-  const [liabilities, setLiabilities] = useState(loadLiabilitiesLocal);
-  const [transactions, setTransactions] = useState(loadTransactionsLocal);
-
-  useEffect(() => {
-    // Also subscribe to Firestore for live updates
-    const unsub = subscribeToGlobalData("wealth", (data) => {
-      if (data?.liabilities) setLiabilities(data.liabilities);
-      if (data?.transactions) setTransactions(data.transactions);
-    });
-    return () => unsub();
-  }, []);
+  // Same live values the Wealth page uses (instant from cache, then Firestore)
+  const [liabilities] = useWealthLiabilities();
+  const [transactions] = useWealthTransactions();
 
   const totalObligations = liabilities.reduce(
     (sum, l) => sum + (l.amount || 0),
@@ -428,142 +379,123 @@ export function ReminderSettingsSheet({ visible, onClose }) {
   }, [visible]);
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={FADE}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
-            onClick={onClose}
-          />
+    <Sheet
+      open={visible}
+      onClose={onClose}
+      zIndex={9998}
+      label="Obligation reminder settings"
+      className="fixed inset-x-0 bottom-0 max-w-md mx-auto"
+    >
+        <div className="bg-white rounded-t-3xl shadow-2xl pb-10">
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-9 h-1 rounded-full bg-[rgba(60,60,67,0.15)]" />
+          </div>
 
-          {/* Bottom sheet */}
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%", transition: SHEET_EXIT }}
-            transition={SHEET_SPRING}
-            role="dialog"
-            aria-modal="true"
-            className="fixed inset-x-0 bottom-0 z-[9999] max-w-md mx-auto"
-          >
-            <div className="bg-white rounded-t-3xl shadow-2xl pb-10">
-              {/* Handle */}
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-9 h-1 rounded-full bg-[rgba(60,60,67,0.15)]" />
-              </div>
-
-              {/* Header */}
-              <div className="px-6 pt-3 pb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-[19px] font-bold text-black">
-                    Reminder Settings
-                  </h3>
-                  <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
-                    {snoozeInfo.label}
-                  </p>
-                </div>
-                <motion.button
-                  whileTap={TAP}
-                  transition={TAP_TRANSITION}
-                  onClick={onClose}
-                  aria-label="Close"
-                  className="relative w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
-                >
-                  <X size={16} className="text-[rgba(60,60,67,0.6)]" />
-                </motion.button>
-              </div>
-
-              {/* Frequency label */}
-              <div className="px-6 pb-2">
-                <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.4)] uppercase tracking-wide">
-                  Reminder Frequency
-                </p>
-              </div>
-
-              {/* Options */}
-              <div className="px-6 space-y-1">
-                {SNOOZE_OPTIONS.map((opt) => {
-                  const isActive = snoozeInfo.activeMs === opt.ms;
-
-                  return (
-                    <motion.button
-                      key={opt.label}
-                      whileTap={{ scale: 0.98 }}
-                      transition={TAP_TRANSITION}
-                      aria-pressed={isActive}
-                      onClick={() => {
-                        haptic.trigger("selection");
-                        handleSetSnooze(opt.ms);
-                      }}
-                      className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
-                        isActive
-                          ? "bg-[#007AFF]/8 border border-[#007AFF]/15"
-                          : "bg-[rgba(120,120,128,0.04)] border border-transparent active:bg-[rgba(120,120,128,0.08)]"
-                      }`}
-                      style={
-                        isActive
-                          ? {
-                              backgroundColor: "rgba(0,122,255,0.08)",
-                              borderColor: "rgba(0,122,255,0.15)",
-                            }
-                          : {}
-                      }
-                    >
-                      <div className="flex items-center gap-3">
-                        <Clock
-                          size={18}
-                          className={
-                            isActive
-                              ? "text-[#007AFF]"
-                              : "text-[rgba(60,60,67,0.4)]"
-                          }
-                        />
-                        <div className="text-left">
-                          <p
-                            className={`text-[15px] font-semibold ${isActive ? "text-[#007AFF]" : "text-black"}`}
-                          >
-                            {opt.label}
-                          </p>
-                          <p className="text-[12px] text-[rgba(60,60,67,0.5)]">
-                            {opt.description}
-                          </p>
-                        </div>
-                      </div>
-                      <AnimatePresence initial={false}>
-                        {isActive && (
-                          <motion.span
-                            key="check"
-                            initial={ICON_ENTER}
-                            animate={ICON_VISIBLE}
-                            exit={ICON_ENTER}
-                            transition={ICON_SPRING}
-                          >
-                            <Check size={18} className="text-[#007AFF]" />
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {/* Info note */}
-              <div className="px-6 pt-4">
-                <p className="text-[12px] text-[rgba(60,60,67,0.4)] text-center leading-relaxed">
-                  You can't turn off reminders completely. This ensures you stay
-                  on top of your obligations.
-                </p>
-              </div>
+          {/* Header */}
+          <div className="px-6 pt-3 pb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-[19px] font-bold text-black">
+                Reminder Settings
+              </h3>
+              <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
+                {snoozeInfo.label}
+              </p>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            <motion.button
+              whileTap={TAP}
+              transition={TAP_TRANSITION}
+              onClick={onClose}
+              aria-label="Close"
+              className="relative w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
+            >
+              <X size={16} className="text-[rgba(60,60,67,0.6)]" />
+            </motion.button>
+          </div>
+
+          {/* Frequency label */}
+          <div className="px-6 pb-2">
+            <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.4)] uppercase tracking-wide">
+              Reminder Frequency
+            </p>
+          </div>
+
+          {/* Options */}
+          <div className="px-6 space-y-1">
+            {SNOOZE_OPTIONS.map((opt) => {
+              const isActive = snoozeInfo.activeMs === opt.ms;
+
+              return (
+                <motion.button
+                  key={opt.label}
+                  whileTap={{ scale: 0.98 }}
+                  transition={TAP_TRANSITION}
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    haptic.trigger("selection");
+                    handleSetSnooze(opt.ms);
+                  }}
+                  className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
+                    isActive
+                      ? "bg-[#007AFF]/8 border border-[#007AFF]/15"
+                      : "bg-[rgba(120,120,128,0.04)] border border-transparent active:bg-[rgba(120,120,128,0.08)]"
+                  }`}
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor: "rgba(0,122,255,0.08)",
+                          borderColor: "rgba(0,122,255,0.15)",
+                        }
+                      : {}
+                  }
+                >
+                  <div className="flex items-center gap-3">
+                    <Clock
+                      size={18}
+                      className={
+                        isActive
+                          ? "text-[#007AFF]"
+                          : "text-[rgba(60,60,67,0.4)]"
+                      }
+                    />
+                    <div className="text-left">
+                      <p
+                        className={`text-[15px] font-semibold ${isActive ? "text-[#007AFF]" : "text-black"}`}
+                      >
+                        {opt.label}
+                      </p>
+                      <p className="text-[12px] text-[rgba(60,60,67,0.5)]">
+                        {opt.description}
+                      </p>
+                    </div>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {isActive && (
+                      <motion.span
+                        key="check"
+                        initial={ICON_ENTER}
+                        animate={ICON_VISIBLE}
+                        exit={ICON_ENTER}
+                        transition={ICON_SPRING}
+                      >
+                        <Check size={18} className="text-[#007AFF]" />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Info note */}
+          <div className="px-6 pt-4">
+            <p className="text-[12px] text-[rgba(60,60,67,0.4)] text-center leading-relaxed">
+              You can't turn off reminders completely. This ensures you stay
+              on top of your obligations.
+            </p>
+          </div>
+        </div>
+    </Sheet>
   );
 }
 
@@ -628,133 +560,116 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
   }, [visible]);
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={FADE}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
-            onClick={onClose}
-          />
+    <Sheet
+      open={visible}
+      onClose={onClose}
+      zIndex={9998}
+      label="Task reminder settings"
+      className="fixed inset-x-0 bottom-0 max-w-md mx-auto"
+    >
+        <div className="bg-white rounded-t-3xl shadow-2xl pb-10">
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-9 h-1 rounded-full bg-[rgba(60,60,67,0.15)]" />
+          </div>
 
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%", transition: SHEET_EXIT }}
-            transition={SHEET_SPRING}
-            role="dialog"
-            aria-modal="true"
-            className="fixed inset-x-0 bottom-0 z-[9999] max-w-md mx-auto"
-          >
-            <div className="bg-white rounded-t-3xl shadow-2xl pb-10">
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-9 h-1 rounded-full bg-[rgba(60,60,67,0.15)]" />
-              </div>
-
-              <div className="px-6 pt-3 pb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-[19px] font-bold text-black">
-                    Tasks Reminder
-                  </h3>
-                  <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
-                    {snoozeInfo.label}
-                  </p>
-                </div>
-                <motion.button
-                  whileTap={TAP}
-                  transition={TAP_TRANSITION}
-                  onClick={onClose}
-                  aria-label="Close"
-                  className="relative w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
-                >
-                  <X size={16} className="text-[rgba(60,60,67,0.6)]" />
-                </motion.button>
-              </div>
-
-              <div className="px-6 pb-2">
-                <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.4)] uppercase tracking-wide">
-                  Reminder Frequency
-                </p>
-              </div>
-
-              <div className="px-6 space-y-1">
-                {SNOOZE_OPTIONS.map((opt) => {
-                  const isActive = snoozeInfo.activeMs === opt.ms;
-
-                  return (
-                    <motion.button
-                      key={opt.label}
-                      whileTap={{ scale: 0.98 }}
-                      transition={TAP_TRANSITION}
-                      aria-pressed={isActive}
-                      onClick={() => {
-                        haptic.trigger("selection");
-                        handleSetSnooze(opt.ms);
-                      }}
-                      className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
-                        isActive
-                          ? "bg-[#FF9500]/8 border border-[#FF9500]/15"
-                          : "bg-[rgba(120,120,128,0.04)] border border-transparent active:bg-[rgba(120,120,128,0.08)]"
-                      }`}
-                      style={
-                        isActive
-                          ? {
-                              backgroundColor: "rgba(255,149,0,0.08)",
-                              borderColor: "rgba(255,149,0,0.15)",
-                            }
-                          : {}
-                      }
-                    >
-                      <div className="flex items-center gap-3">
-                        <Clock
-                          size={18}
-                          className={
-                            isActive
-                              ? "text-[#FF9500]"
-                              : "text-[rgba(60,60,67,0.4)]"
-                          }
-                        />
-                        <div className="text-left">
-                          <p
-                            className={`text-[15px] font-semibold ${isActive ? "text-[#FF9500]" : "text-black"}`}
-                          >
-                            {opt.label}
-                          </p>
-                          <p className="text-[12px] text-[rgba(60,60,67,0.5)]">
-                            {opt.description}
-                          </p>
-                        </div>
-                      </div>
-                      <AnimatePresence initial={false}>
-                        {isActive && (
-                          <motion.span
-                            key="check"
-                            initial={ICON_ENTER}
-                            animate={ICON_VISIBLE}
-                            exit={ICON_ENTER}
-                            transition={ICON_SPRING}
-                          >
-                            <Check size={18} className="text-[#FF9500]" />
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              <div className="px-6 pt-4">
-                <p className="text-[12px] text-[rgba(60,60,67,0.4)] text-center leading-relaxed">
-                  Controls when the daily tasks reminder appears on app open.
-                </p>
-              </div>
+          <div className="px-6 pt-3 pb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-[19px] font-bold text-black">
+                Tasks Reminder
+              </h3>
+              <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
+                {snoozeInfo.label}
+              </p>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            <motion.button
+              whileTap={TAP}
+              transition={TAP_TRANSITION}
+              onClick={onClose}
+              aria-label="Close"
+              className="relative w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
+            >
+              <X size={16} className="text-[rgba(60,60,67,0.6)]" />
+            </motion.button>
+          </div>
+
+          <div className="px-6 pb-2">
+            <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.4)] uppercase tracking-wide">
+              Reminder Frequency
+            </p>
+          </div>
+
+          <div className="px-6 space-y-1">
+            {SNOOZE_OPTIONS.map((opt) => {
+              const isActive = snoozeInfo.activeMs === opt.ms;
+
+              return (
+                <motion.button
+                  key={opt.label}
+                  whileTap={{ scale: 0.98 }}
+                  transition={TAP_TRANSITION}
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    haptic.trigger("selection");
+                    handleSetSnooze(opt.ms);
+                  }}
+                  className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
+                    isActive
+                      ? "bg-[#FF9500]/8 border border-[#FF9500]/15"
+                      : "bg-[rgba(120,120,128,0.04)] border border-transparent active:bg-[rgba(120,120,128,0.08)]"
+                  }`}
+                  style={
+                    isActive
+                      ? {
+                          backgroundColor: "rgba(255,149,0,0.08)",
+                          borderColor: "rgba(255,149,0,0.15)",
+                        }
+                      : {}
+                  }
+                >
+                  <div className="flex items-center gap-3">
+                    <Clock
+                      size={18}
+                      className={
+                        isActive
+                          ? "text-[#FF9500]"
+                          : "text-[rgba(60,60,67,0.4)]"
+                      }
+                    />
+                    <div className="text-left">
+                      <p
+                        className={`text-[15px] font-semibold ${isActive ? "text-[#FF9500]" : "text-black"}`}
+                      >
+                        {opt.label}
+                      </p>
+                      <p className="text-[12px] text-[rgba(60,60,67,0.5)]">
+                        {opt.description}
+                      </p>
+                    </div>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {isActive && (
+                      <motion.span
+                        key="check"
+                        initial={ICON_ENTER}
+                        animate={ICON_VISIBLE}
+                        exit={ICON_ENTER}
+                        transition={ICON_SPRING}
+                      >
+                        <Check size={18} className="text-[#FF9500]" />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          <div className="px-6 pt-4">
+            <p className="text-[12px] text-[rgba(60,60,67,0.4)] text-center leading-relaxed">
+              Controls when the daily tasks reminder appears on app open.
+            </p>
+          </div>
+        </div>
+    </Sheet>
   );
 }

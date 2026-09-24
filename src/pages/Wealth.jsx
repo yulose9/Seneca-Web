@@ -20,7 +20,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import AccountDetailSheet from "../components/AccountDetailSheet";
 import AddTransactionSheet from "../components/AddTransactionSheet";
@@ -38,72 +38,16 @@ import {
   TAP,
   TAP_TRANSITION,
 } from "../constants/motion";
+import { updateGlobalData, updateTodayLog } from "../services/dataLogger";
 import {
-  getGlobalData,
-  hasPendingGlobalWrite,
-  isGlobalDirty,
-  saveGlobalDataLocal,
-  subscribeToGlobalData,
-  updateGlobalData,
-  updateTodayLog,
-} from "../services/dataLogger";
-
-// LocalStorage keys for Wealth data
-const WEALTH_STORAGE_KEYS = {
-  ASSETS: "wealth_assets",
-  LIABILITIES: "wealth_liabilities",
-  TRANSACTIONS: "wealth_transactions",
-  SEARCH_HISTORY: "wealth_search_history",
-};
+  useWealthAssets,
+  useWealthLiabilities,
+  useWealthSearchHistory,
+  useWealthTransactions,
+} from "../data/syncedData";
+import { getPhDateKey, toDateKey } from "../utils/timeUtils";
 
 // Default data (amounts are 0 — real values come from Firestore)
-const DEFAULT_ASSETS = [
-  {
-    id: "maribank",
-    icon: "🏦",
-    name: "MariBank",
-    platform: "SeaMoney",
-    amount: 0,
-    value: 0,
-    change: 0,
-    isPositive: true,
-    category: "Savings",
-  },
-  {
-    id: "emergency",
-    icon: "🚨",
-    name: "Emergency Fund",
-    platform: "Emergency Fund",
-    amount: 0,
-    value: 0,
-    change: 0,
-    isPositive: true,
-    category: "Savings",
-  },
-  {
-    id: "trading212",
-    icon: "📈",
-    name: "Trading212",
-    platform: "AI Growth Stocks",
-    amount: 0,
-    value: 0,
-    change: 0,
-    isPositive: true,
-    category: "Investments",
-  },
-  {
-    id: "gcash",
-    icon: "💳",
-    name: "GCash",
-    platform: "Digital Wallet",
-    amount: 0,
-    value: 0,
-    change: 0,
-    isPositive: true,
-    category: "Savings",
-  },
-];
-
 const DEFAULT_LIABILITIES = [
   {
     id: "kuya",
@@ -129,8 +73,6 @@ const DEFAULT_LIABILITIES = [
   },
 ];
 
-const DEFAULT_TRANSACTIONS = [];
-
 // Hydrate a liability from cloud data by restoring missing fields from defaults
 const hydrateLiability = (cloudLiability) => {
   const defaults = DEFAULT_LIABILITIES.find((d) => d.id === cloudLiability.id);
@@ -144,43 +86,6 @@ const hydrateLiability = (cloudLiability) => {
     value: 0,
     ...cloudLiability,
   };
-};
-
-// Load from localStorage helpers — no defaults, data comes from Firestore
-const loadAssets = () => {
-  try {
-    const saved = localStorage.getItem(WEALTH_STORAGE_KEYS.ASSETS);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-};
-
-const loadLiabilities = () => {
-  try {
-    const saved = localStorage.getItem(WEALTH_STORAGE_KEYS.LIABILITIES);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-};
-
-const loadTransactions = () => {
-  try {
-    const saved = localStorage.getItem(WEALTH_STORAGE_KEYS.TRANSACTIONS);
-    return saved ? JSON.parse(saved) : DEFAULT_TRANSACTIONS;
-  } catch {
-    return DEFAULT_TRANSACTIONS;
-  }
-};
-
-const loadSearchHistory = () => {
-  try {
-    const saved = localStorage.getItem(WEALTH_STORAGE_KEYS.SEARCH_HISTORY);
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
 };
 
 // Rolling Number Component
@@ -712,12 +617,6 @@ const CategoryDropdown = ({
 );
 
 export default function Wealth() {
-  // Interaction timestamp to prevent "Cloud Echo" overwrites
-  const lastLocalInteraction = useRef(0);
-
-  // Bumped when unsynced edits from a previous session must be re-sent
-  const [resyncNonce, setResyncNonce] = useState(0);
-
   const haptic = useWebHaptics();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get("category") || "All Assets";
@@ -765,342 +664,55 @@ export default function Wealth() {
 
   const categories = ["All Assets", "Savings", "Investments", "Liabilities"];
 
-  // State for Accounts - loaded from localStorage
-  const [assets, setAssets] = useState(loadAssets);
-  const [liabilities, setLiabilities] = useState(loadLiabilities);
-  const [transactions, setTransactions] = useState(loadTransactions);
-  const [searchHistory, setSearchHistory] = useState(loadSearchHistory); // New State
+  // Accounts, transactions and search history — each a field of
+  // global_data/wealth, synced across devices and cached in localStorage.
+  // Only fields changed on THIS device are written; remote edits (including
+  // deletions) replace local state without being echoed back.
+  const [assets, setAssets] = useWealthAssets();
+  const [storedLiabilities, storeLiabilities] = useWealthLiabilities();
+  const [transactions, setTransactions] = useWealthTransactions();
+  const [searchHistory, setSearchHistory] = useWealthSearchHistory();
 
-  // Persist to localStorage whenever data changes (skip the very first render with defaults)
-  const saveGuardRef = useRef(false);
+  // Liabilities stored in the cloud may lack display fields — restore them
+  const liabilities = useMemo(() => storedLiabilities.map(hydrateLiability), [storedLiabilities]);
+  const setLiabilities = useCallback(
+    (update) => storeLiabilities((prev) => {
+      const hydrated = prev.map(hydrateLiability);
+      return typeof update === "function" ? update(hydrated) : update;
+    }),
+    [storeLiabilities],
+  );
+
+  // Derived totals for dashboards/analytics (diffed by dataLogger — nothing is
+  // written when they haven't changed)
   useEffect(() => {
-    // Allow saves after first cloud fetch or after a short delay
-    const timer = setTimeout(() => {
-      saveGuardRef.current = true;
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+    const totalAssets = assets.reduce((sum, a) => sum + (a.amount || 0), 0);
+    const totalLiabilities = liabilities.reduce((sum, l) => sum + (l.amount || 0), 0);
+    const netWorth = totalAssets - totalLiabilities;
+    const spendingByCategory = transactions
+      .filter((t) => t.type === "withdrawal")
+      .reduce((acc, t) => {
+        const cat = t.category || "Other";
+        acc[cat] = (acc[cat] || 0) + t.amount;
+        return acc;
+      }, {});
 
-  useEffect(() => {
-    if (!saveGuardRef.current) return;
-    localStorage.setItem(WEALTH_STORAGE_KEYS.ASSETS, JSON.stringify(assets));
-  }, [assets]);
-
-  useEffect(() => {
-    if (!saveGuardRef.current) return;
-    localStorage.setItem(
-      WEALTH_STORAGE_KEYS.LIABILITIES,
-      JSON.stringify(liabilities),
-    );
-  }, [liabilities]);
-
-  useEffect(() => {
-    if (!saveGuardRef.current) return;
-    localStorage.setItem(
-      WEALTH_STORAGE_KEYS.TRANSACTIONS,
-      JSON.stringify(transactions),
-    );
-  }, [transactions]);
-
-  useEffect(() => {
-    if (!saveGuardRef.current) return;
-    localStorage.setItem(
-      WEALTH_STORAGE_KEYS.SEARCH_HISTORY,
-      JSON.stringify(searchHistory),
-    );
-  }, [searchHistory]);
-
-  // 🔄 INITIAL CLOUD FETCH on mount - Get global wealth data
-  useEffect(() => {
-    const fetchGlobalWealth = async () => {
-      try {
-        const cloudWealth = await getGlobalData("wealth");
-        if (cloudWealth) {
-          console.log("[Wealth] ✓ Loaded global data from Firestore");
-
-          // Restore assets
-          if (
-            Array.isArray(cloudWealth.assets) &&
-            cloudWealth.assets.length > 0
-          ) {
-            setAssets(cloudWealth.assets);
-            localStorage.setItem(
-              WEALTH_STORAGE_KEYS.ASSETS,
-              JSON.stringify(cloudWealth.assets),
-            );
-          }
-
-          // Restore liabilities
-          if (
-            Array.isArray(cloudWealth.liabilities) &&
-            cloudWealth.liabilities.length > 0
-          ) {
-            const hydrated = cloudWealth.liabilities.map(hydrateLiability);
-            setLiabilities(hydrated);
-            localStorage.setItem(
-              WEALTH_STORAGE_KEYS.LIABILITIES,
-              JSON.stringify(hydrated),
-            );
-          }
-
-          // Restore transactions
-          if (
-            Array.isArray(cloudWealth.transactions) &&
-            cloudWealth.transactions.length > 0
-          ) {
-            setTransactions(cloudWealth.transactions);
-            localStorage.setItem(
-              WEALTH_STORAGE_KEYS.TRANSACTIONS,
-              JSON.stringify(cloudWealth.transactions),
-            );
-          }
-
-          // Restore search history
-          if (Array.isArray(cloudWealth.search_history)) {
-            setSearchHistory(cloudWealth.search_history);
-            localStorage.setItem(
-              WEALTH_STORAGE_KEYS.SEARCH_HISTORY,
-              JSON.stringify(cloudWealth.search_history),
-            );
-          }
-
-          // Enable localStorage saves now that we have real data
-          saveGuardRef.current = true;
-        } else {
-          // No Firestore data yet — seed with defaults if localStorage is also empty
-          console.log(
-            "[Wealth] No Firestore data found, seeding defaults if needed",
-          );
-          setAssets((prev) => (prev.length > 0 ? prev : DEFAULT_ASSETS));
-          setLiabilities((prev) =>
-            prev.length > 0 ? prev : DEFAULT_LIABILITIES,
-          );
-          saveGuardRef.current = true;
-        }
-      } catch (error) {
-        console.error("[Wealth] Failed to fetch global data:", error);
-      }
-    };
-
-    fetchGlobalWealth();
-  }, []); // Run once on mount
-
-  // 🌐 Sync WEALTH DATA to GLOBAL storage (persists across days)
-  useEffect(() => {
-    // Only sync after user has actually interacted. dataLogger holds the write
-    // until the doc is hydrated from the server, so a new device can't clobber it.
-    if (lastLocalInteraction.current === 0) return;
-
-    const syncTimer = setTimeout(() => {
-      console.log(
-        "[Wealth] Syncing to GLOBAL Firestore (persists across days)...",
-      );
-      const totalAssets = assets.reduce((sum, a) => sum + (a.amount || 0), 0);
-      const totalLiabilities = liabilities.reduce(
-        (sum, l) => sum + (l.amount || 0),
-        0,
-      );
-      const netWorth = totalAssets - totalLiabilities;
-
-      // Calculate spending by category
-      const spendingByCategory = transactions
-        .filter((t) => t.type === "withdrawal")
-        .reduce((acc, t) => {
-          const cat = t.category || "Other";
-          acc[cat] = (acc[cat] || 0) + t.amount;
-          return acc;
-        }, {});
-
-      // 🌐 GLOBAL DATA: Save to global_data/wealth (persists across days!)
-      updateGlobalData("wealth", {
-        assets: assets.map((a) => ({
-          ...a,
-          amount: a.amount,
-        })),
-        liabilities: liabilities.map((l) => ({
-          ...l,
-          amount: l.amount,
-        })),
-        transactions: transactions, // ALL transactions
-        search_history: searchHistory,
-        net_worth: netWorth,
-        total_assets: totalAssets,
-        total_liabilities: totalLiabilities,
-        spending_by_category: spendingByCategory,
-      });
-
-      // Also save to localStorage for offline access
-      saveGlobalDataLocal("wealth", {
-        assets,
-        liabilities,
-        transactions,
-        searchHistory,
-      });
-
-      // Daily log: Just summary for analytics
-      const today = new Date().toISOString().split("T")[0];
-      const todayTransactions = transactions.filter(
-        (t) => t.date && t.date.split("T")[0] === today,
-      );
-      updateTodayLog("wealth", {
-        net_worth: netWorth,
-        total_assets: totalAssets,
-        total_liabilities: totalLiabilities,
-        transactions_today: todayTransactions.length,
-        spending_by_category: spendingByCategory,
-      });
-    }, 1000); // 1 second debounce
-
-    return () => clearTimeout(syncTimer);
-  }, [assets, liabilities, transactions, searchHistory, resyncNonce]);
-
-  // 🚀 REAL-TIME CLOUD SYNC (Incoming) - Listen to GLOBAL wealth data
-  useEffect(() => {
-    let handledDirty = false;
-    const unsubscribe = subscribeToGlobalData("wealth", (cloudWealth, meta) => {
-      if (!cloudWealth) return;
-
-      // Local edits not yet on the server win; the settled state is re-delivered
-      // (meta.replay) once they land, so nothing is dropped for good.
-      if (
-        hasPendingGlobalWrite("wealth") ||
-        Date.now() - lastLocalInteraction.current < 1500
-      ) return;
-
-      const {
-        assets: cloudAssets,
-        liabilities: cloudLiabilities,
-        transactions: cloudTransactions,
-        search_history: cloudSearchHistory,
-      } = cloudWealth;
-
-      const leftoverDirty = meta?.authoritative && !handledDirty && isGlobalDirty("wealth");
-      if (meta?.authoritative) handledDirty = true;
-
-      if (!leftoverDirty) {
-        // Clean device: the cloud is the source of truth. Replacing (instead of
-        // union-merging) is what lets deletions from other devices stick — the
-        // old union kept every locally-known item alive and re-uploaded it.
-        const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-        if (Array.isArray(cloudTransactions)) {
-          const sorted = [...cloudTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-          setTransactions((prev) => (same(prev, sorted) ? prev : sorted));
-        }
-        if (Array.isArray(cloudAssets)) {
-          setAssets((prev) => (same(prev, cloudAssets) ? prev : cloudAssets));
-        }
-        if (Array.isArray(cloudLiabilities)) {
-          const hydrated = cloudLiabilities.map(hydrateLiability);
-          setLiabilities((prev) => (same(prev, hydrated) ? prev : hydrated));
-        }
-        if (Array.isArray(cloudSearchHistory)) {
-          const history = cloudSearchHistory.slice(0, 10);
-          setSearchHistory((prev) => (same(prev, history) ? prev : history));
-        }
-        saveGuardRef.current = true;
-        return;
-      }
-
-      // Unsynced edits from a previous session: union-merge, then re-push
-      console.log("[Wealth] Merging unsynced local edits with cloud");
-      lastLocalInteraction.current = Date.now();
-      setResyncNonce((n) => n + 1);
-
-      // 1. Transactions - Union by ID
-      if (Array.isArray(cloudTransactions)) {
-        setTransactions((prev) => {
-          const cloud = cloudTransactions;
-          const merged = [...cloud];
-
-          prev.forEach((localItem) => {
-            if (!merged.find((c) => c.id === localItem.id)) {
-              merged.push(localItem);
-            }
-          });
-
-          merged.sort((a, b) => new Date(b.date) - new Date(a.date));
-          if (JSON.stringify(merged) === JSON.stringify(prev)) return prev;
-          return merged;
-        });
-      }
-
-      // 2. Assets - Update existing, Add new from cloud, Keep local-only
-      if (Array.isArray(cloudAssets)) {
-        setAssets((prev) => {
-          const cloud = cloudAssets;
-          const merged = [...prev];
-          let hasChanges = false;
-
-          cloud.forEach((cloudItem) => {
-            const index = merged.findIndex((p) => p.id === cloudItem.id);
-            if (index !== -1) {
-              if (JSON.stringify(merged[index]) !== JSON.stringify(cloudItem)) {
-                merged[index] = cloudItem;
-                hasChanges = true;
-              }
-            } else {
-              merged.push(cloudItem);
-              hasChanges = true;
-            }
-          });
-
-          if (!hasChanges && prev.length === merged.length) return prev;
-          return merged;
-        });
-      }
-
-      // 3. Liabilities — merge with hydration to restore missing fields
-      if (Array.isArray(cloudLiabilities)) {
-        setLiabilities((prev) => {
-          const cloud = cloudLiabilities;
-          const merged = [...prev];
-          let hasChanges = false;
-
-          cloud.forEach((cloudItem) => {
-            const hydrated = hydrateLiability(cloudItem);
-            const index = merged.findIndex((p) => p.id === cloudItem.id);
-            if (index !== -1) {
-              // Merge: keep local fields, update with cloud data
-              const mergedItem = { ...merged[index], ...hydrated };
-              if (
-                JSON.stringify(merged[index]) !== JSON.stringify(mergedItem)
-              ) {
-                merged[index] = mergedItem;
-                hasChanges = true;
-              }
-            } else {
-              merged.push(hydrated);
-              hasChanges = true;
-            }
-          });
-
-          if (!hasChanges && prev.length === merged.length) return prev;
-          return merged;
-        });
-      }
-
-      // 4. Search History
-      if (Array.isArray(cloudSearchHistory)) {
-        setSearchHistory((prev) => {
-          const cloud = cloudSearchHistory;
-          const newHistory = [...prev];
-          let hasChanges = false;
-
-          cloud.forEach((item) => {
-            if (!newHistory.includes(item)) {
-              newHistory.push(item);
-              hasChanges = true;
-            }
-          });
-
-          if (!hasChanges) return prev;
-          return newHistory.slice(0, 10);
-        });
-      }
+    updateGlobalData("wealth", {
+      net_worth: netWorth,
+      total_assets: totalAssets,
+      total_liabilities: totalLiabilities,
+      spending_by_category: spendingByCategory,
     });
 
-    return () => unsubscribe();
-  }, [assets, liabilities, transactions, searchHistory]); // Dependencies for comparison
+    const today = getPhDateKey();
+    updateTodayLog("wealth", {
+      net_worth: netWorth,
+      total_assets: totalAssets,
+      total_liabilities: totalLiabilities,
+      transactions_today: transactions.filter((t) => t.date && toDateKey(new Date(t.date)) === today).length,
+      spending_by_category: spendingByCategory,
+    });
+  }, [assets, liabilities, transactions]);
 
   const handleSaveSearch = () => {
     if (searchQuery.trim().length > 0) {
@@ -1130,7 +742,6 @@ export default function Wealth() {
           message: `This action cannot be undone. ${asset.name} will be permanently removed.`,
           confirmText: "Delete Asset",
           onConfirm: () => {
-            lastLocalInteraction.current = Date.now(); // Mark interaction time
             setAssets((prev) => prev.filter((a) => a.id !== asset.id));
             setConfirmDialog({ isOpen: false, type: null, itemId: null });
           },
@@ -1145,7 +756,6 @@ export default function Wealth() {
       title: `Delete ${liability.name}?`,
       message: "This will remove this liability record.",
       onConfirm: () => {
-        lastLocalInteraction.current = Date.now(); // Mark interaction time
         setLiabilities((prev) => prev.filter((l) => l.id !== liability.id));
         setConfirmDialog({ isOpen: false, type: null, itemId: null });
       },
@@ -1307,7 +917,6 @@ export default function Wealth() {
       setConfirmDialog({ isOpen: true, type: "bulk", itemId: null });
   };
   const handleConfirmDelete = () => {
-    lastLocalInteraction.current = Date.now(); // Mark interaction time
 
     if (confirmDialog.type === "single")
       setTransactions((prev) =>
@@ -1332,7 +941,6 @@ export default function Wealth() {
   };
 
   const handleUpdateBalance = (account, newBalance) => {
-    lastLocalInteraction.current = Date.now(); // Mark interaction time
 
     const diff = newBalance - account.amount;
     if (diff === 0) return;
@@ -1384,7 +992,6 @@ export default function Wealth() {
   };
 
   const handleAddTransaction = (transaction) => {
-    lastLocalInteraction.current = Date.now(); // Mark interaction time
     setTransactions((prev) => [transaction, ...prev]);
     console.log("New transaction added:", transaction);
   };
@@ -1993,7 +1600,6 @@ export default function Wealth() {
         investmentAccounts={assets.filter((a) => a.category === "Investments")}
         liabilities={liabilities}
         onAdd={(transaction) => {
-          lastLocalInteraction.current = Date.now(); // Mark interaction time
           setTransactions((prev) => [transaction, ...prev]);
 
           // Update the account balance based on transaction type

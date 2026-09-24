@@ -2,7 +2,7 @@ import { signOut } from "firebase/auth";
 import { useWebHaptics } from "web-haptics/react";
 import { motion, Reorder } from "framer-motion";
 import { ChevronRight, GripVertical, LogOut } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ExportDataButton from "../components/ExportDataButton";
 import GsapText from "../components/GsapText";
@@ -12,7 +12,8 @@ import SystemCard from "../components/SystemCard";
 import WeatherWidget from "../components/WeatherWidget";
 import { FADE, LAYOUT_SPRING, TAP, TAP_TRANSITION } from "../constants/motion";
 import { useProtocol } from "../context/ProtocolContext";
-import { getGlobalData, subscribeToGlobalData } from "../services/dataLogger";
+import { useJournalEntries, useWealthAssets, useWealthLiabilities } from "../data/syncedData";
+import { getPhDateKey } from "../utils/timeUtils";
 import { auth } from "../services/firebase";
 
 // LocalStorage key for card order
@@ -180,72 +181,29 @@ export default function Home() {
   const [profileImage, setProfileImage] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [cardOrder, setCardOrder] = useState(loadCardOrder);
-  const [hasJournalToday, setHasJournalToday] = useState(false);
 
   // Obligation + tasks reminders — chained on app open
 
-  // 🌐 Wealth data from global sync
-  const [wealthData, setWealthData] = useState({
-    netWorth: 0,
-    priorityLiability: null, // The "Loan from Kuya" or whatever is marked as priority
-  });
+  // Live wealth + journal data (shared with the Wealth and Journal pages)
+  const [assets] = useWealthAssets();
+  const [liabilities] = useWealthLiabilities();
+  const [journalEntries] = useJournalEntries();
+  const wealthData = useMemo(() => {
+    const total = (list) => list.reduce((sum, x) => sum + (x.amount || 0), 0);
+    return {
+      netWorth: total(assets) - total(liabilities),
+      priorityLiability: liabilities.find((l) => l.isPriority) || null,
+    };
+  }, [assets, liabilities]);
+  const hasJournalToday = useMemo(() => {
+    const today = getPhDateKey();
+    return journalEntries.some((e) => e.isoDate === today);
+  }, [journalEntries]);
 
   // Save card order to localStorage when it changes
   useEffect(() => {
     localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(cardOrder));
   }, [cardOrder]);
-
-  // 🔄 Fetch global wealth data on mount and subscribe to updates
-  useEffect(() => {
-    const fetchWealth = async () => {
-      try {
-        const cloudWealth = await getGlobalData("wealth");
-        if (cloudWealth) {
-          const totalAssets =
-            cloudWealth.assets?.reduce((sum, a) => sum + (a.amount || 0), 0) ||
-            0;
-          const totalLiabs =
-            cloudWealth.liabilities?.reduce(
-              (sum, l) => sum + (l.amount || 0),
-              0,
-            ) || 0;
-          const priorityLiab =
-            cloudWealth.liabilities?.find((l) => l.isPriority) || null;
-
-          setWealthData({
-            netWorth: totalAssets - totalLiabs,
-            priorityLiability: priorityLiab,
-          });
-        }
-      } catch (error) {
-        console.error("[Home] Failed to fetch wealth data:", error);
-      }
-    };
-
-    fetchWealth();
-
-    // Subscribe to real-time updates
-    const unsubscribe = subscribeToGlobalData("wealth", (cloudWealth) => {
-      if (cloudWealth) {
-        const totalAssets =
-          cloudWealth.assets?.reduce((sum, a) => sum + (a.amount || 0), 0) || 0;
-        const totalLiabs =
-          cloudWealth.liabilities?.reduce(
-            (sum, l) => sum + (l.amount || 0),
-            0,
-          ) || 0;
-        const priorityLiab =
-          cloudWealth.liabilities?.find((l) => l.isPriority) || null;
-
-        setWealthData({
-          netWorth: totalAssets - totalLiabs,
-          priorityLiability: priorityLiab,
-        });
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -265,41 +223,6 @@ export default function Home() {
 
   const greeting = getTimeBasedGreeting(hasJournalToday, progress);
 
-  // Check if user has a journal entry today
-  useEffect(() => {
-    // Helper to get today's date in local timezone as YYYY-MM-DD
-    const getLocalToday = () => {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    };
-
-    const checkJournal = () => {
-      try {
-        const saved = localStorage.getItem("journal_entries");
-        if (saved) {
-          const entries = JSON.parse(saved);
-          const today = getLocalToday();
-          setHasJournalToday(entries.some((e) => e.isoDate === today));
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-
-    checkJournal();
-
-    // Also subscribe to global journal data for real-time updates
-    const unsubscribe = subscribeToGlobalData("journal", (journalData) => {
-      if (journalData?.entries) {
-        const today = getLocalToday();
-        setHasJournalToday(
-          journalData.entries.some((e) => e.isoDate === today),
-        );
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   return (
     <PageTransition className="min-h-screen bg-[#F2F2F7] pb-32">

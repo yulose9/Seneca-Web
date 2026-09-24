@@ -26,9 +26,10 @@
  */
 
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, FieldPath, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { getPhDateKey } from "../utils/timeUtils";
+import { isEqual } from "../utils/stableEqual";
 
 const STORAGE_KEY = "seneca_daily_logs";
 const DIRTY_KEY = "seneca_sync_dirty";
@@ -39,12 +40,6 @@ const GLOBAL_WRITE_DELAY = 600;
 const POST_HYDRATION_DELAY = 2500; // > slowest consumer debounce (1.5s): consumers re-queue merged state first
 const HYDRATION_TIMEOUT_MS = 8000;
 
-/**
- * Get today's date as YYYY-MM-DD pinned to Philippine Standard Time (UTC+8).
- * This ensures the day resets at midnight Manila time on all devices.
- */
-export const getTodayKey = () => getPhDateKey();
-
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 
 const waitForAuth = async () => {
@@ -54,15 +49,6 @@ const waitForAuth = async () => {
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-// Key-order independent: Firestore returns map keys sorted, local state keeps
-// insertion order — a plain JSON compare would see phantom changes.
-const stableStringify = (value) =>
-  JSON.stringify(value ?? null, (_key, v) =>
-    v && typeof v === "object" && !Array.isArray(v)
-      ? Object.keys(v).sort().reduce((acc, k) => ((acc[k] = v[k]), acc), {})
-      : v,
-  );
-const isEqual = (a, b) => stableStringify(a) === stableStringify(b);
 
 const readDirty = () => {
   try {
@@ -310,7 +296,10 @@ const flush = async (entry) => {
 
   entry.inflight += 1;
   try {
-    await setDoc(entry.ref, payload, { mergeFields: [...paths, ...Object.keys(extras)] });
+    // FieldPath (not dotted strings): keys like "arena-3" or "2026-09-24" are
+    // not valid unquoted string field paths.
+    const mergeFields = [...paths, ...Object.keys(extras)].map((p) => new FieldPath(...p.split(".")));
+    await setDoc(entry.ref, payload, { mergeFields });
   } catch (error) {
     console.error(`Firestore write failed (${entry.key}):`, error);
     // Re-queue (newer local values win) so the next change or flush retries
@@ -360,7 +349,7 @@ const logSegments = (dateKey) => ["daily_logs", dateKey];
 const globalSegments = (docName) => ["global_data", docName];
 
 // Create an empty log structure
-export const createEmptyLog = (dateKey) => ({
+const createEmptyLog = (dateKey) => ({
   date: dateKey,
   user_id: auth.currentUser?.uid || "unknown",
   timestamp_created: new Date().toISOString(),
@@ -413,7 +402,7 @@ export const createEmptyLog = (dateKey) => ({
  * Get log for a specific date. Served from the shared listener (one read, reused
  * by subscribeToTodayLog). Falls back to localStorage when offline / timed out.
  */
-export const getLogForDate = async (dateKey = getTodayKey()) => {
+export const getLogForDate = async (dateKey = getPhDateKey()) => {
   const user = await waitForAuth();
   if (!user) return getLocalLog(dateKey);
 
@@ -432,7 +421,7 @@ export const getLogForDate = async (dateKey = getTodayKey()) => {
  *   disappears from the cloud copy too.
  */
 export const updateTodayLog = (section, data) => {
-  const dateKey = getTodayKey();
+  const dateKey = getPhDateKey();
   const localLog = updateLocalLog(dateKey, section, data);
 
   const fields = {};
@@ -445,7 +434,7 @@ export const updateTodayLog = (section, data) => {
 };
 
 /** True while this device has unsent changes for today's log. */
-export const hasPendingTodayWrite = (dateKey = getTodayKey()) => {
+export const hasPendingTodayWrite = (dateKey = getPhDateKey()) => {
   const entry = _docs.get(docKey(logSegments(dateKey)));
   return !!entry && (!!entry.pending || entry.inflight > 0);
 };
@@ -455,7 +444,7 @@ export const hasPendingTodayWrite = (dateKey = getTodayKey()) => {
  * be passed explicitly so day-rollover reconnects to the new document.
  * callback(log, { fromCache, hasPendingWrites, exists, authoritative, replay? })
  */
-export const subscribeToTodayLog = (callback, dateKey = getTodayKey()) =>
+export const subscribeToTodayLog = (callback, dateKey = getPhDateKey()) =>
   subscribeEntry(logSegments(dateKey), (data, meta) => {
     if (meta.exists && data) {
       const fullLog = { ...createEmptyLog(dateKey), ...data };
@@ -503,13 +492,9 @@ const saveToLocal = (dateKey, logData) => {
 
 // ─── LEGACY EXPORTS (Kept for compatibility) ──────────────────────────────────
 
-export const getAllLogs = () => {
+const getAllLogs = () => {
   const allData = localStorage.getItem(STORAGE_KEY);
   return allData ? JSON.parse(allData) : {};
-};
-
-export const migrateOldData = async () => {
-  console.log("Archive data mode active.");
 };
 
 // ─── EXPORT HELPERS (For ExportDataButton) ───────────────────────────────────
@@ -742,12 +727,6 @@ export const hasPendingGlobalWrite = (docName) => {
   return !!entry && (!!entry.pending || entry.inflight > 0);
 };
 
-/** True once the doc has been confirmed against the server this session. */
-export const isGlobalHydrated = (docName) => {
-  const entry = _docs.get(docKey(globalSegments(docName)));
-  return !!entry && entry.hydrated;
-};
-
 /**
  * Subscribe to a global doc (one shared listener per doc, app-wide).
  * callback(data, meta) — only called when the doc exists (legacy contract).
@@ -775,7 +754,7 @@ export const saveGlobalDataLocal = (docName, data) => {
   }
 };
 
-export const loadGlobalDataLocal = (docName) => {
+const loadGlobalDataLocal = (docName) => {
   try {
     const allData = JSON.parse(
       localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}",

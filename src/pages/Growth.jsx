@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useWebHaptics } from "web-haptics/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronRight, Clock, Lock, Minus, Plus } from "lucide-react";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { EASE_OUT, TAP } from "../constants/motion";
 import AddCertificationSheet from "../components/AddCertificationSheet";
 import AddGoalSheet from "../components/AddGoalSheet";
@@ -14,10 +14,8 @@ import CalendarViewSheet from "../components/CalendarViewSheet";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import { useStudyGoal } from "../context/StudyGoalContext";
-import {
-  updateGlobalData,
-  subscribeToGlobalData,
-} from "../services/dataLogger";
+import { useCertificationDomains, useCustomCertifications } from "../data/syncedData";
+import { calendarDateKey, getPhDateKey, parseDateKey } from "../utils/timeUtils";
 
 
 const INITIAL_DOMAINS = [
@@ -400,13 +398,26 @@ const CourseRow = ({
     </motion.div>
   );
 };
-// Helper to format date as YYYY-MM-DD using LOCAL timezone
-const formatLocalDate = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+// ─── Certification status persistence ────────────────────────────────────────
+const forEachModule = (domains, fn) =>
+  (domains || []).forEach((domain) =>
+    (domain.subcategories ? domain.subcategories.flatMap((s) => s.modules) : domain.modules || []).forEach(fn),
+  );
+
+/** { certName: status } from a stored domains list. */
+const statusMap = (domains) => {
+  const map = {};
+  forEachModule(domains, (mod) => { if (mod.status) map[mod.name] = mod.status; });
+  return map;
 };
+
+/** Fresh copy of the built-in catalog with saved statuses applied. */
+const withStatuses = (map) => {
+  const fresh = JSON.parse(JSON.stringify(INITIAL_DOMAINS));
+  forEachModule(fresh, (mod) => { if (map[mod.name]) mod.status = map[mod.name]; });
+  return fresh;
+};
+
 
 // Clickable Weekly Streak Grid Component (matches HabitStreakGrid design)
 const ClickableStreakGrid = ({
@@ -417,10 +428,9 @@ const ClickableStreakGrid = ({
 }) => {
   const days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
-  // Generate date range aligned to MONDAY
-  const gridToday = new Date();
-  gridToday.setHours(0, 0, 0, 0);
-  const todayStr = formatLocalDate(gridToday);
+  // Grid is aligned to the Manila calendar day (history keys are Manila days)
+  const todayStr = getPhDateKey();
+  const gridToday = parseDateKey(todayStr);
 
   const dayOfWeek = gridToday.getDay();
   const currentDayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -458,7 +468,7 @@ const ClickableStreakGrid = ({
       <div className="grid grid-cols-7 gap-2">
         {dates.map((date, index) => {
           const isFuture = date > gridToday;
-          const dateStr = formatLocalDate(date);
+          const dateStr = calendarDateKey(date);
 
           if (isFuture) {
             return (
@@ -690,7 +700,6 @@ export default function Growth() {
     setStudyGoal,
     clearStudyGoal,
     toggleStudyDate,
-    formatLocalDate,
   } = useStudyGoal();
 
   // Protocol context for Learn Stuff integration
@@ -718,131 +727,21 @@ export default function Growth() {
   const [selectedCertification, setSelectedCertification] = useState(null);
   const [showCalendarSheet, setShowCalendarSheet] = useState(false);
 
-  // State for custom certifications (persisted)
-  const [customCertifications, setCustomCertifications] = useState(() => {
-    const saved = localStorage.getItem("seneca_custom_certifications");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // State for certification status overrides (persisted)
-  // State for certification statuses overrides (persisted) - DEPRECATED in favor of domains state, but kept for cleanup if needed
-  // We'll just ignore it for now as we are migrating to 'domains' state source of truth.
-
-  // Domains State (Single Source of Truth)
-  const [domains, setDomains] = useState(() => {
-    const saved = localStorage.getItem("seneca_domains");
-    
-    // Always start with INITIAL_DOMAINS to ensure new certs are picked up
-    const migrated = JSON.parse(JSON.stringify(INITIAL_DOMAINS));
-    
-    // If we have saved domains or legacy statuses, merge their statuses into the fresh list
-    if (saved) {
-      const parsedSaved = JSON.parse(saved);
-      const savedStatusMap = {};
-      
-      // Extract all saved statuses into a flat map by cert name
-      parsedSaved.forEach((domain) => {
-        if (domain.subcategories) {
-          domain.subcategories.forEach((sub) => {
-            sub.modules.forEach((mod) => {
-              savedStatusMap[mod.name] = mod.status;
-            });
-          });
-        } else {
-          domain.modules.forEach((mod) => {
-            savedStatusMap[mod.name] = mod.status;
-          });
-        }
-      });
-
-      // Apply the saved statuses back onto the fresh migrated list
-      migrated.forEach((domain) => {
-        if (domain.subcategories) {
-          domain.subcategories.forEach((sub) => {
-            sub.modules.forEach((mod) => {
-              if (savedStatusMap[mod.name]) mod.status = savedStatusMap[mod.name];
-            });
-          });
-        } else {
-          domain.modules.forEach((mod) => {
-            if (savedStatusMap[mod.name]) mod.status = savedStatusMap[mod.name];
-          });
-        }
-      });
-      return migrated;
-    }
-
-    // Migration: Apply legacy statuses if no saved domains yet
-    const legacyStatuses = JSON.parse(
-      localStorage.getItem("seneca_certification_statuses") || "{}"
-    );
-
-    // Apply overrides
-    migrated.forEach((domain) => {
-      if (domain.subcategories) {
-        domain.subcategories.forEach((sub) => {
-          sub.modules.forEach((mod) => {
-            if (legacyStatuses[mod.name]) mod.status = legacyStatuses[mod.name];
-          });
-        });
-      } else {
-        domain.modules.forEach((mod) => {
-          if (legacyStatuses[mod.name]) mod.status = legacyStatuses[mod.name];
-        });
-      }
-    });
-    return migrated;
-  });
-
-  // Persist domains — localStorage + Firestore
-  useEffect(() => {
-    localStorage.setItem("seneca_domains", JSON.stringify(domains));
-    // Debounced cloud sync (avoid thrashing on rapid status changes)
-    const timer = setTimeout(() => {
-      updateGlobalData("certifications", { domains });
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [domains]);
-
-  // Persist custom certifications — localStorage + Firestore
-  useEffect(() => {
-    localStorage.setItem(
-      "seneca_custom_certifications",
-      JSON.stringify(customCertifications)
-    );
-    const timer = setTimeout(() => {
-      updateGlobalData("certifications", { customCertifications });
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [customCertifications]);
-
-  // Subscribe to Firestore cert changes (syncs from other devices)
-  useEffect(() => {
-    const unsubscribe = subscribeToGlobalData("certifications", (cloudData) => {
-      if (!cloudData) return;
-
-      if (Array.isArray(cloudData.domains) && cloudData.domains.length > 0) {
-        setDomains((prev) => {
-          if (JSON.stringify(prev) === JSON.stringify(cloudData.domains)) return prev;
-          // Also update localStorage so next init picks it up
-          localStorage.setItem("seneca_domains", JSON.stringify(cloudData.domains));
-          return cloudData.domains;
-        });
-      }
-
-      if (Array.isArray(cloudData.customCertifications)) {
-        setCustomCertifications((prev) => {
-          if (JSON.stringify(prev) === JSON.stringify(cloudData.customCertifications)) return prev;
-          localStorage.setItem(
-            "seneca_custom_certifications",
-            JSON.stringify(cloudData.customCertifications)
-          );
-          return cloudData.customCertifications;
-        });
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+  // Certifications — global_data/certifications, synced across devices.
+  // Only changes made on this device are written (the old version re-uploaded
+  // both fields on every visit).
+  const [customCertifications, setCustomCertifications] = useCustomCertifications();
+  const [storedDomains, storeDomains] = useCertificationDomains();
+  // Statuses are overlaid on the built-in catalog, so certifications added to
+  // INITIAL_DOMAINS in code appear even when an older list is stored.
+  const domains = useMemo(() => withStatuses(statusMap(storedDomains)), [storedDomains]);
+  const setDomains = useCallback(
+    (update) => storeDomains((prev) => {
+      const current = withStatuses(statusMap(prev));
+      return typeof update === "function" ? update(current) : update;
+    }),
+    [storeDomains],
+  );
 
   // Extract current values from context
   const currentWeight = goals.exercise?.currentWeight || 120;
@@ -854,8 +753,7 @@ export default function Growth() {
       toggleStudyDate(dateStr);
 
       // If toggling today to "studied", also mark Learn Stuff done
-      const today = formatLocalDate(new Date());
-      if (dateStr === today) {
+      if (dateStr === getPhDateKey()) {
         // Check the NEXT state (if undefined -> true, if true -> false, if false -> undefined)
         const currentVal = studyHistory[dateStr];
         const nextVal =
@@ -871,7 +769,7 @@ export default function Growth() {
         }
       }
     },
-    [toggleStudyDate, formatLocalDate, studyHistory, markLearnStuffDone]
+    [toggleStudyDate, studyHistory, markLearnStuffDone]
   );
 
   const handleUpdateWeight = () => {

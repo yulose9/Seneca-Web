@@ -15,8 +15,11 @@ const CONFIG = {
   ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "target", "data-type", "data-checked"],
 };
 
+// Without a DOM (e.g. server rendering) DOMPurify can't sanitise — fail closed
+const supported = DOMPurify.isSupported && typeof DOMPurify.addHook === "function";
+
 // Only allow YouTube iframes; strip every other frame source
-DOMPurify.addHook("uponSanitizeElement", (node, data) => {
+if (supported) DOMPurify.addHook("uponSanitizeElement", (node, data) => {
   if (data.tagName === "iframe") {
     const src = node.getAttribute("src") || "";
     if (!/^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)\/embed\//.test(src)) {
@@ -26,7 +29,7 @@ DOMPurify.addHook("uponSanitizeElement", (node, data) => {
 });
 
 // Links opened in a new tab can't reach back into the app
-DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+if (supported) DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   if (node.tagName === "A" && node.getAttribute("target") === "_blank") {
     node.setAttribute("rel", "noopener noreferrer");
   }
@@ -34,14 +37,14 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 
 /** Sanitised HTML string, safe for dangerouslySetInnerHTML. */
 export const sanitizeHtml = (html) =>
-  typeof html === "string" ? DOMPurify.sanitize(html, CONFIG) : "";
+  supported && typeof html === "string" ? DOMPurify.sanitize(html, CONFIG) : "";
 
 /**
  * Plain text of an HTML string without executing anything: DOMParser builds an
  * inert document (no scripts, no event handlers, no resource loads).
  */
 export const htmlToText = (html) => {
-  if (typeof html !== "string" || !html) return "";
+  if (typeof html !== "string" || !html || typeof DOMParser === "undefined") return "";
   const parsed = new DOMParser().parseFromString(html, "text/html");
   return parsed.body.textContent || "";
 };

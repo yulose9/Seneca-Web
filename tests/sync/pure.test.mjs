@@ -1,0 +1,21 @@
+// Pure date + streak rules (Manila calendar)
+import { createServer } from "vite";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.."), configFile: false, logLevel: "error", server: { middlewareMode: true } });
+const { studyStreak, goalStreak } = await server.ssrLoadModule("/src/utils/streaks.js");
+const { toDateKey, addDays, parseDateKey, calendarDateKey } = await server.ssrLoadModule("/src/utils/timeUtils.js");
+const T = "2026-03-02"; let f = 0;
+const c = (n, v) => { console.log(v ? "PASS" : "FAIL", n); if (!v) f++; };
+c("study: unanswered today, 2 prior across month", studyStreak({ "2026-03-01": true, "2026-02-28": true }, T) === 2);
+c("study: missed today", studyStreak({ "2026-03-02": false, "2026-03-01": true }, T) === 0);
+c("study: gap ends streak", studyStreak({ "2026-03-02": true, "2026-02-28": true }, T) === 1);
+c("goal: includes today", goalStreak({ "2026-03-02": true, "2026-03-01": true }, T) === 2);
+c("goal: today pending", goalStreak({ "2026-03-01": true }, T) === 1);
+c("goal: empty", goalStreak(undefined, T) === 0);
+c("date: 17:00 UTC is already the next Manila day", toDateKey(new Date("2026-03-01T17:00:00Z")) === "2026-03-02");
+c("date: 15:59 UTC is still the same Manila day", toDateKey(new Date("2026-03-01T15:59:00Z")) === "2026-03-01");
+c("date: addDays crosses months", addDays("2026-03-01", -1) === "2026-02-28");
+c("date: addDays leap day", addDays("2028-02-28", 1) === "2028-02-29");
+c("date: calendar key round-trip", calendarDateKey(parseDateKey("2026-09-24")) === "2026-09-24");
+await server.close(); process.exit(f ? 1 : 0);

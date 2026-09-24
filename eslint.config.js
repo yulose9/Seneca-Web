@@ -7,6 +7,11 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores(['dist', 'aave-liquid-demo']),
   {
+    // Node test scripts (npm run test:sync)
+    files: ['tests/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+  },
+  {
     files: ['**/*.{js,jsx}'],
     extends: [
       js.configs.recommended,
@@ -24,7 +29,7 @@ export default defineConfig([
     },
     rules: {
       // `motion` is only used as <motion.div>, which core no-unused-vars can't see
-      'no-unused-vars': ['error', { varsIgnorePattern: '^([A-Z_]|motion$)' }],
+      'no-unused-vars': ['error', { varsIgnorePattern: '^([A-Z_]|motion$)', ignoreRestSiblings: true }],
     },
   },
 ])

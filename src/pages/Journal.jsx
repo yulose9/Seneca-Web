@@ -16,16 +16,9 @@ import {
 } from "../constants/motion";
 import PageTransition from "../components/PageTransition";
 import RichTextEditor from "../components/RichTextEditor";
-import {
-  hasPendingGlobalWrite,
-  isGlobalDirty,
-  loadGlobalDataLocal,
-  saveGlobalDataLocal,
-  subscribeToGlobalData,
-  subscribeToTodayLog,
-  updateGlobalData,
-  updateTodayLog,
-} from "../services/dataLogger";
+import { updateGlobalData, updateTodayLog } from "../services/dataLogger";
+import { useJournalEntries } from "../data/syncedData";
+import { getPhDateKey } from "../utils/timeUtils";
 
 // iOS-style Journal Logged Success Overlay
 const JournalLoggedOverlay = ({ isOpen, onBack }) => (
@@ -379,15 +372,10 @@ const getRandomMood = () =>
   RANDOM_MOODS[Math.floor(Math.random() * RANDOM_MOODS.length)];
 
 export default function Journal() {
-  // Interaction timestamp to prevent "Cloud Echo" overwrites
-  const lastLocalInteraction = useRef(0);
-
-  // Bumped when unsynced edits from a previous session must be re-sent
-  const [resyncNonce, setResyncNonce] = useState(0);
-
   const [entry, setEntry] = useState(null);
-  const [title, setTitle] = useState("");
-  const [mood, setMood] = useState(getRandomMood());
+  // Restore any unsaved draft on first render
+  const [title, setTitle] = useState(() => localStorage.getItem("journal-draft-title") || "");
+  const [mood, setMood] = useState(() => localStorage.getItem("journal-draft-mood") || getRandomMood());
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const navigate = useNavigate();
@@ -405,23 +393,17 @@ export default function Journal() {
   const editorRef = useRef(null);
   const [visiblePastCount, setVisiblePastCount] = useState(10);
 
-  // Initial load from localStorage
-  const [entries, setEntries] = useState(() => {
-    try {
-      const saved = localStorage.getItem("journal_entries");
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-
-  // Load drafts
-  useEffect(() => {
-    const savedTitle = localStorage.getItem("journal-draft-title");
-    const savedMood = localStorage.getItem("journal-draft-mood");
-    if (savedTitle) setTitle(savedTitle);
-    if (savedMood) setMood(savedMood);
-  }, []);
+  // All entries — synced across devices via global_data/journal.entries.
+  // Version history stays on this device: it's only used while an entry is
+  // open, and uploading every revision would push the doc toward Firestore's
+  // 1 MiB limit.
+  const [entries, storeEntries] = useJournalEntries();
+  const setEntries = useCallback(
+    (update) => storeEntries((prev) =>
+      (typeof update === "function" ? update(prev) : update).map(({ history, ...e }) => e),
+    ),
+    [storeEntries],
+  );
 
   // Save drafts
   useEffect(() => {
@@ -429,126 +411,24 @@ export default function Journal() {
     localStorage.setItem("journal-draft-mood", mood);
   }, [title, mood]);
 
-  // Save Persistent Entries to localStorage
+  // Derived summaries (diffed by dataLogger — nothing is written if unchanged)
   useEffect(() => {
-    localStorage.setItem("journal_entries", JSON.stringify(entries));
+    const today = getPhDateKey();
+    const todayEntries = entries.filter((e) => e.isoDate === today);
+    const positiveEmojis = ["😊", "🌟", "🔥", "💡", "☀️", "🎯", "🌱"];
+    const challengeEmojis = ["💭", "🌙", "🌊"];
+
+    updateGlobalData("journal", { total_entries: entries.length });
+    updateTodayLog("journal", {
+      entries_today: todayEntries.length,
+      mood: todayEntries[0]?.mood ?? null,
+      highlights: todayEntries.filter((e) => positiveEmojis.includes(e.mood)).map((e) => e.title),
+      challenges: todayEntries.filter((e) => challengeEmojis.includes(e.mood)).map((e) => e.title),
+      total_entries_all_time: entries.length,
+    });
   }, [entries]);
 
-  // Initial cloud entries arrive through the real-time listener below (one
-  // shared Firestore listener — no separate getDoc read).
-
-  // 🌐 Sync ALL JOURNAL ENTRIES to GLOBAL storage (persists across days)
-  useEffect(() => {
-    // Only sync after user has actually interacted. dataLogger holds the write
-    // until the doc is hydrated from the server, so a new device can't clobber it.
-    if (lastLocalInteraction.current === 0) return;
-
-    const syncTimer = setTimeout(() => {
-      console.log("[Journal] Syncing to GLOBAL Firestore (all entries)...");
-      const today = new Date().toISOString().split("T")[0];
-      const todayEntries = entries.filter((e) => e.isoDate === today);
-
-      // Get the most recent mood from today's entries
-      const latestMood = todayEntries.length > 0 ? todayEntries[0].mood : null;
-
-      // Extract highlights (entries with positive moods)
-      const positiveEmojis = ["😊", "🌟", "🔥", "💡", "☀️", "🎯", "🌱"];
-      const highlights = todayEntries
-        .filter((e) => positiveEmojis.includes(e.mood))
-        .map((e) => e.title);
-
-      // Extract challenges (entries with contemplative moods)
-      const challengeEmojis = ["💭", "🌙", "🌊"];
-      const challenges = todayEntries
-        .filter((e) => challengeEmojis.includes(e.mood))
-        .map((e) => e.title);
-
-      // 🌐 GLOBAL DATA: Save ALL entries to global_data/journal (persists across days!)
-      updateGlobalData("journal", {
-        entries: entries.map((e) => ({
-          id: e.id,
-          title: e.title,
-          mood: e.mood,
-          time: e.time,
-          preview: e.preview,
-          content: e.content,
-          isoDate: e.isoDate,
-          date: e.date,
-        })),
-        total_entries: entries.length,
-      });
-
-      // Save to localStorage for offline access
-      saveGlobalDataLocal("journal", { entries });
-
-      // Daily log: Just today's summary for analytics
-      updateTodayLog("journal", {
-        entries_today: todayEntries.length,
-        mood: latestMood,
-        highlights,
-        challenges,
-        total_entries_all_time: entries.length,
-      });
-    }, 1000); // 1 second debounce
-
-    return () => clearTimeout(syncTimer);
-  }, [entries, resyncNonce]);
-
-  // 🚀 REAL-TIME CLOUD SYNC (Incoming) - Listen to GLOBAL journal data
-  useEffect(() => {
-    let handledDirty = false;
-    const unsubscribe = subscribeToGlobalData("journal", (cloudJournal, meta) => {
-      if (!Array.isArray(cloudJournal?.entries)) return;
-
-      // Local edits not yet on the server win; the settled state is re-delivered
-      // (meta.replay) once they land, so nothing is dropped for good.
-      if (
-        hasPendingGlobalWrite("journal") ||
-        Date.now() - lastLocalInteraction.current < 1500
-      ) return;
-
-      const cloudEntries = cloudJournal.entries;
-      const leftoverDirty = meta?.authoritative && !handledDirty && isGlobalDirty("journal");
-      if (meta?.authoritative) handledDirty = true;
-
-      if (!leftoverDirty) {
-        // Clean device: cloud is the source of truth. Replacing is what makes a
-        // deletion on another device stick (the old union resurrected entries).
-        const sorted = [...cloudEntries].sort((a, b) => b.id - a.id);
-        setEntries((prev) => (JSON.stringify(prev) === JSON.stringify(sorted) ? prev : sorted));
-        return;
-      }
-
-      // Unsynced edits from a previous session: union-merge, then re-push
-      lastLocalInteraction.current = Date.now();
-      setResyncNonce((n) => n + 1);
-      {
-        setEntries((prevEntries) => {
-          // Merge Strategy: Union by ID
-          // Prefer Cloud version if it exists (to get remote updates)
-          // Keep Local version if it doesn't exist in Cloud (to preserve unsynced new entries)
-          const merged = [...cloudEntries];
-
-          prevEntries.forEach((localEntry) => {
-            if (!merged.find((c) => c.id === localEntry.id)) {
-              merged.push(localEntry);
-            }
-          });
-
-          // Sort by date/id descending (newest first)
-          merged.sort((a, b) => b.id - a.id);
-
-          if (JSON.stringify(merged) === JSON.stringify(prevEntries))
-            return prevEntries;
-          return merged;
-        });
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
   const handleUpdateEntry = useCallback((updatedEntry) => {
-    lastLocalInteraction.current = Date.now(); // Mark interaction time
 
     setEntries((prev) =>
       prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e)),
@@ -556,7 +436,7 @@ export default function Journal() {
     setViewEntry((prev) =>
       prev && prev.id === updatedEntry.id ? updatedEntry : prev,
     );
-  }, []);
+  }, [setEntries]);
 
   // Helper to extract plain text from Tiptap JSON
   const getPlainTextFromJson = (json) => {
@@ -601,7 +481,7 @@ export default function Journal() {
         day: "numeric",
         year: "numeric",
       }),
-      isoDate: new Date().toISOString().split("T")[0],
+      isoDate: getPhDateKey(), // Manila day — UTC would say "yesterday" before 08:00
       time: new Date().toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",
@@ -615,7 +495,6 @@ export default function Journal() {
     // Artificial delay for UX
     await new Promise((resolve) => setTimeout(resolve, 600));
 
-    lastLocalInteraction.current = Date.now(); // Mark interaction time
     setEntries((prev) => [newEntry, ...prev]);
 
     // Clear logic
@@ -623,7 +502,9 @@ export default function Journal() {
       localStorage.removeItem("journal-draft");
       localStorage.removeItem("journal-draft-title");
       localStorage.removeItem("journal-draft-mood");
-    } catch (e) {}
+    } catch {
+      /* storage unavailable (private mode) — draft simply isn't cleared */
+    }
 
     setEntry(null);
     setTitle("");
@@ -631,7 +512,7 @@ export default function Journal() {
     setIsSaving(false);
     haptic.trigger("success");
     setShowSuccess(true);
-  }, [entry, title, mood]);
+  }, [entry, title, mood, haptic, setEntries]);
 
   const handleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -651,7 +532,6 @@ export default function Journal() {
     }
   };
   const handleConfirmDelete = () => {
-    lastLocalInteraction.current = Date.now(); // Mark interaction time
 
     if (confirmDialog.type === "single")
       setEntries((prev) => prev.filter((e) => e.id !== confirmDialog.itemId));
@@ -684,7 +564,7 @@ export default function Journal() {
     title.length > 0;
 
   // Categorize
-  const today = new Date().toISOString().split("T")[0];
+  const today = getPhDateKey();
   const todayEntries = entries.filter((e) => e.isoDate === today);
   const pastEntries = entries.filter((e) => e.isoDate !== today);
 
@@ -967,7 +847,6 @@ export default function Journal() {
         entry={viewEntry}
         onUpdate={handleUpdateEntry}
         onDelete={(id) => {
-          lastLocalInteraction.current = Date.now();
           setEntries((prev) => prev.filter((e) => e.id !== id));
           setViewEntry(null);
         }}

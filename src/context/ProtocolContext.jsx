@@ -209,7 +209,6 @@ const loadTaskOrder = (category = "personal") => {
 };
 
 // Helper: Get today's date key in Philippine Standard Time
-const getLocalDateKey = () => getPhDateKey();
 
 // Load today's task done states from localStorage
 // Returns { phaseId: { taskId: boolean } } or null
@@ -223,7 +222,7 @@ const loadTodayTasks = (category = "personal") => {
     }
 
     const parsed = JSON.parse(saved);
-    const today = getLocalDateKey();
+    const today = getPhDateKey();
 
     console.log(
       `[Protocol:${category}] Loading tasks - saved date:`,
@@ -249,7 +248,7 @@ const loadTodayTasks = (category = "personal") => {
 const saveTodayTasks = (phaseTasks, category = "personal") => {
   try {
     const keys = getStorageKeys(category);
-    const today = getLocalDateKey();
+    const today = getPhDateKey();
     const tasks = {};
 
     Object.entries(phaseTasks).forEach(([phaseId, taskList]) => {
@@ -649,8 +648,14 @@ export function ProtocolProvider({ children }) {
       console.log(`[Protocol:${protocolCategory}] Syncing global data (history, custom, order)...`);
 
       // Save to global_data/protocol (persists across days!)
+      // taskHistory is written per task ("taskHistory.<phase-task>"), so two
+      // devices ticking different tasks at the same time can't erase each
+      // other. dataLogger diffs every path — only changed tasks are sent.
+      const historyFields = Object.fromEntries(
+        Object.entries(taskHistory).map(([taskKey, dates]) => [`taskHistory.${taskKey}`, dates]),
+      );
       updateGlobalData(globalKey, {
-        taskHistory: taskHistory,
+        ...historyFields,
         customTasks: customTasks,
         taskOrder: taskOrder,
       });
@@ -805,18 +810,6 @@ export function ProtocolProvider({ children }) {
   // Helper to get task key
   const getTaskKey = (phaseId, taskId) => `${phaseId}-${taskId}`;
 
-  // Helper to format date as YYYY-MM-DD using Philippine timezone (PST = UTC+8)
-  const formatLocalDate = useCallback((date) => {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Manila",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(date);
-    const get = (type) => parts.find((p) => p.type === type)?.value ?? "00";
-    return `${get("year")}-${get("month")}-${get("day")}`;
-  }, []);
-
   // Interaction timestamp to prevent "Cloud Echo" overwrites
   const lastLocalInteraction = useRef(0);
 
@@ -837,7 +830,7 @@ export function ProtocolProvider({ children }) {
     });
 
     // Also update history for TODAY
-    const today = formatLocalDate(new Date());
+    const today = getPhDateKey();
     const key = getTaskKey(phaseId, taskId);
 
     setTaskHistory((prev) => {
@@ -864,7 +857,7 @@ export function ProtocolProvider({ children }) {
   // Toggle history for a specific date (Grid Interaction)
   const toggleTaskHistory = (phaseId, taskId, dateStr) => {
     const key = getTaskKey(phaseId, taskId);
-    const today = formatLocalDate(new Date());
+    const today = getPhDateKey();
 
     // Update History
     setTaskHistory((prev) => {
@@ -914,7 +907,7 @@ export function ProtocolProvider({ children }) {
     }));
 
     // Update history for today
-    const today = formatLocalDate(new Date());
+    const today = getPhDateKey();
     const key = getTaskKey(phaseId, taskId);
     setTaskHistory((prev) => ({
       ...prev,
@@ -940,7 +933,7 @@ export function ProtocolProvider({ children }) {
     }));
 
     // But log the ACTUAL success/failure to the streak/history database
-    const today = formatLocalDate(new Date());
+    const today = getPhDateKey();
     const key = getTaskKey(phaseId, taskId);
     setTaskHistory((prev) => {
       const taskHistoryData = prev[key] || {};
@@ -972,7 +965,7 @@ export function ProtocolProvider({ children }) {
       ),
     }));
 
-    const today = formatLocalDate(new Date());
+    const today = getPhDateKey();
     const key = getTaskKey(phaseId, taskId);
     setTaskHistory((prev) => ({
       ...prev,
