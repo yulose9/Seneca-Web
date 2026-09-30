@@ -13,6 +13,7 @@ import AddTaskSheet from "../components/AddTaskSheet";
 import HabitDetailSheet from "../components/HabitDetailSheet";
 import { TasksReminderSettingsSheet } from "../components/ObligationReminder";
 import PageTransition from "../components/PageTransition";
+import PageHeader from "../components/PageHeader";
 import {
   ICON_ENTER,
   ICON_SPRING,
@@ -22,13 +23,6 @@ import {
   TAP_TRANSITION,
 } from "../constants/motion";
 import { useProtocol } from "../context/ProtocolContext";
-
-// Format current date iOS style
-const formatDate = () => {
-  const now = new Date();
-  const options = { weekday: "long", month: "short", day: "numeric" };
-  return now.toLocaleDateString("en-US", options).toUpperCase();
-};
 
 // iOS 18 Style Checkbox
 const Checkbox = ({ done, onClick }) => {
@@ -43,7 +37,7 @@ const Checkbox = ({ done, onClick }) => {
         onClick();
       }}
       className={clsx(
-        "ios-checkbox relative after:content-[''] after:absolute after:-inset-4 after:bg-transparent", 
+        "ios-checkbox relative after:content-[''] after:absolute after:-inset-4 after:bg-transparent",
         done && "checked"
       )}
     >
@@ -193,26 +187,26 @@ const TaskRow = ({ task, onToggle, onClick, isLast }) => {
     <div
       onClick={onClick}
       className={clsx(
-        "flex items-center min-h-[52px] py-3 px-4 cursor-pointer bg-white transition-colors",
-        !isLast && "border-b border-[rgba(60,60,67,0.12)]",
+        "flex items-center min-h-[52px] py-3 px-4 cursor-pointer bg-surface transition-colors",
+        !isLast && "border-b border-separator",
       )}
     >
       {/* overflow-visible so the ::before hit-slop isn't clipped by the row */}
       <div className="overflow-visible flex-shrink-0">
         <Checkbox done={task.done} onClick={onToggle} />
       </div>
-      <span className="text-2xl mx-3 select-none">{task.emoji}</span>
+      <span className="text-title-2 mx-3 select-none">{task.emoji}</span>
       <span
         className={clsx(
-          "flex-1 text-[17px] transition-colors duration-150",
+          "flex-1 text-body transition-colors duration-150",
           task.done
-            ? "text-[rgba(60,60,67,0.3)] line-through decoration-[rgba(60,60,67,0.2)]"
-            : "text-black",
+            ? "text-ink-3 line-through decoration-separator"
+            : "text-ink",
         )}
       >
         {task.title}
       </span>
-      <ChevronRight size={18} className="text-[#C7C7CC] ml-2" />
+      <ChevronRight size={18} className="text-ink-3 ml-2" />
     </div>
   );
 };
@@ -249,7 +243,7 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
                 isActive ? "protocol-pill-active" : "protocol-pill-inactive",
               )}
               style={{
-                backgroundColor: isActive ? activeColor : "#808080",
+                backgroundColor: isActive ? activeColor : "var(--color-ink-2)",
                 boxShadow: isActive
                   ? `0 3px 12px ${activeColor}40`
                   : "none",
@@ -351,14 +345,14 @@ const PhaseSection = ({
         <h3 className="ios-list-header px-0 pb-0">{phase.title}</h3>
         <div className="flex items-center gap-2">
           {!isUnlocked && (
-            <span className="ios-pill ios-pill-gray text-[11px]">Locked</span>
+            <span className="ios-pill ios-pill-gray text-caption-2">Locked</span>
           )}
           {isPhaseComplete && (
             <motion.span
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={ICON_SPRING}
-              className="ios-pill ios-pill-green text-[11px]"
+              className="ios-pill ios-pill-green text-caption-2"
             >
               Completed
             </motion.span>
@@ -367,7 +361,7 @@ const PhaseSection = ({
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={LAYOUT_SPRING}
           >
-            <ChevronRight size={16} className="text-[#C7C7CC]" />
+            <ChevronRight size={16} className="text-ink-3" />
           </motion.div>
         </div>
       </div>
@@ -422,16 +416,16 @@ const PhaseSection = ({
               onClick={() => onToggleExpand(phaseId)}
               whileTap={{ scale: 0.98 }}
               className={clsx(
-                "p-4 flex items-center justify-between cursor-pointer rounded-xl shadow-sm",
-                isPhaseComplete ? "bg-[#34C759]" : "bg-white",
+                "p-4 flex items-center justify-between cursor-pointer rounded-xl shadow-card",
+                isPhaseComplete ? "bg-positive" : "bg-surface",
               )}
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{phase.emoji}</span>
+                <span className="text-title-2">{phase.emoji}</span>
                 <span
                   className={clsx(
-                    "text-[17px] font-medium tabular-nums transition-colors",
-                    isPhaseComplete ? "text-white" : "text-black",
+                    "text-body font-medium tabular-nums transition-colors",
+                    isPhaseComplete ? "text-white" : "text-ink",
                   )}
                 >
                   {isPhaseComplete
@@ -444,7 +438,7 @@ const PhaseSection = ({
                   <Check size={14} className="text-white" strokeWidth={3} />
                 </div>
               ) : (
-                <ChevronRight size={18} className="text-[#C7C7CC]" />
+                <ChevronRight size={18} className="text-ink-3" />
               )}
             </motion.div>
           )}
@@ -553,15 +547,12 @@ export default function Protocol() {
   };
 
   return (
-    <PageTransition className="min-h-screen bg-[#F2F2F7] pb-32">
-      {/* iOS 18 Large Title */}
-      <header className="pt-14 px-5 pb-6 bg-[#F2F2F7]">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="ios-nav-date">{formatDate()}</p>
-            <h1 className="ios-large-title">Protocol</h1>
-          </div>
-          <div className="flex items-center gap-2">
+    <PageTransition className="min-h-screen bg-canvas pb-32">
+      <PageHeader
+        title="Protocol"
+        className="pb-6"
+        trailing={
+          <>
             <AnimatePresence initial={false}>
               {isOrderCustomized && (
                 <motion.button
@@ -571,10 +562,10 @@ export default function Protocol() {
                   transition={ICON_SPRING}
                   whileTap={TAP}
                   onClick={() => { haptic.trigger("medium"); resetTaskOrder(); }}
-                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-200"
+                  className="w-10 h-10 rounded-full bg-surface flex items-center justify-center shadow-card"
                   aria-label="Reset Order"
                 >
-                  <RotateCcw size={20} className="text-[#007AFF]" />
+                  <RotateCcw size={20} className="text-accent" />
                 </motion.button>
               )}
             </AnimatePresence>
@@ -582,23 +573,23 @@ export default function Protocol() {
               whileTap={TAP}
               transition={TAP_TRANSITION}
               onClick={() => { haptic.trigger("light"); setTasksReminderSettings(true); }}
-              className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-200"
+              className="w-10 h-10 rounded-full bg-surface flex items-center justify-center shadow-card"
               aria-label="Reminder Settings"
             >
-              <Bell size={20} className="text-[#FF9500]" />
+              <Bell size={20} className="text-accent" />
             </motion.button>
             <motion.button
               whileTap={TAP}
               transition={TAP_TRANSITION}
               onClick={() => { haptic.trigger("medium"); setAddTaskSheetVisible(true); }}
-              className="w-10 h-10 rounded-full bg-[#007AFF] flex items-center justify-center shadow-lg shadow-[#007AFF]/25"
+              className="w-10 h-10 rounded-full bg-accent flex items-center justify-center shadow-float"
               aria-label="Add Task"
             >
               <Plus size={22} strokeWidth={2.5} className="text-white" />
             </motion.button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Category Pill Selector */}
       <CategoryPillSelector

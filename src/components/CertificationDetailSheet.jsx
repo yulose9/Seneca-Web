@@ -97,7 +97,7 @@ const LEVEL_OPTIONS = [
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 const SectionHeader = ({ children }) => (
-  <p className="text-[13px] font-normal text-[#86868B] uppercase tracking-wide px-5 mb-2">
+  <p className="text-footnote font-semibold text-ink-2 px-5 mb-2">
     {children}
   </p>
 );
@@ -112,14 +112,11 @@ const GroupedRow = ({
   <div
     onClick={onClick}
     className={`flex items-center min-h-[44px] px-4 ${
-      !isLast ? "border-b border-[rgba(60,60,67,0.12)]" : ""
-    } ${onClick ? "cursor-pointer active:bg-black/[0.02]" : ""}`}
+      !isLast ? "border-b border-separator" : ""
+    } ${onClick ? "cursor-pointer active:bg-fill" : ""}`}
   >
     {label && (
-      <span
-        className="text-[17px] w-28 shrink-0"
-        style={{ color: destructive ? "#FF3B30" : "#000" }}
-      >
+      <span className={`text-body w-28 shrink-0 ${destructive ? "text-negative" : "text-ink"}`}>
         {label}
       </span>
     )}
@@ -145,33 +142,33 @@ const DeleteConfirmModal = ({ visible, certName, onConfirm, onCancel }) => (
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.97, opacity: 0, transition: { duration: 0.15, ease: EASE_OUT } }}
           transition={DIALOG_SPRING}
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-[280px] bg-white rounded-2xl overflow-hidden shadow-2xl"
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-[280px] bg-surface rounded-2xl overflow-hidden shadow-float"
         >
           {/* Icon + title */}
           <div className="flex flex-col items-center px-6 pt-7 pb-4">
-            <div className="w-14 h-14 rounded-full bg-[rgba(255,59,48,0.1)] flex items-center justify-center mb-4">
-              <AlertTriangle size={28} className="text-[#FF3B30]" />
+            <div className="w-14 h-14 rounded-full bg-negative/10 flex items-center justify-center mb-4">
+              <AlertTriangle size={28} className="text-negative" />
             </div>
-            <h3 className="text-[17px] font-semibold text-black text-center mb-1">
+            <h3 className="text-body font-semibold text-ink text-center mb-1">
               Delete Certification?
             </h3>
-            <p className="text-[13px] text-[rgba(60,60,67,0.6)] text-center">
-              <span className="font-medium text-black">"{certName}"</span> will
+            <p className="text-footnote text-ink-2 text-center">
+              <span className="font-medium text-ink">"{certName}"</span> will
               be permanently removed. This cannot be undone.
             </p>
           </div>
 
           {/* Actions */}
-          <div className="border-t border-[rgba(60,60,67,0.12)]">
+          <div className="border-t border-separator">
             <button
               onClick={onConfirm}
-              className="w-full py-3.5 text-[17px] font-semibold text-[#FF3B30] border-b border-[rgba(60,60,67,0.12)] active:bg-red-50"
+              className="w-full py-3.5 text-body font-semibold text-negative border-b border-separator active:bg-fill"
             >
               Delete
             </button>
             <button
               onClick={onCancel}
-              className="w-full py-3.5 text-[17px] font-normal text-[#007AFF] active:bg-blue-50"
+              className="w-full py-3.5 text-body font-normal text-accent active:bg-fill"
             >
               Cancel
             </button>
@@ -269,49 +266,49 @@ export default function CertificationDetailSheet({
         open={visible}
         onClose={() => { haptic.trigger("medium"); onClose(); }}
         label={certification?.name}
-        className="fixed bottom-0 left-0 right-0 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden flex flex-col"
+        className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92vh] overflow-hidden flex flex-col"
       >
           {/* Drag Handle */}
           <div
             className="flex justify-center pt-3 pb-2 cursor-pointer shrink-0"
             onClick={() => { haptic.trigger("medium"); onClose(); }}
           >
-            <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
+            <div className="w-12 h-1.5 bg-separator rounded-full" />
           </div>
 
           {/* Navigation Bar */}
-          <div className="relative flex items-center justify-between px-4 h-11 border-b border-[rgba(60,60,67,0.12)] shrink-0">
+          <div className="relative flex items-center justify-between px-4 h-11 border-b border-separator shrink-0">
             {isEditing ? (
               <button
                 onClick={() => setIsEditing(false)}
-                className="text-[17px] text-[#FF3B30] font-normal active:opacity-50"
+                className="text-body text-negative font-normal active:opacity-50"
               >
                 Cancel
               </button>
             ) : (
               <button
                 onClick={onClose}
-                className="text-[17px] text-[#007AFF] font-normal active:opacity-50"
+                className="text-body text-accent font-normal active:opacity-50"
               >
                 Close
               </button>
             )}
 
-            <h2 className="text-[17px] font-semibold text-black absolute left-1/2 -translate-x-1/2">
+            <h2 className="text-body font-semibold text-ink absolute left-1/2 -translate-x-1/2">
               {isEditing ? "Edit Certification" : "Certification"}
             </h2>
 
             {isEditing ? (
               <button
                 onClick={handleSave}
-                className="text-[17px] text-[#007AFF] font-semibold active:opacity-50"
+                className="text-body text-accent font-semibold active:opacity-50"
               >
                 Save
               </button>
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="text-[17px] text-[#007AFF] font-normal active:opacity-50"
+                className="text-body text-accent font-normal active:opacity-50"
               >
                 Edit
               </button>
@@ -336,7 +333,7 @@ export default function CertificationDetailSheet({
                       {/* Certification Details */}
                       <div className="mb-6">
                         <SectionHeader>Certification</SectionHeader>
-                        <div className="mx-4 bg-white rounded-xl overflow-hidden">
+                        <div className="mx-4 bg-surface rounded-2xl overflow-hidden">
                           {/* Name — editable for custom certs */}
                           {isCustom && (
                             <GroupedRow label="Name">
@@ -347,7 +344,7 @@ export default function CertificationDetailSheet({
                                   updateField("name", e.target.value)
                                 }
                                 placeholder="Certification name"
-                                className="flex-1 text-[17px] text-zinc-600 outline-none bg-transparent text-right"
+                                className="flex-1 text-body text-ink-2 outline-none bg-transparent text-right"
                               />
                             </GroupedRow>
                           )}
@@ -361,7 +358,7 @@ export default function CertificationDetailSheet({
                                 updateField("target", e.target.value)
                               }
                               placeholder="e.g. Q3 2026"
-                              className="flex-1 text-[17px] text-zinc-600 outline-none bg-transparent text-right"
+                              className="flex-1 text-body text-ink-2 outline-none bg-transparent text-right"
                             />
                           </GroupedRow>
 
@@ -374,7 +371,7 @@ export default function CertificationDetailSheet({
                                 updateField("vendor", e.target.value)
                               }
                               placeholder="e.g. AWS"
-                              className="flex-1 text-[17px] text-zinc-600 outline-none bg-transparent text-right"
+                              className="flex-1 text-body text-ink-2 outline-none bg-transparent text-right"
                             />
                           </GroupedRow>
 
@@ -385,7 +382,7 @@ export default function CertificationDetailSheet({
                               onChange={(e) =>
                                 updateField("level", e.target.value)
                               }
-                              className="flex-1 text-[17px] text-zinc-600 outline-none bg-transparent text-right appearance-none"
+                              className="flex-1 text-body text-ink-2 outline-none bg-transparent text-right appearance-none"
                             >
                               {LEVEL_OPTIONS.map((opt) => (
                                 <option key={opt} value={opt}>
@@ -400,7 +397,7 @@ export default function CertificationDetailSheet({
                       {/* Notes */}
                       <div className="mb-6">
                         <SectionHeader>Notes</SectionHeader>
-                        <div className="mx-4 bg-white rounded-xl overflow-hidden">
+                        <div className="mx-4 bg-surface rounded-2xl overflow-hidden">
                           <div className="px-4 py-3">
                             <textarea
                               value={editForm.notes}
@@ -409,7 +406,7 @@ export default function CertificationDetailSheet({
                               }
                               placeholder="Add notes, exam tips, links…"
                               rows={4}
-                              className="w-full text-[17px] text-zinc-700 outline-none bg-transparent resize-none placeholder:text-[rgba(60,60,67,0.3)]"
+                              className="w-full text-body text-ink outline-none bg-transparent resize-none placeholder:text-ink-3"
                             />
                           </div>
                         </div>
@@ -418,17 +415,17 @@ export default function CertificationDetailSheet({
                       {/* Delete (custom only) */}
                       {isCustom && (
                         <div className="mb-6">
-                          <div className="mx-4 bg-white rounded-xl overflow-hidden">
+                          <div className="mx-4 bg-surface rounded-2xl overflow-hidden">
                             <GroupedRow
                               isLast
                               onClick={() => { haptic.trigger("warning"); setShowDeleteConfirm(true); }}
                             >
-                              <span className="text-[17px] font-medium text-[#FF3B30]">
+                              <span className="text-body font-medium text-negative">
                                 Delete Certification
                               </span>
                               <Trash2
                                 size={18}
-                                className="text-[#FF3B30] ml-2"
+                                className="text-negative ml-2"
                               />
                             </GroupedRow>
                           </div>
@@ -446,11 +443,11 @@ export default function CertificationDetailSheet({
                     >
                       {/* Hero Card */}
                       <div className="mx-4 mt-6 mb-4">
-                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-black/[0.04]">
+                        <div className="bg-surface rounded-2xl p-5 shadow-card">
                           {/* Level + vendor row */}
                           <div className="flex items-center justify-between mb-3">
                             <span
-                              className="text-[11px] font-bold uppercase px-2.5 py-1 rounded-md tracking-wide"
+                              className="text-caption-2 font-semibold px-2.5 py-1 rounded-lg"
                               style={{
                                 backgroundColor: `${levelColor}18`,
                                 color: levelColor,
@@ -459,22 +456,22 @@ export default function CertificationDetailSheet({
                               {certification.level}
                             </span>
                             {certification.vendor && (
-                              <span className="text-[12px] font-medium text-[rgba(60,60,67,0.55)]">
+                              <span className="text-caption font-medium text-ink-2">
                                 {certification.vendor}
                               </span>
                             )}
                           </div>
 
                           {/* Title */}
-                          <h3 className="text-[20px] font-bold text-black mb-2 leading-tight">
+                          <h3 className="text-title-3 font-semibold text-ink mb-2">
                             {certification.name}
                           </h3>
 
                           {/* Target */}
                           {certification.target && (
-                            <p className="text-[14px] text-[rgba(60,60,67,0.55)] mb-1">
+                            <p className="text-subhead text-ink-2 mb-1">
                               📅 Target:{" "}
-                              <span className="font-medium text-[rgba(60,60,67,0.8)]">
+                              <span className="font-medium text-ink-2">
                                 {certification.target}
                               </span>
                             </p>
@@ -482,14 +479,14 @@ export default function CertificationDetailSheet({
 
                           {/* Prereq */}
                           {certification.prereq && (
-                            <p className="text-[13px] text-[rgba(60,60,67,0.4)] mt-1">
+                            <p className="text-footnote text-ink-3 mt-1">
                               ⚠️ Requires: {certification.prereq}
                             </p>
                           )}
 
                           {/* Notes preview */}
                           {certification.notes && (
-                            <p className="text-[13px] text-[rgba(60,60,67,0.55)] mt-3 pt-3 border-t border-[rgba(60,60,67,0.08)] line-clamp-3">
+                            <p className="text-footnote text-ink-2 mt-3 pt-3 border-t border-separator line-clamp-3">
                               {certification.notes}
                             </p>
                           )}
@@ -508,7 +505,7 @@ export default function CertificationDetailSheet({
                             style={{ color: currentStatus.color }}
                           />
                           <span
-                            className="text-[14px] font-semibold"
+                            className="text-subhead font-semibold"
                             style={{ color: currentStatus.color }}
                           >
                             {currentStatus.label}
@@ -518,8 +515,8 @@ export default function CertificationDetailSheet({
 
                       {/* Status Picker */}
                       <div className="mb-5">
-                        <SectionHeader>Change Status</SectionHeader>
-                        <div className="mx-4 bg-white rounded-xl overflow-hidden">
+                        <SectionHeader>Change status</SectionHeader>
+                        <div className="mx-4 bg-surface rounded-2xl overflow-hidden">
                           {STATUS_OPTIONS.map((status, index) => {
                             const isSelected =
                               certification.status === status.id;
@@ -534,7 +531,7 @@ export default function CertificationDetailSheet({
                                 }
                                 className={`w-full flex items-center py-3.5 px-4 ${
                                   index !== STATUS_OPTIONS.length - 1
-                                    ? "border-b border-[rgba(60,60,67,0.12)]"
+                                    ? "border-b border-separator"
                                     : ""
                                 }`}
                                 style={{
@@ -565,7 +562,7 @@ export default function CertificationDetailSheet({
 
                                 {/* Label */}
                                 <span
-                                  className={`text-[17px] flex-1 text-left ${
+                                  className={`text-body flex-1 text-left ${
                                     isSelected
                                       ? "font-semibold"
                                       : "font-normal"
@@ -580,7 +577,7 @@ export default function CertificationDetailSheet({
                                 </span>
 
                                 {/* Emoji */}
-                                <span className="text-[18px] mr-2">
+                                <span className="text-body mr-2">
                                   {status.emoji}
                                 </span>
 
@@ -614,10 +611,10 @@ export default function CertificationDetailSheet({
                           <motion.button
                             whileTap={{ scale: 0.98 }}
                             onClick={handleSetStudyGoal}
-                            className="w-full bg-[#007AFF] rounded-xl py-4 flex items-center justify-center gap-2 shadow-sm"
+                            className="w-full bg-accent rounded-xl py-4 flex items-center justify-center gap-2 shadow-card"
                           >
                             <BookOpen size={18} className="text-white" />
-                            <span className="text-[17px] font-semibold text-white">
+                            <span className="text-body font-semibold text-white">
                               Set as Current Study Goal
                             </span>
                           </motion.button>
@@ -630,10 +627,10 @@ export default function CertificationDetailSheet({
                           <motion.button
                             whileTap={{ scale: 0.98 }}
                             onClick={() => { haptic.trigger("warning"); setShowDeleteConfirm(true); }}
-                            className="w-full bg-white rounded-xl py-4 flex items-center justify-center gap-2 border border-[rgba(255,59,48,0.2)]"
+                            className="w-full bg-surface rounded-xl py-4 flex items-center justify-center gap-2 border border-negative/20"
                           >
-                            <Trash2 size={18} className="text-[#FF3B30]" />
-                            <span className="text-[17px] font-medium text-[#FF3B30]">
+                            <Trash2 size={18} className="text-negative" />
+                            <span className="text-body font-medium text-negative">
                               Delete Certification
                             </span>
                           </motion.button>

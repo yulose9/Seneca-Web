@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@fontsource/inter/300.css";
 @import "@fontsource/inter/400.css";
 @import "@fontsource/inter/500.css";
 @import "@fontsource/inter/600.css";
@@ -20,50 +21,79 @@
 }
 
 @theme {
-  /* iOS 18 System Colors */
-  --color-background: #f2f2f7;
-  --color-background-secondary: #ffffff;
-  --color-background-tertiary: #f5f5fa;
-  --color-background-elevated: #ffffff;
+  /* ==========================================================
+     Seneca design tokens — Apple HIG semantics, light appearance.
+     Use these utilities instead of raw values:
+       colors   bg-canvas bg-surface bg-fill  text-ink text-ink-2 text-ink-3
+                border-separator  text-accent/positive/negative/caution
+       type     text-large-title … text-caption-2, text-display (hero numbers)
+       radius   rounded-lg (8, badges/cells) rounded-xl (12, controls/rows)
+                rounded-2xl (16, cards) rounded-sheet (28, sheets/large panels)
+       shadow   shadow-card (resting surfaces) shadow-float (sheets, menus, FABs)
+     Colors that are user data (goal/category/chart colours) stay literal.
+     ========================================================== */
 
-  /* Text Colors */
-  --color-label: #000000;
-  --color-label-secondary: #3c3c43;
-  --color-label-tertiary: #48484a;
-  --color-label-quaternary: #636366;
+  /* Backgrounds */
+  --color-canvas: #f2f2f7;          /* systemGroupedBackground — page */
+  --color-surface: #ffffff;         /* secondarySystemGroupedBackground — cards */
+  --color-fill: rgba(120, 120, 128, 0.12);        /* tertiarySystemFill — control bg */
+  --color-fill-strong: rgba(120, 120, 128, 0.2);  /* systemFill — pressed / tracks */
 
-  /* iOS 18 System Colors */
-  --color-system-blue: #007aff;
-  --color-system-green: #34c759;
-  --color-system-indigo: #5856d6;
-  --color-system-orange: #ff9500;
-  --color-system-pink: #ff2d55;
-  --color-system-purple: #af52de;
-  --color-system-red: #ff3b30;
-  --color-system-teal: #5ac8fa;
-  --color-system-yellow: #ffcc00;
-  --color-system-mint: #00c7be;
-  --color-system-cyan: #32ade6;
+  /* Labels */
+  --color-ink: #000000;                       /* label */
+  --color-ink-2: rgba(60, 60, 67, 0.6);       /* secondaryLabel */
+  --color-ink-3: rgba(60, 60, 67, 0.3);       /* tertiaryLabel — placeholders, chevrons */
+  --color-separator: rgba(60, 60, 67, 0.18);  /* separator */
 
-  /* Seneca Brand */
-  --color-primary: #007aff;
-  --color-accent: #5856d6;
+  /* Tints */
+  --color-accent: #007aff;    /* systemBlue — interactive */
+  --color-positive: #34c759;  /* systemGreen — done, income */
+  --color-negative: #ff3b30;  /* systemRed — destructive, expense */
+  --color-caution: #ff9500;   /* systemOrange — pending, warning */
+  --color-indigo: #5856d6;    /* systemIndigo */
+  --color-purple: #af52de;    /* systemPurple */
+  --color-teal: #5ac8fa;      /* systemTeal */
+  --color-yellow: #ffcc00;    /* systemYellow */
 
-  /* Fill Colors */
-  --color-fill-primary: rgba(120, 120, 128, 0.2);
-  --color-fill-secondary: rgba(120, 120, 128, 0.16);
-  --color-fill-tertiary: rgba(120, 120, 128, 0.12);
-  --color-fill-quaternary: rgba(120, 120, 128, 0.08);
+  /* Type — HIG text styles (size / line-height / tracking) */
+  --text-display: 48px;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+  --text-large-title: 34px;
+  --text-large-title--line-height: 41px;
+  --text-large-title--letter-spacing: 0.01em;
+  --text-title-1: 28px;
+  --text-title-1--line-height: 34px;
+  --text-title-2: 22px;
+  --text-title-2--line-height: 28px;
+  --text-title-3: 20px;
+  --text-title-3--line-height: 25px;
+  --text-body: 17px;
+  --text-body--line-height: 22px;
+  --text-body--letter-spacing: -0.02em;
+  --text-callout: 16px;
+  --text-callout--line-height: 21px;
+  --text-callout--letter-spacing: -0.02em;
+  --text-subhead: 15px;
+  --text-subhead--line-height: 20px;
+  --text-subhead--letter-spacing: -0.015em;
+  --text-footnote: 13px;
+  --text-footnote--line-height: 18px;
+  --text-footnote--letter-spacing: -0.005em;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-caption-2: 11px;
+  --text-caption-2--line-height: 13px;
+  --text-caption-2--letter-spacing: 0.005em;
 
-  /* Separator */
-  --color-separator: rgba(60, 60, 67, 0.18);
-  --color-separator-opaque: #c6c6c8;
+  /* Radius — concentric: outer = inner + padding */
+  --radius-sheet: 28px;
 
-  /* Glass */
-  --color-glass-bg: rgba(255, 255, 255, 0.72);
-  --color-glass-border: rgba(255, 255, 255, 0.3);
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-float: 0 2px 6px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.12);
 
-  /* System Font Stack */
+  /* System font stack */
   --font-sans:
     "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Inter",
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -109,8 +139,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: var(--font-sans);
-  background-color: var(--color-background);
-  color: var(--color-label);
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
   line-height: 1.5;
   overflow-x: hidden;
   /* Smooth scrolling on iOS */
@@ -125,8 +155,8 @@ body {
   /* Liquid Glass Variables */
   --liquid-glass: #c8c8cc;
   --liquid-light: #ffffff;
-  --liquid-dark: #000000;
-  --liquid-action: #007aff;
+  --liquid-dark: var(--color-ink);
+  --liquid-action: var(--color-accent);
   --liquid-reflex-dark: 1;
   --liquid-reflex-light: 1;
   --liquid-saturation: 180%;
@@ -242,7 +272,7 @@ body {
   cursor: pointer;
   z-index: 2;
 
-  color: rgba(60, 60, 67, 0.70);
+  color: var(--color-ink-2);
   transition:
     color 0.15s ease,
     transform 0.16s var(--ease-out);
@@ -253,7 +283,7 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   .liquid-nav-item:hover:not(.active) {
-    color: color-mix(in srgb, var(--liquid-action) 70%, rgba(60,60,67,0.7));
+    color: color-mix(in srgb, var(--liquid-action) 70%, var(--color-ink-2));
   }
 }
 
@@ -292,7 +322,7 @@ body {
 
   box-shadow:
     /* Outer soft glow */
-    0 4px 16px 0 rgba(0, 122, 255, 0.14),
+    0 4px 16px 0 color-mix(in srgb, var(--color-accent) 14%, transparent),
     0 2px 6px 0 rgba(0, 0, 0, 0.10),
     0 0 0 0.5px rgba(0, 0, 0, 0.07),
     /* Top-left specular – the defining "glass" look */
@@ -348,11 +378,11 @@ body {
 /* Lift + scale is driven by framer-motion in GlassTabBar; only the glow lives here */
 .liquid-nav-item.active .liquid-icon {
   /* Subtle icon glow matching the action color */
-  filter: drop-shadow(0 2px 6px rgba(0, 122, 255, 0.30));
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--color-accent) 30%, transparent));
 }
 
 .liquid-label {
-  font-size: 11px;
+  font-size: var(--text-caption-2);
   font-weight: 600;
   margin-top: 4px;
   opacity: 0.8;
@@ -366,225 +396,43 @@ body {
 }
 
 /* ============================================
-   iOS 18 Material Card
-   ============================================ */
-.ios-card {
-  position: relative;
-  overflow: hidden;
-  margin-bottom: 16px;
-  padding: 16px;
-
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-
-  border-radius: 16px;
-  border: 0.5px solid rgba(0, 0, 0, 0.04);
-
-  box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.04);
-
-  transition:
-    transform 0.16s var(--ease-out),
-    box-shadow 0.2s ease;
-}
-
-.ios-card.interactive {
-  cursor: pointer;
-}
-
-.ios-card.interactive:active {
-  transform: scale(0.96);
-}
-
-/* Grouped Card Style (like Settings) */
-.ios-card-grouped {
-  background: #ffffff;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 16px;
-  border: 0.5px solid rgba(0, 0, 0, 0.04);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.ios-card-row {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  min-height: 44px;
-  background: #ffffff;
-  transition: background 0.15s ease;
-}
-
-.ios-card-row:not(:last-child) {
-  border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
-}
-
-.ios-card-row:active {
-  background: rgba(0, 0, 0, 0.04);
-}
-
-/* ============================================
    iOS 18 Inset Grouped List
    ============================================ */
 .ios-list-section {
   margin-bottom: 32px;
 }
 
+/* Section header — sentence case, matches `text-footnote font-semibold text-ink-2` */
 .ios-list-header {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--color-label-secondary);
-  text-transform: uppercase;
-  letter-spacing: -0.01em;
+  font-size: var(--text-footnote);
+  line-height: var(--text-footnote--line-height);
+  font-weight: 600;
+  color: var(--color-ink-2);
   padding: 0 16px 8px;
 }
 
-.ios-list-footer {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--color-label-tertiary);
-  padding: 8px 16px 0;
-  line-height: 1.4;
-}
-
 .ios-inset-grouped {
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 12px;
   overflow: hidden;
   margin: 0 16px;
   box-shadow: none;
 }
 
-.ios-list-row {
-  display: flex;
-  align-items: center;
-  padding: 11px 16px;
-  min-height: 44px;
-  background: #ffffff;
-  gap: 12px;
-  cursor: pointer;
-  transition: background 0.1s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.ios-list-row:active {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.ios-list-row:not(:last-child) {
-  margin-left: 16px;
-  padding-left: 0;
-  border-bottom: 0.33px solid rgba(60, 60, 67, 0.18);
-}
-
-.ios-list-row-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.ios-list-row-title {
-  font-size: 17px;
-  font-weight: 400;
-  color: var(--color-label);
-  line-height: 1.3;
-}
-
-.ios-list-row-subtitle {
-  font-size: 15px;
-  font-weight: 400;
-  color: var(--color-label-tertiary);
-  margin-top: 2px;
-}
-
-.ios-list-accessory {
-  color: var(--color-label-quaternary);
-  font-size: 17px;
-}
-
-/* ============================================
-   iOS 18 Navigation Bar
-   ============================================ */
-.ios-nav-bar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  padding: 48px 16px 8px;
-  background: var(--color-background);
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.ios-nav-bar.scrolled {
-  background: rgba(242, 242, 247, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 0.33px solid rgba(60, 60, 67, 0.18);
-}
-
 .ios-large-title {
-  font-size: 34px;
+  font-size: var(--text-large-title);
   font-weight: 700;
   letter-spacing: 0.37px;
   line-height: 1.2;
-  color: var(--color-label);
+  color: var(--color-ink);
 }
 
 .ios-nav-date {
-  font-size: 13px;
+  font-size: var(--text-footnote);
   font-weight: 600;
-  color: var(--color-label-secondary);
-  text-transform: uppercase;
+  color: var(--color-ink-2);
   letter-spacing: -0.01em;
   margin-bottom: 2px;
-}
-
-/* ============================================
-   iOS 18 Buttons
-   ============================================ */
-.ios-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px 24px;
-  font-size: 17px;
-  font-weight: 600;
-  border-radius: 14px;
-  border: none;
-  cursor: pointer;
-  transition:
-    transform 0.16s var(--ease-out),
-    background-color 0.15s ease,
-    color 0.15s ease;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-
-.ios-button:active {
-  transform: scale(0.96);
-}
-
-.ios-button-filled {
-  background: var(--color-system-blue);
-  color: #ffffff;
-}
-
-.ios-button-tinted {
-  background: rgba(0, 122, 255, 0.15);
-  color: var(--color-system-blue);
-}
-
-.ios-button-gray {
-  background: var(--color-fill-tertiary);
-  color: var(--color-label);
-}
-
-.ios-button-plain {
-  background: transparent;
-  color: var(--color-system-blue);
-  padding: 8px 12px;
 }
 
 /* ============================================
@@ -595,7 +443,7 @@ body {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 2px solid var(--color-separator-opaque);
+  border: 2px solid var(--color-separator);
   background: transparent;
   display: flex;
   align-items: center;
@@ -624,8 +472,8 @@ body {
 }
 
 .ios-checkbox.checked {
-  background: var(--color-system-blue);
-  border-color: var(--color-system-blue);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .ios-checkbox:active {
@@ -660,45 +508,13 @@ body {
 
 .ios-progress-ring-bg {
   fill: none;
-  stroke: var(--color-fill-tertiary);
+  stroke: var(--color-fill);
 }
 
 .ios-progress-ring-fill {
   fill: none;
   stroke-linecap: round;
   transition: stroke-dashoffset 0.6s var(--ease-out-expo);
-}
-
-/* ============================================
-   iOS 18 Segmented Control
-   ============================================ */
-.ios-segmented {
-  display: inline-flex;
-  background: var(--color-fill-tertiary);
-  border-radius: 9px;
-  padding: 2px;
-  gap: 0;
-}
-
-.ios-segment {
-  position: relative;
-  padding: 7px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-label);
-  border-radius: 7px;
-  cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    box-shadow 0.2s ease;
-  z-index: 1;
-}
-
-.ios-segment.active {
-  background: #ffffff;
-  box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.12),
-    0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* ============================================
@@ -719,8 +535,8 @@ body {
   left: 0;
   right: 0;
   z-index: 201;
-  background: #ffffff;
-  border-radius: 14px 14px 0 0;
+  background: var(--color-surface);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   max-height: 90vh;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -730,7 +546,7 @@ body {
 .ios-sheet-handle {
   width: 36px;
   height: 5px;
-  background: rgba(60, 60, 67, 0.3);
+  background: var(--color-ink-3);
   border-radius: 2.5px;
   margin: 8px auto 0;
 }
@@ -746,104 +562,20 @@ body {
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: var(--text-footnote);
   font-weight: 600;
   border-radius: 100px;
   gap: 4px;
 }
 
-.ios-pill-blue {
-  background: rgba(0, 122, 255, 0.12);
-  color: var(--color-system-blue);
-}
-
 .ios-pill-green {
-  background: rgba(52, 199, 89, 0.12);
-  color: var(--color-system-green);
-}
-
-.ios-pill-orange {
-  background: rgba(255, 149, 0, 0.12);
-  color: var(--color-system-orange);
-}
-
-.ios-pill-red {
-  background: rgba(255, 59, 48, 0.12);
-  color: var(--color-system-red);
+  background: color-mix(in srgb, var(--color-positive) 12%, transparent);
+  color: var(--color-positive);
 }
 
 .ios-pill-gray {
-  background: var(--color-fill-tertiary);
-  color: var(--color-label-secondary);
-}
-
-/* ============================================
-   iOS 18 Search Bar
-   ============================================ */
-.ios-search-bar {
-  display: flex;
-  align-items: center;
-  background: var(--color-fill-tertiary);
-  border-radius: 12px;
-  padding: 10px 12px;
-  gap: 8px;
-}
-
-.ios-search-bar input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  font-size: 17px;
-  color: var(--color-label);
-  outline: none;
-}
-
-.ios-search-bar input::placeholder {
-  color: var(--color-label-quaternary);
-}
-
-.ios-search-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--color-label-quaternary);
-}
-
-/* ============================================
-   iOS 18 Badge
-   ============================================ */
-.ios-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #ffffff;
-  background: var(--color-system-red);
-  border-radius: 9px;
-}
-
-/* ============================================
-   Utility Classes
-   ============================================ */
-.safe-padding-bottom {
-  padding-bottom: calc(100px + var(--safe-area-bottom));
-}
-
-.text-gradient {
-  background: linear-gradient(135deg,
-      var(--color-system-blue),
-      var(--color-system-indigo));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Animation Utilities */
-.animate-fade-in {
-  animation: fadeIn 0.3s var(--ease-out) forwards;
+  background: var(--color-fill);
+  color: var(--color-ink-2);
 }
 
 @keyframes fadeIn {
@@ -858,10 +590,6 @@ body {
   }
 }
 
-.animate-slide-up {
-  animation: slideUp 0.4s var(--ease-out-expo) forwards;
-}
-
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -872,10 +600,6 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.25s var(--ease-out) forwards;
 }
 
 @keyframes scaleIn {
@@ -892,13 +616,13 @@ body {
 
 /* Focus Styles */
 :focus-visible {
-  outline: 2px solid var(--color-system-blue);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* Selection */
 ::selection {
-  background: rgba(0, 122, 255, 0.25);
+  background: color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 
 /* Scrollbar Styling */
@@ -926,7 +650,7 @@ body {
 .rich-text-editor {
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(60, 60, 67, 0.12);
+  border: 1px solid var(--color-separator);
   background: white;
   transition:
     border-color 0.2s ease,
@@ -934,17 +658,17 @@ body {
 }
 
 .rich-text-editor:focus-within {
-  border-color: var(--color-system-blue);
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
 }
 
 /* Editor Content Styling */
 .rich-text-editor .ProseMirror {
   min-height: 120px;
   padding: 16px;
-  font-size: 17px;
+  font-size: var(--text-body);
   line-height: 1.6;
-  color: var(--color-label);
+  color: var(--color-ink);
   outline: none;
 }
 
@@ -956,7 +680,7 @@ body {
 .rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  color: rgba(60, 60, 67, 0.3);
+  color: var(--color-ink-3);
   pointer-events: none;
   height: 0;
 }
@@ -966,7 +690,7 @@ body {
   font-size: 32px;
   font-weight: 700;
   margin: 28px 0 16px;
-  color: var(--color-label);
+  color: var(--color-ink);
   line-height: 1.2;
 }
 
@@ -974,14 +698,14 @@ body {
   font-size: 24px;
   font-weight: 700;
   margin: 20px 0 12px;
-  color: var(--color-label);
+  color: var(--color-ink);
 }
 
 .rich-text-editor .ProseMirror h3 {
-  font-size: 20px;
+  font-size: var(--text-title-3);
   font-weight: 600;
   margin: 16px 0 10px;
-  color: var(--color-label);
+  color: var(--color-ink);
 }
 
 .rich-text-editor .ProseMirror p {
@@ -1021,10 +745,10 @@ body {
 
 /* Blockquote - Notion style */
 .rich-text-editor .ProseMirror blockquote {
-  border-left: 3px solid rgba(60, 60, 67, 0.3);
+  border-left: 3px solid var(--color-ink-3);
   padding-left: 16px;
   margin: 16px 0;
-  color: rgba(60, 60, 67, 0.8);
+  color: var(--color-ink-2);
   font-style: normal;
 }
 
@@ -1038,7 +762,7 @@ body {
   padding: 2px 6px;
   border-radius: 4px;
   font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
-  font-size: 14px;
+  font-size: var(--text-subhead);
   color: #eb5757;
 }
 
@@ -1056,7 +780,7 @@ body {
   background: none;
   padding: 0;
   color: #d4d4d4;
-  font-size: 14px;
+  font-size: var(--text-subhead);
   line-height: 1.5;
 }
 
@@ -1082,7 +806,7 @@ body {
   width: 18px;
   height: 18px;
   margin-top: 2px;
-  accent-color: #007aff;
+  accent-color: var(--color-accent);
   cursor: pointer;
 }
 
@@ -1092,13 +816,13 @@ body {
 
 .rich-text-editor .ProseMirror ul[data-type="taskList"] li[data-checked="true"]>div {
   text-decoration: line-through;
-  color: rgba(60, 60, 67, 0.5);
+  color: var(--color-ink-2);
 }
 
 /* Horizontal Rule */
 .rich-text-editor .ProseMirror hr {
   border: none;
-  border-top: 2px solid rgba(60, 60, 67, 0.12);
+  border-top: 2px solid var(--color-separator);
   margin: 24px 0;
 }
 
@@ -1132,7 +856,7 @@ body {
 
 /* Placeholder */
 .rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
-  color: rgba(60, 60, 67, 0.3);
+  color: var(--color-ink-3);
   content: attr(data-placeholder);
   float: left;
   height: 0;
@@ -1158,34 +882,14 @@ body {
   aspect-ratio: 16/9;
 }
 
-/* ============================================
-   Slash Command Dropdown Menu
-   ============================================ */
-.dropdown-menu {
-  background: #ffffff;
-  border: 1px solid rgba(60, 60, 67, 0.12);
-  border-radius: 12px;
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow: hidden;
-  padding: 8px;
-  max-height: none;
-  min-width: 280px;
-  z-index: 999999;
-}
-
 .dropdown-item {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  font-size: 15px;
+  font-size: var(--text-subhead);
   font-weight: 500;
-  color: #000000;
+  color: var(--color-ink);
   background-color: transparent;
   border: none;
   border-radius: 8px;
@@ -1197,19 +901,15 @@ body {
 
 .dropdown-item:hover,
 .dropdown-item:hover.is-selected {
-  background-color: rgba(0, 122, 255, 0.08);
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
 }
 
 .dropdown-item.is-selected {
-  background-color: rgba(0, 122, 255, 0.12);
-}
-
-.dropdown-item.is-selected .dropdown-item-title {
-  color: #007aff;
+  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
 .dropdown-item.no-result {
-  color: rgba(60, 60, 67, 0.6);
+  color: var(--color-ink-2);
   cursor: default;
   justify-content: center;
 }
@@ -1218,48 +918,12 @@ body {
   background-color: transparent;
 }
 
-.dropdown-item-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: rgba(120, 120, 128, 0.08);
-  border-radius: 8px;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.dropdown-item-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.dropdown-item-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #000000;
-  line-height: 1.3;
-}
-
-.dropdown-item-description {
-  font-size: 12px;
-  font-weight: 400;
-  color: rgba(60, 60, 67, 0.6);
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* ============================================
    Notion-Style Slash Command Menu
    ============================================ */
 .slash-command-menu {
-  background: #ffffff;
-  border: 1px solid rgba(60, 60, 67, 0.1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-separator);
   border-radius: 12px;
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
@@ -1304,11 +968,9 @@ body {
 }
 
 .slash-command-category {
-  font-size: 11px;
+  font-size: var(--text-footnote);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: rgba(60, 60, 67, 0.5);
+  color: var(--color-ink-2);
   padding: 8px 10px 6px;
   margin: 0;
   user-select: none;
@@ -1333,37 +995,11 @@ body {
 }
 
 .slash-command-item.is-selected {
-  background: rgba(0, 122, 255, 0.1);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
 .slash-command-item.is-selected .slash-command-item-title {
-  color: #007aff;
-}
-
-.slash-command-item-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
-.slash-command-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  font-size: 18px;
-  flex-shrink: 0;
-  transition: transform 0.15s ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .slash-command-item:hover .slash-command-icon {
-    transform: scale(1.05);
-  }
+  color: var(--color-accent);
 }
 
 .slash-command-item-content {
@@ -1381,16 +1017,16 @@ body {
 }
 
 .slash-command-item-title {
-  font-size: 14px;
+  font-size: var(--text-subhead);
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--color-ink);
   line-height: 1.3;
 }
 
 .slash-command-item-description {
-  font-size: 12px;
+  font-size: var(--text-caption);
   font-weight: 400;
-  color: rgba(60, 60, 67, 0.6);
+  color: var(--color-ink-2);
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
@@ -1398,10 +1034,10 @@ body {
 }
 
 .slash-command-shortcut {
-  font-size: 10px;
+  font-size: var(--text-caption-2);
   font-weight: 500;
-  color: rgba(60, 60, 67, 0.4);
-  background: rgba(120, 120, 128, 0.08);
+  color: var(--color-ink-2);
+  background: var(--color-fill);
   padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: 0.5px;
@@ -1422,15 +1058,15 @@ body {
 .slash-command-empty-title,
 .slash-command-empty-text {
   display: block;
-  font-size: 14px;
+  font-size: var(--text-subhead);
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--color-ink);
   margin-bottom: 4px;
 }
 
 .slash-command-empty-hint {
-  font-size: 12px;
-  color: rgba(60, 60, 67, 0.5);
+  font-size: var(--text-caption);
+  color: var(--color-ink-2);
 }
 
 /* ============================================
@@ -1441,8 +1077,8 @@ body {
   align-items: center;
   gap: 2px;
   padding: 6px;
-  background: #ffffff;
-  border: 1px solid rgba(60, 60, 67, 0.12);
+  background: var(--color-surface);
+  border: 1px solid var(--color-separator);
   border-radius: 10px;
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.12),
@@ -1458,7 +1094,7 @@ body {
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #000000;
+  color: var(--color-ink);
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -1466,18 +1102,18 @@ body {
 }
 
 .bubble-menu-button:hover {
-  background: rgba(120, 120, 128, 0.08);
+  background: var(--color-fill);
 }
 
 .bubble-menu-button.is-active {
-  background: rgba(0, 122, 255, 0.15);
-  color: #007aff;
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
 }
 
 .bubble-menu-divider {
   width: 1px;
   height: 20px;
-  background: rgba(60, 60, 67, 0.12);
+  background: var(--color-separator);
   margin: 0 4px;
 }
 
@@ -1493,7 +1129,7 @@ body {
 }
 
 .bubble-menu-dropdown-label {
-  font-size: 12px;
+  font-size: var(--text-caption);
   font-weight: 500;
   max-width: 90px;
   overflow: hidden;
@@ -1506,8 +1142,8 @@ body {
   top: 100%;
   left: 0;
   margin-top: 8px;
-  background: #ffffff;
-  border: 1px solid rgba(60, 60, 67, 0.12);
+  background: var(--color-surface);
+  border: 1px solid var(--color-separator);
   border-radius: 10px;
   box-shadow:
     0 8px 24px rgba(0, 0, 0, 0.15),
@@ -1518,11 +1154,9 @@ body {
 }
 
 .bubble-menu-dropdown-header {
-  font-size: 11px;
+  font-size: var(--text-footnote);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: rgba(60, 60, 67, 0.5);
+  color: var(--color-ink-2);
   padding: 6px 8px 4px;
 }
 
@@ -1535,20 +1169,20 @@ body {
   border: none;
   background: transparent;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--text-footnote);
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--color-ink);
   cursor: pointer;
   transition: background-color 0.15s ease;
   text-align: left;
 }
 
 .bubble-menu-dropdown-item:hover {
-  background: rgba(0, 122, 255, 0.08);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
 }
 
 .bubble-menu-dropdown-item svg {
-  color: rgba(60, 60, 67, 0.6);
+  color: var(--color-ink-2);
 }
 
 /* Color Picker in Bubble Menu */
@@ -1594,9 +1228,9 @@ body {
   width: 28px;
   height: 28px;
   background: transparent;
-  border: 1.5px solid rgba(60, 60, 67, 0.2);
+  border: 1.5px solid var(--color-ink-3);
   border-radius: 6px;
-  color: rgba(60, 60, 67, 0.4);
+  color: var(--color-ink-2);
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -1605,9 +1239,9 @@ body {
 }
 
 .floating-menu-trigger:hover {
-  background: rgba(0, 122, 255, 0.08);
-  border-color: rgba(0, 122, 255, 0.3);
-  color: #007aff;
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  color: var(--color-accent);
 }
 
 .floating-menu-actions {
@@ -1615,8 +1249,8 @@ body {
   align-items: center;
   gap: 4px;
   padding: 6px;
-  background: #ffffff;
-  border: 1px solid rgba(60, 60, 67, 0.12);
+  background: var(--color-surface);
+  border: 1px solid var(--color-separator);
   border-radius: 10px;
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.12),
@@ -1632,7 +1266,7 @@ body {
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: rgba(60, 60, 67, 0.7);
+  color: var(--color-ink-2);
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -1640,8 +1274,8 @@ body {
 }
 
 .floating-menu-action:hover {
-  background: rgba(0, 122, 255, 0.1);
-  color: #007aff;
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  color: var(--color-accent);
 }
 
 /* ============================================
@@ -1672,7 +1306,7 @@ body {
     width: 100%;
     max-width: 428px;
     min-height: 100vh;
-    background-color: var(--color-background);
+    background-color: var(--color-canvas);
     position: relative;
     box-shadow:
       0 0 0 0.5px rgba(0, 0, 0, 0.06),
@@ -1716,19 +1350,9 @@ body {
 
 /* Desktop hover refinements for cards */
 @media (hover: hover) and (pointer: fine) {
-  .ios-card:hover {
-    box-shadow:
-      0 4px 20px rgba(0, 0, 0, 0.1),
-      0 2px 4px rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
-  }
 
   .ios-inset-grouped:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  }
-
-  .ios-list-row:hover {
-    background: rgba(0, 0, 0, 0.02);
   }
 }
 
@@ -1753,7 +1377,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0 20px 20px;
-  background: var(--color-background);
+  background: var(--color-canvas);
 }
 
 .protocol-pill-track {
@@ -1816,7 +1440,7 @@ body {
 
 .protocol-pill-label {
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: var(--text-callout);
   font-weight: 500;
   color: white;
   line-height: 1.1;
@@ -1842,23 +1466,23 @@ body {
 }
 
 .protocol-empty-title {
-  font-size: 22px;
+  font-size: var(--text-title-2);
   font-weight: 600;
-  color: var(--color-label);
+  color: var(--color-ink);
   margin: 0 0 8px;
 }
 
 .protocol-empty-subtitle {
-  font-size: 15px;
+  font-size: var(--text-subhead);
   font-weight: 400;
-  color: var(--color-label-tertiary);
+  color: var(--color-ink-3);
   margin: 0;
   line-height: 1.5;
   max-width: 280px;
 }
 
 .protocol-empty-subtitle strong {
-  color: var(--color-system-blue);
+  color: var(--color-accent);
   font-weight: 600;
 }
 
@@ -1872,12 +1496,6 @@ body {
   *::before,
   *::after {
     scroll-behavior: auto !important;
-  }
-
-  .animate-fade-in,
-  .animate-slide-up,
-  .animate-scale-in {
-    animation-name: reducedFade;
   }
 
   .liquid-active-tab::after {

@@ -10,7 +10,7 @@ import React, {
 } from "react";
 
 // Icon components for better visuals
-const CommandIcon = ({ icon, color = "bg-gray-100" }) => (
+const CommandIcon = ({ icon, color = "bg-fill" }) => (
   <div
     className={clsx(
       "w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0",
@@ -33,27 +33,27 @@ const CATEGORIES = {
 
 // Color mapping for icons
 const ICON_COLORS = {
-  Text: "bg-gray-100",
-  "Heading 1": "bg-purple-100",
-  "Heading 2": "bg-purple-100",
-  "Heading 3": "bg-purple-100",
-  "Bullet List": "bg-blue-100",
-  "Numbered List": "bg-blue-100",
-  "Task List": "bg-green-100",
-  "Toggle List": "bg-orange-100",
-  Quote: "bg-amber-100",
-  "Code Block": "bg-slate-100",
-  Callout: "bg-yellow-100",
-  Divider: "bg-gray-100",
-  Image: "bg-pink-100",
-  YouTube: "bg-red-100",
-  Link: "bg-blue-100",
-  "Align Left": "bg-indigo-100",
-  "Align Center": "bg-indigo-100",
-  "Align Right": "bg-indigo-100",
-  Table: "bg-cyan-100",
-  "Table of Contents": "bg-teal-100",
-  Emoji: "bg-yellow-100",
+  Text: "bg-fill",
+  "Heading 1": "bg-purple/15",
+  "Heading 2": "bg-purple/15",
+  "Heading 3": "bg-purple/15",
+  "Bullet List": "bg-accent/12",
+  "Numbered List": "bg-accent/12",
+  "Task List": "bg-positive/15",
+  "Toggle List": "bg-caution/15",
+  Quote: "bg-yellow/20",
+  "Code Block": "bg-fill",
+  Callout: "bg-yellow/20",
+  Divider: "bg-fill",
+  Image: "bg-negative/10",
+  YouTube: "bg-negative/12",
+  Link: "bg-accent/12",
+  "Align Left": "bg-indigo/12",
+  "Align Center": "bg-indigo/12",
+  "Align Right": "bg-indigo/12",
+  Table: "bg-teal/15",
+  "Table of Contents": "bg-teal/15",
+  Emoji: "bg-yellow/20",
 };
 
 // Keyboard shortcut hints
@@ -186,7 +186,7 @@ const CommandsList = forwardRef((props, ref) => {
                 >
                   <CommandIcon
                     icon={item.icon}
-                    color={ICON_COLORS[item.title] || "bg-gray-100"}
+                    color={ICON_COLORS[item.title] || "bg-fill"}
                   />
                   <div className="slash-command-item-content">
                     <div className="slash-command-item-header">

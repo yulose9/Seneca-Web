@@ -78,3 +78,12 @@ export const getNextMidnightPH = () => {
 export const msUntilMidnightPH = () => {
   return getNextMidnightPH() - new Date();
 };
+
+/** "Wednesday, Sep 30" for today in Manila — the eyebrow above page titles. */
+export const formatTodayLabel = () =>
+  new Date().toLocaleDateString("en-US", {
+    timeZone: PH_TIMEZONE,
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });

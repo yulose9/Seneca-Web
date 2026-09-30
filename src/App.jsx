@@ -37,8 +37,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[#F2F2F7]">
-        <div className="w-8 h-8 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+      <div className="fixed inset-0 flex items-center justify-center bg-canvas">
+        <div className="w-8 h-8 border-4 border-separator border-t-black rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -69,7 +69,7 @@ export default function App() {
 function AppShell() {
   const { showReminder, closeReminder, showTasksReminder, closeTasksReminder } =
     useObligationReminder();
-  
+
   // Prompt 9: Network Connection Handling
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -88,7 +88,7 @@ function AppShell() {
 
   return (
     <>
-      <div className="font-sans antialiased text-[#1C1C1E] selection:bg-[#2E5C8A]/30 desktop-shell relative">
+      <div className="font-sans antialiased text-ink selection:bg-accent/20 desktop-shell relative">
         <AnimatePresence initial={false}>
           {!isOnline && (
             <motion.div
@@ -97,7 +97,7 @@ function AppShell() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0, transition: { duration: 0.25, ease: EASE_OUT } }}
               exit={{ opacity: 0, y: -4, transition: { duration: 0.15, ease: EASE_OUT } }}
-              className="absolute top-0 inset-x-0 z-[999] bg-orange-500/90 text-white text-[13px] font-medium py-1.5 flex items-center justify-center gap-2 backdrop-blur-md"
+              className="absolute top-0 inset-x-0 z-[999] bg-orange-500/90 text-white text-footnote font-medium py-1.5 flex items-center justify-center gap-2 backdrop-blur-md"
             >
               <span>You are offline. Changes will save automatically when reconnected.</span>
             </motion.div>

@@ -10,6 +10,7 @@ import CertificationDetailSheet from "../components/CertificationDetailSheet";
 import GsapStagger from "../components/GsapStagger";
 import GsapText from "../components/GsapText";
 import PageTransition from "../components/PageTransition";
+import PageHeader from "../components/PageHeader";
 import CalendarViewSheet from "../components/CalendarViewSheet";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
@@ -263,7 +264,7 @@ const ProgressRing = ({
   progress,
   size = 56,
   strokeWidth = 5,
-  color = "#007AFF",
+  color = "var(--color-accent)",
 }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -282,7 +283,7 @@ const ProgressRing = ({
           r={radius}
           strokeWidth={strokeWidth}
           fill="none"
-          style={{ stroke: "rgba(120, 120, 128, 0.12)" }}
+          style={{ stroke: "var(--color-fill)" }}
         />
         <circle
           cx={center}
@@ -296,7 +297,7 @@ const ProgressRing = ({
           style={{ stroke: color }}
         />
       </svg>
-      <span className="absolute text-sm font-bold tabular-nums" style={{ color }}>
+      <span className="absolute text-subhead font-bold tabular-nums" style={{ color }}>
         {progress}%
       </span>
     </div>
@@ -310,9 +311,10 @@ const SectionHeader = ({ title, color, icon }) => (
       className="w-10 h-10 rounded-xl flex items-center justify-center mr-3"
       style={{ backgroundColor: `${color}15` }}
     >
-      <span className="text-lg">{icon}</span>
+      <span className="text-body">{icon}</span>
     </div>
-    <h2 className="text-xl font-bold tracking-tight" style={{ color }}>
+    {/* Title stays ink; the domain colour lives in the icon tile only */}
+    <h2 className="text-title-3 font-semibold text-ink">
       {title}
     </h2>
   </div>
@@ -322,21 +324,21 @@ const SectionHeader = ({ title, color, icon }) => (
 const StatusIcon = ({ status }) => {
   if (status === "done") {
     return (
-      <div className="w-7 h-7 rounded-full bg-[#34C759] flex items-center justify-center">
+      <div className="w-7 h-7 rounded-full bg-positive flex items-center justify-center">
         <Check size={14} strokeWidth={3} className="text-white" />
       </div>
     );
   }
   if (status === "progress") {
     return (
-      <div className="w-7 h-7 rounded-full bg-[#FF9500] flex items-center justify-center">
+      <div className="w-7 h-7 rounded-full bg-caution flex items-center justify-center">
         <Clock size={14} strokeWidth={2.5} className="text-white" />
       </div>
     );
   }
   return (
-    <div className="w-7 h-7 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center">
-      <Lock size={12} strokeWidth={2.5} className="text-[rgba(60,60,67,0.3)]" />
+    <div className="w-7 h-7 rounded-full bg-fill flex items-center justify-center">
+      <Lock size={12} strokeWidth={2.5} className="text-ink-3" />
     </div>
   );
 };
@@ -357,44 +359,44 @@ const CourseRow = ({
       whileTap={{ scale: 0.98, backgroundColor: "rgba(0,0,0,0.02)" }}
       className={clsx(
         "flex items-center py-4 px-4 cursor-pointer transition-colors duration-150",
-        !isLast && "border-b border-[rgba(60,60,67,0.12)]",
-        isActive && "bg-[#007AFF]/5"
+        !isLast && "border-b border-separator",
+        isActive && "bg-accent/5"
       )}
     >
       <StatusIcon status={status} />
       <div className="flex-1 min-w-0 ml-3">
         <p
           className={clsx(
-            "text-[16px] font-semibold leading-tight mb-1 truncate",
-            status === "locked" ? "text-[rgba(60,60,67,0.3)]" : "text-black"
+            "text-callout font-semibold mb-1 truncate",
+            status === "locked" ? "text-ink-3" : "text-ink"
           )}
         >
           {item.name}
         </p>
         <div className="flex items-center gap-2">
           <span
-            className="text-[11px] font-bold uppercase px-2 py-0.5 rounded-md"
+            className="text-caption-2 font-semibold px-2 py-0.5 rounded-lg"
             style={{
               backgroundColor:
-                status === "locked" ? "rgba(120,120,128,0.08)" : `${color}12`,
-              color: status === "locked" ? "rgba(60,60,67,0.3)" : color,
+                status === "locked" ? "var(--color-fill)" : `${color}12`,
+              color: status === "locked" ? "var(--color-ink-3)" : color,
             }}
           >
             {item.level}
           </span>
-          <span className="text-[13px] text-[rgba(60,60,67,0.6)] truncate">
+          <span className="text-footnote text-ink-2 truncate">
             {item.target}
           </span>
         </div>
       </div>
       {isActive && (
-        <div className="ml-2 px-2 py-1 bg-[#007AFF] rounded-md">
-          <span className="text-[10px] font-bold text-white uppercase">
+        <div className="ml-2 px-2 py-1 bg-accent rounded-lg">
+          <span className="text-caption-2 font-semibold text-white">
             Studying
           </span>
         </div>
       )}
-      <ChevronRight size={18} className="text-[rgba(60,60,67,0.3)] ml-2" />
+      <ChevronRight size={18} className="text-ink-3 ml-2" />
     </motion.div>
   );
 };
@@ -457,7 +459,7 @@ const ClickableStreakGrid = ({
         {days.map((day) => (
           <div
             key={day}
-            className="text-center text-[11px] font-bold text-[#8E8E93]/80 uppercase tracking-wide"
+            className="text-center text-caption-2 font-semibold text-ink-2"
           >
             {day}
           </div>
@@ -474,7 +476,7 @@ const ClickableStreakGrid = ({
             return (
               <div
                 key={index}
-                className="aspect-square rounded-[4px] bg-[rgba(120,120,128,0.08)] opacity-30"
+                className="aspect-square rounded-[4px] bg-fill opacity-30"
               />
             );
           }
@@ -485,17 +487,16 @@ const ClickableStreakGrid = ({
           const hasNoData = history[dateStr] === undefined;
 
           let bgStyle = {};
-          let glowStyle = {};
 
-          if (isFailed || hasNoData) {
-            // Failed or missed day - dark gray
-            bgStyle = { backgroundColor: "#2C2C2E" };
+          if (hasNoData) {
+            // Nothing logged — quiet empty cell
+            bgStyle = { backgroundColor: "var(--color-fill-strong)" };
+          } else if (isFailed) {
+            // Explicitly missed — a soft red, distinct from "no data"
+            bgStyle = { backgroundColor: "color-mix(in srgb, var(--color-negative) 30%, transparent)" };
           } else if (isComplete) {
-            // Complete - solid color with glow
+            // Complete - solid habit color (no glow: colour already carries it)
             bgStyle = { backgroundColor: color };
-            glowStyle = {
-              boxShadow: `0 0 12px ${color}80, 0 2px 8px ${color}60`,
-            };
           } else {
             // Partial (fallback)
             bgStyle = { backgroundColor: `color-mix(in srgb, ${color} 50%, transparent)` };
@@ -507,11 +508,11 @@ const ClickableStreakGrid = ({
               onClick={() => onToggle && onToggle(dateStr)}
               whileTap={TAP}
               className={clsx(
-                "aspect-square rounded-[4px] relative transition-[background-color,box-shadow] duration-150 cursor-pointer",
+                "aspect-square rounded-[4px] relative transition-[background-color] duration-150 cursor-pointer",
                 isToday &&
-                "ring-2 ring-offset-2 ring-offset-white ring-[#007AFF]"
+                "ring-2 ring-offset-2 ring-offset-surface ring-accent"
               )}
-              style={{ ...bgStyle, ...glowStyle }}
+              style={bgStyle}
               // Mount-only stagger: animate targets never change, so toggling a
               // cell doesn't inherit its entrance delay.
               initial={{ scale: 0.9, opacity: 0 }}
@@ -530,12 +531,12 @@ const ClickableStreakGrid = ({
 
 // Goal Card Component (Habit-style like "No Porn")
 const HabitGoalCard = ({ title, emoji, color, history, onToggle }) => (
-  <div className="bg-white rounded-2xl p-5 border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+  <div className="bg-surface rounded-2xl p-5 shadow-card">
     <div className="flex items-center gap-3 mb-1">
-      <span className="text-2xl">{emoji}</span>
-      <h3 className="text-[20px] font-bold text-black">{title}</h3>
+      <span className="text-title-2">{emoji}</span>
+      <h3 className="text-title-3 font-semibold text-ink">{title}</h3>
     </div>
-    <div className="h-[1px] bg-[rgba(60,60,67,0.12)] my-3" />
+    <div className="h-[1px] bg-separator my-3" />
     <ClickableStreakGrid history={history} color={color} onToggle={onToggle} />
   </div>
 );
@@ -544,17 +545,17 @@ const HabitGoalCard = ({ title, emoji, color, history, onToggle }) => (
 const StudyGoalCard = ({ certificate, history, onToggle, onClear }) => {
   if (!certificate) {
     return (
-      <div className="bg-white rounded-2xl p-5 border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+      <div className="bg-surface rounded-2xl p-5 shadow-card">
         <div className="flex items-center gap-3 mb-1">
-          <span className="text-2xl">📚</span>
-          <h3 className="text-[20px] font-bold text-black">Study Goal</h3>
+          <span className="text-title-2">📚</span>
+          <h3 className="text-title-3 font-semibold text-ink">Study Goal</h3>
         </div>
-        <div className="h-[1px] bg-[rgba(60,60,67,0.12)] my-3" />
+        <div className="h-[1px] bg-separator my-3" />
         <div className="py-8 text-center">
-          <p className="text-[15px] text-[rgba(60,60,67,0.6)] mb-2">
+          <p className="text-subhead text-ink-2 mb-2">
             No certificate selected
           </p>
-          <p className="text-[13px] text-[rgba(60,60,67,0.4)]">
+          <p className="text-footnote text-ink-3">
             Tap on a certificate below to set it as your study goal
           </p>
         </div>
@@ -563,46 +564,46 @@ const StudyGoalCard = ({ certificate, history, onToggle, onClear }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+    <div className="bg-surface rounded-2xl p-5 shadow-card">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">📚</span>
-          <h3 className="text-[20px] font-bold text-black">Study Goal</h3>
+          <span className="text-title-2">📚</span>
+          <h3 className="text-title-3 font-semibold text-ink">Study Goal</h3>
         </div>
         <motion.button
           whileTap={TAP}
           onClick={onClear}
-          className="text-[13px] font-medium text-[#FF3B30]"
+          className="text-footnote font-medium text-negative"
         >
           Clear
         </motion.button>
       </div>
 
-      <div className="h-[1px] bg-[rgba(60,60,67,0.12)] my-3" />
+      <div className="h-[1px] bg-separator my-3" />
 
       {/* Active Certificate Info */}
-      <div className="bg-[#007AFF]/5 rounded-xl p-4 mb-4">
-        <p className="text-[16px] font-semibold text-black leading-tight mb-1">
+      <div className="bg-accent/5 rounded-xl p-4 mb-4">
+        <p className="text-callout font-semibold text-ink mb-1">
           {certificate.name}
         </p>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase px-2 py-0.5 rounded-md bg-[#007AFF]/15 text-[#007AFF]">
+          <span className="text-caption-2 font-semibold px-2 py-0.5 rounded-lg bg-accent/15 text-accent">
             {certificate.level}
           </span>
-          <span className="text-[13px] text-[rgba(60,60,67,0.6)]">
+          <span className="text-footnote text-ink-2">
             Target: {certificate.target}
           </span>
         </div>
       </div>
 
       {/* Did you study today prompt */}
-      <p className="text-[14px] font-medium text-[rgba(60,60,67,0.8)] mb-2 text-center">
+      <p className="text-subhead font-medium text-ink-2 mb-2 text-center">
         Did you study today? 📖
       </p>
 
       <ClickableStreakGrid
         history={history}
-        color="#007AFF"
+        color="var(--color-accent)"
         onToggle={onToggle}
       />
     </div>
@@ -634,30 +635,30 @@ const WeightGoalCard = ({
   const weightLost = startingWeight - currentWeight;
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+    <div className="bg-surface rounded-2xl p-5 shadow-card">
       <div className="flex items-center gap-3 mb-1">
-        <span className="text-2xl">{emoji}</span>
-        <h3 className="text-[20px] font-bold text-black">{title}</h3>
+        <span className="text-title-2">{emoji}</span>
+        <h3 className="text-title-3 font-semibold text-ink">{title}</h3>
       </div>
-      <div className="h-[1px] bg-[rgba(60,60,67,0.12)] my-3" />
+      <div className="h-[1px] bg-separator my-3" />
 
       {/* Weight Progress Section */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-[15px] font-semibold text-black">Weight</span>
-            <span className="text-[15px] text-[rgba(60,60,67,0.6)]">
+            <span className="text-subhead font-semibold text-ink">Weight</span>
+            <span className="text-subhead text-ink-2">
               <span className="tabular-nums">{currentWeight}</span>kg
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[13px] text-[rgba(60,60,67,0.6)]">
+            <span className="text-footnote text-ink-2">
               Goal <span className="tabular-nums">{goalWeight}</span>kg
             </span>
             <motion.button
               whileTap={TAP}
               onClick={onUpdateWeight}
-              className="w-7 h-7 rounded-full bg-[#007AFF] flex items-center justify-center shadow-sm"
+              className="w-7 h-7 rounded-full bg-accent flex items-center justify-center shadow-card"
             >
               <Plus size={16} className="text-white" strokeWidth={3} />
             </motion.button>
@@ -665,7 +666,7 @@ const WeightGoalCard = ({
         </div>
 
         {/* Progress Bar */}
-        <div className="h-3 bg-[rgba(120,120,128,0.12)] rounded-full overflow-hidden">
+        <div className="h-3 bg-fill rounded-full overflow-hidden">
           <motion.div
             className="h-full rounded-full"
             style={{ backgroundColor: color }}
@@ -675,9 +676,9 @@ const WeightGoalCard = ({
           />
         </div>
 
-        <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-2">
+        <p className="text-subhead text-ink-2 mt-2">
           You lost{" "}
-          <span className="font-semibold text-black tabular-nums">
+          <span className="font-semibold text-ink tabular-nums">
             {weightLost > 0 ? weightLost : 0} kg
           </span>
         </p>
@@ -847,18 +848,9 @@ export default function Growth() {
   };
 
   return (
-    <PageTransition className="min-h-screen bg-[#F2F2F7] pb-32">
+    <PageTransition className="min-h-screen bg-canvas pb-32">
       {/* Header */}
-      <header className="pt-14 px-5 pb-2">
-        <GsapText>
-          <h1 className="ios-large-title">Growth</h1>
-        </GsapText>
-        <GsapText delay={0.1}>
-          <p className="text-[13px] font-medium text-[rgba(60,60,67,0.6)] uppercase tracking-wide mt-1">
-            Goals & Certifications
-          </p>
-        </GsapText>
-      </header>
+      <PageHeader title="Growth" subtitle="Goals & certifications" className="pb-2" />
 
       {/* Hero Progress Card */}
       <div className="px-5 mt-6 mb-4">
@@ -866,15 +858,15 @@ export default function Growth() {
           layoutId="growth-hero-card"
           onClick={() => setShowCalendarSheet(true)}
           whileTap={{ scale: 0.98 }}
-          className="cursor-pointer relative overflow-hidden rounded-2xl p-5 bg-white border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.06)] active:bg-gray-50 transition-colors"
+          className="cursor-pointer relative overflow-hidden rounded-2xl p-5 bg-surface shadow-card"
         >
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-[11px] font-bold text-[#34C759] uppercase tracking-widest mb-2">
-                {activeStudyGoal ? "Currently Studying" : "Overall Progress"}
+              <p className="text-footnote font-semibold text-positive mb-1">
+                {activeStudyGoal ? "Currently studying" : "Overall progress"}
               </p>
-              <p className="text-2xl font-bold text-black tracking-tight">
-                {activeStudyGoal ? activeStudyGoal.name : "No Active Goal"}
+              <p className="text-title-2 font-bold text-ink">
+                {activeStudyGoal ? activeStudyGoal.name : "No active goal"}
               </p>
             </div>
             <ProgressRing
@@ -896,21 +888,21 @@ export default function Growth() {
               })()}
               size={64}
               strokeWidth={5}
-              color="#34C759"
+              color="var(--color-positive)"
             />
           </div>
 
           {activeStudyGoal && (
-            <div className="mt-4 bg-[#007AFF]/10 rounded-xl py-3 px-4">
+            <div className="mt-4 bg-accent/10 rounded-xl py-3 px-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-[12px]">📚</span>
-                  <p className="text-[14px] font-semibold text-[#007AFF]">
+                  <span className="text-caption">📚</span>
+                  <p className="text-subhead font-semibold text-accent">
                     {activeStudyGoal.level} • Target: {activeStudyGoal.target}
                   </p>
                 </div>
                 {activeStudyGoal.vendor && (
-                  <span className="text-[11px] font-bold uppercase px-2 py-0.5 rounded-md bg-[#007AFF]/15 text-[#007AFF]">
+                  <span className="text-caption-2 font-semibold px-2 py-0.5 rounded-lg bg-accent/15 text-accent">
                     {activeStudyGoal.vendor}
                   </span>
                 )}
@@ -919,8 +911,8 @@ export default function Growth() {
           )}
 
           {!activeStudyGoal && (
-            <div className="mt-4 bg-[#34C759]/10 rounded-xl py-3 px-4">
-              <p className="text-[14px] font-semibold text-[#34C759] text-center">
+            <div className="mt-4 bg-positive/10 rounded-xl py-3 px-4">
+              <p className="text-subhead font-semibold text-positive text-center">
                 Tap a certification below to set your study goal
               </p>
             </div>
@@ -936,19 +928,16 @@ export default function Growth() {
               className="w-10 h-10 rounded-xl flex items-center justify-center mr-3"
               style={{ backgroundColor: "#8B5CF615" }}
             >
-              <span className="text-lg">🎯</span>
+              <span className="text-body">🎯</span>
             </div>
-            <h2
-              className="text-xl font-bold tracking-tight"
-              style={{ color: "#8B5CF6" }}
-            >
+            <h2 className="text-title-3 font-semibold text-ink">
               Personal Goals
             </h2>
           </div>
           <motion.button
             whileTap={TAP}
             onClick={() => { haptic.trigger("medium"); setShowAddGoalSheet(true); }}
-            className="w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center shadow-md"
+            className="w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center shadow-card"
           >
             <Plus size={18} className="text-white" strokeWidth={2.5} />
           </motion.button>
@@ -1000,22 +989,18 @@ export default function Growth() {
         <div className="flex items-center justify-between mb-3 mt-8 px-1">
           <div className="flex items-center">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center mr-3"
-              style={{ backgroundColor: "rgba(255, 59, 48, 0.15)" }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center mr-3 bg-fill"
             >
-              <span className="text-lg">📜</span>
+              <span className="text-body">📜</span>
             </div>
-            <h2
-              className="text-xl font-bold tracking-tight"
-              style={{ color: "#FF3B30" }}
-            >
+            <h2 className="text-title-3 font-semibold text-ink">
               Certifications
             </h2>
           </div>
           <motion.button
             whileTap={TAP}
             onClick={() => { haptic.trigger("medium"); setShowAddCertSheet(true); }}
-            className="w-8 h-8 rounded-full bg-[#007AFF] flex items-center justify-center shadow-sm"
+            className="w-8 h-8 rounded-full bg-accent flex items-center justify-center shadow-card"
           >
             <Plus size={18} strokeWidth={2.5} className="text-white" />
           </motion.button>
@@ -1025,11 +1010,11 @@ export default function Growth() {
         {customCertifications.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-2 px-1">
-              <span className="text-base">✨</span>
-              <h3 className="text-[15px] font-semibold text-[rgba(60,60,67,0.8)]">
+              <span className="text-callout">✨</span>
+              <h3 className="text-subhead font-semibold text-ink-2">
                 My Certifications
               </h3>
-              <span className="text-[12px] text-[rgba(60,60,67,0.4)] ml-auto">
+              <span className="text-caption text-ink-3 ml-auto">
                 {
                   customCertifications.filter(
                     (c) => getEffectiveStatus(c) === "done"
@@ -1038,13 +1023,13 @@ export default function Growth() {
                 /{customCertifications.length} complete
               </span>
             </div>
-            <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-surface rounded-2xl overflow-hidden shadow-card">
               {customCertifications.map((cert, index) => (
                 <CourseRow
                   key={cert.id}
                   item={cert}
                   isLast={index === customCertifications.length - 1}
-                  color="#007AFF"
+                  color="var(--color-accent)"
                   onClick={handleCertificationClick}
                   isActive={activeStudyGoal?.name === cert.name}
                   effectiveStatus={getEffectiveStatus(cert)}
@@ -1071,11 +1056,11 @@ export default function Growth() {
                   <div key={subIndex}>
                     {/* Subcategory Header */}
                     <div className="flex items-center gap-2 mb-2 px-1">
-                      <span className="text-base">{subcat.icon}</span>
-                      <h3 className="text-[15px] font-semibold text-[rgba(60,60,67,0.8)]">
+                      <span className="text-callout">{subcat.icon}</span>
+                      <h3 className="text-subhead font-semibold text-ink-2">
                         {subcat.name}
                       </h3>
-                      <span className="text-[12px] text-[rgba(60,60,67,0.4)] ml-auto">
+                      <span className="text-caption text-ink-3 ml-auto">
                         {
                           subcat.modules.filter(
                             (m) => getEffectiveStatus(m) === "done"
@@ -1086,7 +1071,7 @@ export default function Growth() {
                     </div>
 
                     {/* Subcategory Modules */}
-                    <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="bg-surface rounded-2xl overflow-hidden shadow-card">
                       {subcat.modules.map((module, index) => (
                         <CourseRow
                           key={index}
@@ -1104,7 +1089,7 @@ export default function Growth() {
               </div>
             ) : (
               // Render flat modules (old format)
-              <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="bg-surface rounded-2xl overflow-hidden shadow-card">
                 {domain.modules.map((module, index) => (
                   <CourseRow
                     key={index}
@@ -1123,7 +1108,7 @@ export default function Growth() {
       </GsapStagger>
 
       {/* Footer */}
-      <p className="text-center text-[rgba(60,60,67,0.3)] text-[11px] font-medium mt-10 mb-20">
+      <p className="text-center text-ink-3 text-caption-2 font-medium mt-10 mb-20">
         Generated from WDP2025r02 • Seneca AI
       </p>
 

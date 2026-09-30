@@ -128,24 +128,24 @@ const HistoryViewer = ({ history, onRestore, onClose }) => (
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: 8, transition: FADE }}
     transition={DIALOG_SPRING}
-    className="absolute inset-x-4 top-20 bottom-4 bg-white rounded-2xl shadow-2xl border border-black/5 z-50 overflow-hidden flex flex-col"
+    className="absolute inset-x-4 top-20 bottom-4 bg-surface rounded-2xl shadow-float border border-separator z-50 overflow-hidden flex flex-col"
   >
-    <div className="flex items-center justify-between p-4 border-b border-black/5 bg-gray-50/50">
-      <h3 className="font-semibold text-lg flex items-center gap-2">
+    <div className="flex items-center justify-between p-4 border-b border-separator bg-canvas/60">
+      <h3 className="font-semibold text-body flex items-center gap-2">
         <HistoryIcon size={18} />
         Entry History
       </h3>
       <button
         onClick={onClose}
         aria-label="Close history"
-        className="p-2 -m-1 hover:bg-black/5 rounded-full transition-colors duration-150"
+        className="p-2 -m-1 hover:bg-fill rounded-full transition-colors duration-150"
       >
         <X size={20} />
       </button>
     </div>
     <div className="flex-1 overflow-y-auto p-4 space-y-3">
       {(!history || history.length === 0) && (
-        <div className="text-center text-gray-400 py-8">
+        <div className="text-center text-ink-2 py-8">
           No edit history available.
         </div>
       )}
@@ -155,29 +155,29 @@ const HistoryViewer = ({ history, onRestore, onClose }) => (
         .map((ver, idx) => (
           <div
             key={ver.timestamp || idx}
-            className="border border-black/5 rounded-xl p-3 hover:bg-gray-50 transition-colors duration-150"
+            className="border border-separator rounded-xl p-3 hover:bg-fill transition-colors duration-150"
           >
             <div className="flex justify-between items-start mb-2">
               <div>
-                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider block mb-0.5">
+                <span className="text-caption font-semibold text-accent block mb-0.5">
                   {ver.action || "Edit"}
                 </span>
-                <span className="text-xs text-gray-400 tabular-nums">
+                <span className="text-caption text-ink-2 tabular-nums">
                   {new Date(ver.timestamp).toLocaleString()}
                 </span>
               </div>
               <button
                 onClick={() => onRestore(ver)}
-                className="flex items-center gap-1 text-xs font-semibold bg-gray-100 px-2 py-1 rounded-md hover:bg-gray-200 active:scale-[0.96] transition-[background-color,scale] duration-150"
+                className="flex items-center gap-1 text-caption font-semibold bg-fill px-2 py-1 rounded-lg hover:bg-fill-strong active:scale-[0.96] transition-[background-color,scale] duration-150"
               >
                 <RotateCcw size={12} /> Restore
               </button>
             </div>
-            <p className="font-medium text-sm text-gray-900 truncate">
+            <p className="font-medium text-subhead text-ink truncate">
               {ver.title}
             </p>
             <div
-              className="text-xs text-gray-500 line-clamp-2 mt-1"
+              className="text-caption text-ink-2 line-clamp-2 mt-1"
               dangerouslySetInnerHTML={{ __html: jsonToHtml(ver.content) }}
             />
           </div>
@@ -430,14 +430,14 @@ export default function JournalDetailSheet({
             animate={{ x: 0 }}
             exit={{ x: "100%", transition: SHEET_EXIT }}
             transition={SHEET_SPRING}
-            className="fixed inset-y-0 right-0 w-full md:max-w-2xl bg-white shadow-2xl z-[401] flex flex-col"
+            className="fixed inset-y-0 right-0 w-full md:max-w-2xl bg-surface shadow-float z-[401] flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-black/[0.04] bg-white/80 backdrop-blur-xl sticky top-0 z-10">
+            <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-separator bg-surface/80 backdrop-blur-xl sticky top-0 z-10">
               {isEditing ? (
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="text-[17px] text-[#FF3B30] -ml-2 px-3 py-1 active:opacity-60 disabled:opacity-40 transition-opacity duration-150"
+                  className="text-body text-negative -ml-2 px-3 py-1 active:opacity-60 disabled:opacity-40 transition-opacity duration-150"
                   disabled={isRefining}
                 >
                   Cancel
@@ -446,7 +446,7 @@ export default function JournalDetailSheet({
                 <div className="flex items-center gap-1">
                   <button
                     onClick={onClose}
-                    className="flex items-center gap-1 text-[#007AFF] text-[17px] font-medium -ml-2 px-2 py-1 rounded-lg hover:bg-black/[0.04] active:opacity-60 transition-[background-color,opacity] duration-150"
+                    className="flex items-center gap-1 text-accent text-body font-medium -ml-2 px-2 py-1 rounded-lg hover:bg-fill active:opacity-60 transition-[background-color,opacity] duration-150"
                   >
                     <ChevronLeft size={22} className="-ml-1" />
                     Back
@@ -465,7 +465,7 @@ export default function JournalDetailSheet({
                           haptic.trigger("warning");
                           setShowDeleteConfirm(true);
                         }}
-                        className="p-2 text-gray-400 hover:text-[#FF3B30] hover:bg-red-50 rounded-full active:scale-[0.96] transition-[color,background-color,scale] duration-150"
+                        className="p-2 text-ink-2 hover:text-negative hover:bg-negative/10 rounded-full active:scale-[0.96] transition-[color,background-color,scale] duration-150"
                         title="Delete Entry"
                         aria-label="Delete entry"
                       >
@@ -477,8 +477,8 @@ export default function JournalDetailSheet({
                     <button
                       onClick={() => setShowHistory(!showHistory)}
                       className={clsx(
-                        "p-2 hover:text-black hover:bg-black/5 rounded-full active:scale-[0.96] transition-[color,background-color,scale] duration-150",
-                        showHistory ? "text-black bg-black/5" : "text-gray-400",
+                        "p-2 hover:text-ink hover:bg-fill rounded-full active:scale-[0.96] transition-[color,background-color,scale] duration-150",
+                        showHistory ? "text-ink bg-fill" : "text-ink-2",
                       )}
                       title="View History"
                       aria-label="View history"
@@ -491,7 +491,7 @@ export default function JournalDetailSheet({
                     {justRefined ? (
                       <button
                         onClick={handleUndo}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/5 text-black hover:bg-black/10 active:scale-[0.96] transition-[background-color,scale] duration-150 text-sm font-medium mr-1"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-fill text-ink hover:bg-fill-strong active:scale-[0.96] transition-[background-color,scale] duration-150 text-subhead font-medium mr-1"
                       >
                         <RotateCcw size={14} />
                         Undo
@@ -501,10 +501,10 @@ export default function JournalDetailSheet({
                         onClick={handleRefine}
                         disabled={isRefining}
                         className={clsx(
-                          "flex items-center gap-2 px-3 py-1.5 rounded-full text-[13px] font-semibold transition-[box-shadow,scale] duration-150 mr-1",
+                          "flex items-center gap-2 px-3 py-1.5 rounded-full text-footnote font-semibold transition-[box-shadow,scale] duration-150 mr-1",
                           isRefining
-                            ? "bg-[#E5E5EA] text-[#8E8E93]"
-                            : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md hover:shadow-lg active:scale-[0.96]"
+                            ? "bg-fill text-ink-2"
+                            : "bg-indigo text-white active:scale-[0.96]"
                         )}
                       >
                         {isRefining ? (
@@ -523,7 +523,7 @@ export default function JournalDetailSheet({
                 {isEditing ? (
                   <button
                     onClick={handleSave}
-                    className="text-[17px] font-semibold text-[#007AFF] -mr-2 px-3 py-1 active:opacity-60 disabled:opacity-40 transition-opacity duration-150"
+                    className="text-body font-semibold text-accent -mr-2 px-3 py-1 active:opacity-60 disabled:opacity-40 transition-opacity duration-150"
                     disabled={isRefining}
                   >
                     Save
@@ -534,7 +534,7 @@ export default function JournalDetailSheet({
                       haptic.trigger("medium");
                       setIsEditing(true);
                     }}
-                    className="text-[17px] font-medium text-[#007AFF] px-2 active:opacity-60 transition-opacity duration-150"
+                    className="text-body font-medium text-accent px-2 active:opacity-60 transition-opacity duration-150"
                   >
                     Edit
                   </button>
@@ -543,7 +543,7 @@ export default function JournalDetailSheet({
             </div>
 
             {/* Relative Container for Overlays */}
-            <div className="flex-1 overflow-y-auto bg-white relative">
+            <div className="flex-1 overflow-y-auto bg-surface relative">
               {/* History Overlay */}
               <AnimatePresence>
                 {showHistory && (
@@ -571,12 +571,12 @@ export default function JournalDetailSheet({
                           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                           aria-label="Choose mood"
                           aria-expanded={showEmojiPicker}
-                          className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center text-4xl shadow-sm border border-black/5 hover:bg-gray-100 active:scale-[0.96] transition-[background-color,scale] duration-150"
+                          className="w-16 h-16 rounded-2xl bg-fill flex items-center justify-center text-4xl hover:bg-fill-strong active:scale-[0.96] transition-[background-color,scale] duration-150"
                         >
                           {mood}
                         </button>
                         {showEmojiPicker && (
-                          <div className="absolute top-full left-0 mt-2 z-50 shadow-2xl rounded-2xl">
+                          <div className="absolute top-full left-0 mt-2 z-50 shadow-float rounded-2xl">
                             <div
                               className="fixed inset-0 z-40"
                               onClick={() => setShowEmojiPicker(false)}
@@ -599,45 +599,45 @@ export default function JournalDetailSheet({
                         <input
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
-                          className="w-full text-[22px] font-bold bg-transparent outline-none placeholder:text-gray-300 leading-tight"
+                          className="w-full text-title-2 font-bold bg-transparent outline-none placeholder:text-ink-3"
                           placeholder="Entry Title"
                         />
-                        <p className="text-[15px] text-gray-400 mt-1 tabular-nums">
+                        <p className="text-subhead text-ink-2 mt-1 tabular-nums">
                           {date ? new Date(date).toLocaleDateString() : "Today"}{" "}
                           • {time || "No time set"}
                         </p>
                       </div>
                     </div>
 
-                    <div className="bg-gray-50 rounded-xl overflow-hidden border border-black/5 mb-2">
-                      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
-                        <div className="flex items-center gap-2 text-gray-900">
-                          <Calendar size={18} className="text-[#007AFF]" />
-                          <span className="text-[17px]">Date</span>
+                    <div className="bg-fill rounded-xl overflow-hidden border border-separator mb-2">
+                      <div className="flex items-center justify-between px-4 py-3 bg-surface border-b border-separator">
+                        <div className="flex items-center gap-2 text-ink">
+                          <Calendar size={18} className="text-accent" />
+                          <span className="text-body">Date</span>
                         </div>
                         <input
                           type="date"
                           value={date}
                           onChange={(e) => setDate(e.target.value)}
-                          className="text-[17px] text-gray-500 bg-transparent outline-none text-right font-medium"
+                          className="text-body text-ink-2 bg-transparent outline-none text-right font-medium"
                         />
                       </div>
-                      <div className="flex items-center justify-between px-4 py-3 bg-white">
-                        <div className="flex items-center gap-2 text-gray-900">
-                          <Clock size={18} className="text-[#FF9500]" />
-                          <span className="text-[17px]">Time</span>
+                      <div className="flex items-center justify-between px-4 py-3 bg-surface">
+                        <div className="flex items-center gap-2 text-ink">
+                          <Clock size={18} className="text-caution" />
+                          <span className="text-body">Time</span>
                         </div>
                         <input
                           type="time"
                           value={time}
                           onChange={(e) => setTime(e.target.value)}
-                          className="text-[17px] text-gray-500 bg-transparent outline-none text-right font-medium"
+                          className="text-body text-ink-2 bg-transparent outline-none text-right font-medium"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1 min-h-[300px]">
-                      <label className="text-xs font-semibold text-[rgba(60,60,67,0.6)] uppercase tracking-wider ml-1">
+                      <label className="text-footnote font-semibold text-ink-2 ml-1">
                         Entry
                       </label>
                       <div className="relative">
@@ -664,10 +664,10 @@ export default function JournalDetailSheet({
                       <div className="flex items-start gap-4 mb-4">
                         <span className="text-4xl mt-1">{mood}</span>
                         <div>
-                          <h1 className="text-3xl font-bold text-[#1C1C1E] leading-tight mb-2">
+                          <h1 className="text-title-1 font-bold text-ink mb-2">
                             {title || "Untitled Entry"}
                           </h1>
-                          <div className="flex items-center gap-4 text-[13px] text-[rgba(60,60,67,0.5)] font-medium tabular-nums">
+                          <div className="flex items-center gap-4 text-footnote text-ink-2 font-medium tabular-nums">
                             <div className="flex items-center gap-1.5">
                               <Calendar size={14} />
                               {getRelativeTime(date)}
@@ -686,7 +686,7 @@ export default function JournalDetailSheet({
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.2, ease: EASE_OUT }}
-                      className="prose prose-lg max-w-none prose-headings:font-bold prose-p:text-[17px] prose-p:leading-relaxed prose-a:text-[#007AFF] prose-img:rounded-xl prose-img:shadow-sm prose-img:outline prose-img:outline-1 prose-img:-outline-offset-1 prose-img:outline-[oklch(0_0_0/0.1)]"
+                      className="prose prose-lg max-w-none prose-headings:font-bold prose-p:text-body prose-p:leading-relaxed prose-a:text-accent prose-img:rounded-xl prose-img:shadow-card prose-img:outline prose-img:outline-1 prose-img:-outline-offset-1 prose-img:outline-[oklch(0_0_0/0.1)]"
                       dangerouslySetInnerHTML={{
                         __html: jsonToHtml(content),
                       }}
@@ -713,21 +713,21 @@ export default function JournalDetailSheet({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.97, transition: FADE }}
                     transition={DIALOG_SPRING}
-                    className="absolute left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl overflow-hidden z-[51] max-w-sm mx-auto shadow-2xl"
+                    className="absolute left-4 right-4 top-1/2 -translate-y-1/2 bg-surface rounded-2xl overflow-hidden z-[51] max-w-sm mx-auto shadow-float"
                   >
                     <div className="p-6 text-center">
-                      <h3 className="text-[17px] font-semibold text-black mb-2">
+                      <h3 className="text-body font-semibold text-ink mb-2">
                         Delete Entry?
                       </h3>
-                      <p className="text-[15px] text-[rgba(60,60,67,0.6)]">
+                      <p className="text-subhead text-ink-2">
                         This action cannot be undone.
                       </p>
                     </div>
-                    <div className="border-t border-[rgba(60,60,67,0.12)] flex">
+                    <div className="border-t border-separator flex">
                       <motion.button
                         whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
                         onClick={() => setShowDeleteConfirm(false)}
-                        className="flex-1 py-4 text-[17px] font-medium text-[#007AFF] border-r border-[rgba(60,60,67,0.12)]"
+                        className="flex-1 py-4 text-body font-medium text-accent border-r border-separator"
                       >
                         Cancel
                       </motion.button>
@@ -739,7 +739,7 @@ export default function JournalDetailSheet({
                           setShowDeleteConfirm(false);
                           onClose();
                         }}
-                        className="flex-1 py-4 text-[17px] font-semibold text-[#FF3B30]"
+                        className="flex-1 py-4 text-body font-semibold text-negative"
                       >
                         Delete
                       </motion.button>

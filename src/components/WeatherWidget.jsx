@@ -81,7 +81,7 @@ export default function WeatherWidget() {
     };
 
     if (loading) return (
-        <div className="h-8 w-24 bg-black/5 rounded-full animate-pulse" />
+        <div className="h-8 w-24 bg-fill rounded-full animate-pulse" />
     );
 
     return (
@@ -93,16 +93,16 @@ export default function WeatherWidget() {
                 transition={TAP_TRANSITION}
                 aria-expanded={isOpen}
                 aria-haspopup="dialog"
-                className="flex items-center gap-2 bg-white/60 backdrop-blur-md border border-black/5 px-3 py-1.5 rounded-full shadow-sm"
+                className="flex items-center gap-1.5 h-10 bg-white/60 backdrop-blur-md px-3 rounded-full shadow-card"
             >
-                <span className="text-xl">
+                <span className="text-title-3">
                     {(weather?.homeTemp ?? 25) > 30 ? '☀️' : (weather?.raw?.[0]?.current?.precip ?? 0) > 0 ? '🌧️' : '⛅'}
                 </span>
                 <div className="flex flex-col items-start leading-none">
-                    <span className="text-[13px] font-bold text-black tabular-nums">
+                    <span className="text-footnote font-bold text-ink tabular-nums">
                         {typeof weather?.homeTemp === 'number' ? `${Math.round(weather.homeTemp)}°C` : '--'}
                     </span>
-                    <span className="text-[10px] text-black/60 font-medium truncate max-w-[100px]">
+                    <span className="hidden min-[420px]:block text-caption-2 text-ink-2 font-medium truncate max-w-[100px]">
                         {weather?.summary?.pill || 'Loading...'}
                     </span>
                 </div>
@@ -118,31 +118,31 @@ export default function WeatherWidget() {
                         transition={{ duration: 0.2, ease: EASE_OUT }}
                         role="dialog"
                         aria-label="Weather details"
-                        className="absolute top-full right-0 mt-3 w-[320px] bg-white rounded-[24px] shadow-xl border border-black/5 overflow-hidden p-3"
+                        className="absolute top-full right-0 mt-3 w-[320px] bg-surface rounded-sheet shadow-float border border-separator overflow-hidden p-3"
                         style={{ zIndex: 100, transformOrigin: 'top right' }}
                     >
                         {/* Gemini Recommendation */}
-                        <div className="bg-gradient-to-br from-[#007AFF]/10 to-[#5856D6]/10 rounded-xl p-3 mb-4">
+                        <div className="bg-gradient-to-br from-accent/10 to-indigo/10 rounded-xl p-3 mb-4">
                             <div className="flex items-start gap-3">
-                                <div className="p-2 bg-white rounded-full shadow-sm">
-                                    {weather?.summary?.icon === 'sun' && <Sun size={16} className="text-[#FF9500]" />}
-                                    {weather?.summary?.icon === 'cloud-sun' && <Cloud size={16} className="text-[#FF9500]" />}
-                                    {(weather?.summary?.icon === 'cloud' || !weather?.summary?.icon) && <Cloud size={16} className="text-[#8E8E93]" />}
-                                    {weather?.summary?.icon === 'cloud-rain' && <CloudRain size={16} className="text-[#007AFF]" />}
-                                    {weather?.summary?.icon === 'umbrella' && <Umbrella size={16} className="text-[#007AFF]" />}
-                                    {weather?.summary?.icon === 'cloud-lightning' && <CloudLightning size={16} className="text-[#5856D6]" />}
-                                    {weather?.summary?.icon === 'wind' && <Wind size={16} className="text-[#34C759]" />}
+                                <div className="p-2 bg-surface rounded-full shadow-card">
+                                    {weather?.summary?.icon === 'sun' && <Sun size={16} className="text-caution" />}
+                                    {weather?.summary?.icon === 'cloud-sun' && <Cloud size={16} className="text-caution" />}
+                                    {(weather?.summary?.icon === 'cloud' || !weather?.summary?.icon) && <Cloud size={16} className="text-ink-2" />}
+                                    {weather?.summary?.icon === 'cloud-rain' && <CloudRain size={16} className="text-accent" />}
+                                    {weather?.summary?.icon === 'umbrella' && <Umbrella size={16} className="text-accent" />}
+                                    {weather?.summary?.icon === 'cloud-lightning' && <CloudLightning size={16} className="text-indigo" />}
+                                    {weather?.summary?.icon === 'wind' && <Wind size={16} className="text-positive" />}
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-[14px] leading-snug text-[#1C1C1E]/80 font-medium">
+                                    <p className="text-subhead text-ink font-medium">
                                         "{weather?.summary?.recommendation}"
                                     </p>
                                     <div className="flex items-center justify-between mt-2">
-                                        <p className="text-[10px] text-[#1C1C1E]/40 font-medium border border-[#1C1C1E]/10 rounded-md px-1.5 py-0.5 inline-block bg-white/50">
+                                        <p className="text-caption-2 text-ink-2 font-medium border border-separator rounded-lg px-1.5 py-0.5 inline-block bg-white/50">
                                             AI Match • {weather?.summary?.model?.replace('Gemini ', '')}
                                         </p>
                                         {weather?.summary?.timestamp && (
-                                            <p className="text-[10px] text-[#007AFF]/80 font-medium flex items-center gap-1">
+                                            <p className="text-caption-2 text-accent/80 font-medium flex items-center gap-1">
                                                 <Clock size={10} />
                                                 {formatTimeAgo(weather.summary.timestamp)}
                                             </p>
@@ -175,21 +175,21 @@ export default function WeatherWidget() {
                                                 handleLocationClick(loc);
                                             }
                                         }}
-                                        className={`rounded-2xl p-2 transition-colors duration-150 cursor-pointer border ${isExpanded ? 'bg-black/[0.03] border-black/5' : 'bg-transparent border-transparent hover:bg-black/[0.02]'
+                                        className={`rounded-2xl p-2 transition-colors duration-150 cursor-pointer border ${isExpanded ? 'bg-fill border-separator' : 'bg-transparent border-transparent hover:bg-black/[0.02]'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-black/70 w-12">{loc.location}</span>
-                                                <span className="text-xs text-black/40">{loc.current?.condition}</span>
+                                                <span className="text-subhead font-semibold text-ink-2 w-12">{loc.location}</span>
+                                                <span className="text-caption text-ink-2">{loc.current?.condition}</span>
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 {rainChance > 20 && (
-                                                    <span className="text-xs font-bold text-[#007AFF] flex items-center gap-1 tabular-nums">
+                                                    <span className="text-caption font-bold text-accent flex items-center gap-1 tabular-nums">
                                                         <CloudRain size={10} /> {rainChance}%
                                                     </span>
                                                 )}
-                                                <span className="text-sm font-bold text-black tabular-nums">
+                                                <span className="text-subhead font-bold text-ink tabular-nums">
                                                     {loc.current?.temp !== undefined ? Math.round(loc.current.temp) : '--'}°
                                                 </span>
                                             </div>
@@ -204,28 +204,28 @@ export default function WeatherWidget() {
                                                     transition={{ ...LAYOUT_SPRING, opacity: { duration: 0.2 } }}
                                                     className="overflow-hidden"
                                                 >
-                                                    <div className="pt-3 pb-1 text-[13px] text-black/70 leading-relaxed font-medium">
+                                                    <div className="pt-3 pb-1 text-footnote text-ink-2 leading-relaxed font-medium">
                                                         {loadingSummary && !summaries[loc.location] ? (
-                                                            <div className="flex items-center gap-2 text-black/40 py-1">
+                                                            <div className="flex items-center gap-2 text-ink-2 py-1">
                                                                 <div className="w-3 h-3 border-2 border-black/20 border-t-black/60 rounded-full animate-spin" />
-                                                                <span className="text-[12px]">Asking Gemini...</span>
+                                                                <span className="text-caption">Asking Gemini...</span>
                                                             </div>
                                                         ) : (
                                                             <motion.div
                                                                 initial={{ opacity: 0, y: 4 }}
                                                                 animate={{ opacity: 1, y: 0 }}
                                                                 transition={{ duration: 0.2, ease: EASE_OUT }}
-                                                                className="bg-white rounded-lg p-3 border border-black/5 shadow-sm text-black/80"
+                                                                className="bg-surface rounded-lg p-3 shadow-card text-ink"
                                                             >
                                                                 <p className="leading-snug">
                                                                     {summaries[loc.location]?.text || summaries[loc.location]}
                                                                 </p>
                                                                 {summaries[loc.location]?.timestamp && (
-                                                                    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-black/5">
-                                                                        <div className="flex items-center gap-1 text-[9px] text-black/40 font-semibold uppercase tracking-wider">
+                                                                    <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-separator">
+                                                                        <div className="flex items-center gap-1 text-caption-2 text-ink-2 font-semibold">
                                                                             <Sun size={8} /> AI
                                                                         </div>
-                                                                        <span className="text-[9px] text-[#007AFF]/80 font-medium flex items-center gap-1">
+                                                                        <span className="text-caption-2 text-accent/80 font-medium flex items-center gap-1">
                                                                             <Clock size={8} />
                                                                             {formatTimeAgo(summaries[loc.location].timestamp)}
                                                                         </span>
@@ -242,7 +242,7 @@ export default function WeatherWidget() {
                             })}
                         </div>
 
-                        <p className="text-[10px] text-center text-black/20 mt-4 font-medium">
+                        <p className="text-caption-2 text-center text-ink-3 mt-4 font-medium">
                             Tap a location for AI insights
                         </p>
                     </motion.div>

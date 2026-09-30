@@ -196,10 +196,10 @@ export default function AccountDetailSheet({
       onClose={() => { haptic.trigger("medium"); onClose(); }}
       zIndex={450}
       label={account.name}
-      className="fixed inset-x-0 bottom-0 h-[92vh] bg-[#F2F2F7] rounded-t-[32px] overflow-hidden flex flex-col"
+      className="fixed inset-x-0 bottom-0 h-[92vh] bg-canvas rounded-t-sheet overflow-hidden flex flex-col"
     >
         {/* Header */}
-        <div className="bg-white px-6 pt-5 pb-4 border-b border-black/[0.04] flex items-center justify-between sticky top-0 z-10">
+        <div className="bg-surface px-6 pt-5 pb-4 border-b border-black/[0.04] flex items-center justify-between sticky top-0 z-10">
           <div
             className="w-12 h-1.5 rounded-full bg-black/20 absolute top-2 left-1/2 -translate-x-1/2 cursor-pointer"
             onClick={() => { haptic.trigger("medium"); onClose(); }}
@@ -211,11 +211,11 @@ export default function AccountDetailSheet({
             onClick={() => { haptic.trigger("medium"); onClose(); }}
             className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center -ml-2"
           >
-            <X size={18} className="text-black/60" />
+            <X size={18} className="text-ink-2" />
           </motion.button>
 
           <div className="text-center">
-            <h3 className="text-[15px] font-semibold text-black/40 uppercase tracking-widest">
+            <h3 className="text-subhead font-semibold text-ink-2">
               {account.category === "Liabilities" ? "Liability" : "Asset"}
             </h3>
           </div>
@@ -225,33 +225,33 @@ export default function AccountDetailSheet({
             transition={TAP_TRANSITION}
             className="w-8 h-8 rounded-full bg-black/[0.05] flex items-center justify-center -mr-2"
           >
-            <MoreHorizontal size={18} className="text-black/60" />
+            <MoreHorizontal size={18} className="text-ink-2" />
           </motion.button>
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-20">
           {/* Hero Section */}
-          <div className="bg-white pb-6 pt-2 px-6 rounded-b-[32px] shadow-sm relative z-0">
+          <div className="bg-surface pb-6 pt-2 px-6 rounded-b-sheet shadow-card relative z-0">
             <div className="flex flex-col items-center">
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.3, ease: EASE_OUT }}
                 className={clsx(
-                  "w-20 h-20 rounded-[28px] flex items-center justify-center text-4xl mb-4 shadow-xl",
+                  "w-20 h-20 rounded-2xl flex items-center justify-center text-4xl mb-4 shadow-card",
                   isLiability
-                    ? "bg-gradient-to-br from-[#FF3B30] to-[#FF9500] text-white"
-                    : "bg-gradient-to-br from-white to-[#F2F2F7] border border-white shadow-black/5",
+                    ? "bg-gradient-to-br from-negative to-caution text-white"
+                    : "bg-gradient-to-br from-white to-canvas border border-white",
                 )}
               >
                 {account.icon}
               </motion.div>
 
-              <h1 className="text-2xl font-bold text-black mb-1 text-center">
+              <h1 className="text-title-2 font-bold text-ink mb-1 text-center">
                 {account.name}
               </h1>
-              <p className="text-[15px] text-black/50 font-medium mb-6">
+              <p className="text-subhead text-ink-2 font-medium mb-6">
                 {account.platform}
               </p>
 
@@ -260,8 +260,8 @@ export default function AccountDetailSheet({
                   <div className="flex items-center justify-center">
                     <span
                       className={clsx(
-                        "text-4xl font-bold tracking-tight mr-1",
-                        isLiability ? "text-[#FF3B30]" : "text-black",
+                        "text-large-title font-bold mr-1",
+                        isLiability ? "text-negative" : "text-ink",
                       )}
                     >
                       {isLiability ? "-" : ""}₱
@@ -276,8 +276,8 @@ export default function AccountDetailSheet({
                       }
                       autoFocus
                       className={clsx(
-                        "text-4xl font-bold tracking-tight bg-transparent text-left w-[180px] outline-none border-b-2 border-dashed border-black/20 focus:border-black/50 p-0 m-0",
-                        isLiability ? "text-[#FF3B30]" : "text-black",
+                        "text-large-title font-bold bg-transparent text-left w-[180px] outline-none border-b-2 border-dashed border-black/20 focus:border-black/50 p-0 m-0",
+                        isLiability ? "text-negative" : "text-ink",
                       )}
                     />
                   </div>
@@ -287,18 +287,18 @@ export default function AccountDetailSheet({
                     transition={TAP_TRANSITION}
                     onClick={handleStartEdit}
                     className={clsx(
-                      "relative flex items-center justify-center px-3 py-1 rounded-xl hover:bg-black/5 transition-colors duration-150 group",
-                      isLiability ? "text-[#FF3B30]" : "text-black",
+                      "relative flex items-center justify-center px-3 py-1 rounded-xl hover:bg-fill transition-colors duration-150 group",
+                      isLiability ? "text-negative" : "text-ink",
                     )}
                   >
-                    <span className="text-4xl font-bold tracking-tight">
+                    <span className="text-large-title font-bold">
                       <RollingNumber
                         value={account.amount}
                         prefix={isLiability ? "-₱" : "₱"}
                       />
                     </span>
                     <div className="absolute -right-10 w-8 h-8 rounded-full bg-black/[0.06] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      <Pen size={14} className="text-black/50" />
+                      <Pen size={14} className="text-ink-2" />
                     </div>
                   </motion.button>
                 )}
@@ -313,10 +313,10 @@ export default function AccountDetailSheet({
                     onAddTransaction(isLiability ? "payment" : "deposit")
                   }
                   className={clsx(
-                    "py-3.5 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 shadow-lg",
+                    "py-3.5 rounded-xl font-semibold text-subhead flex items-center justify-center gap-2 shadow-float",
                     isLiability
-                      ? "bg-[#FF3B30] text-white shadow-[#FF3B30]/20"
-                      : "bg-black text-white shadow-black/20",
+                      ? "bg-negative text-white"
+                      : "bg-black text-white",
                   )}
                 >
                   {isLiability ? (
@@ -330,7 +330,7 @@ export default function AccountDetailSheet({
                 <motion.button
                   whileTap={TAP}
                   transition={TAP_TRANSITION}
-                  className="bg-[#F2F2F7] text-black py-3.5 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2"
+                  className="bg-canvas text-ink py-3.5 rounded-xl font-semibold text-subhead flex items-center justify-center gap-2"
                 >
                   {isLiability ? (
                     <History size={18} />
@@ -345,40 +345,40 @@ export default function AccountDetailSheet({
 
           {/* Wealth/Debt Visualizer */}
           <div className="mx-5 mt-6 mb-2">
-            <h3 className="text-[13px] font-semibold text-black/40 uppercase tracking-widest mb-3 ml-1">
-              {isLiability ? "Road to Freedom" : "Performance"}
+            <h3 className="text-footnote font-semibold text-ink-2 mb-3 ml-1">
+              {isLiability ? "Road to freedom" : "Performance"}
             </h3>
 
             {isLiability ? (
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-black/[0.04]">
+              <div className="bg-surface p-5 rounded-2xl shadow-card">
                 <div className="flex justify-between items-end mb-2">
                   <div>
-                    <p className="text-[13px] text-black/50 mb-1">
+                    <p className="text-footnote text-ink-2 mb-1">
                       Paid Off
                     </p>
-                    <p className="text-xl font-bold text-[#34C759] tabular-nums">
+                    <p className="text-title-3 font-bold text-positive tabular-nums">
                       {liabilityProgress.toFixed(0)}%
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[13px] text-black/50 mb-1">
+                    <p className="text-footnote text-ink-2 mb-1">
                       Remaining
                     </p>
-                    <p className="text-xl font-bold text-[#FF3B30] tabular-nums">
+                    <p className="text-title-3 font-bold text-negative tabular-nums">
                       ₱{account.amount.toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <div className="h-3 bg-[#F2F2F7] rounded-full overflow-hidden">
+                <div className="h-3 bg-canvas rounded-full overflow-hidden">
                   <motion.div
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: Math.min(liabilityProgress, 100) / 100 }}
                     transition={{ duration: 0.6, ease: EASE_OUT }}
                     style={{ originX: 0 }}
-                    className="h-full w-full rounded-full bg-gradient-to-r from-[#34C759] to-[#22C55E]"
+                    className="h-full w-full rounded-full bg-positive"
                   />
                 </div>
-                <p className="text-center text-[12px] text-black/40 mt-3 font-medium">
+                <p className="text-center text-caption text-ink-2 mt-3 font-medium">
                   {originalLoanEstimate > 0
                     ? `You've paid ₱${(
                         originalLoanEstimate - account.amount
@@ -387,22 +387,22 @@ export default function AccountDetailSheet({
                 </p>
               </div>
             ) : (
-              <div className="bg-white p-4 rounded-2xl shadow-sm border border-black/[0.04] h-[180px] flex flex-col">
+              <div className="bg-surface p-4 rounded-2xl shadow-card h-[180px] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-[#34C759]/10 flex items-center justify-center">
-                      <TrendingUp size={16} className="text-[#34C759]" />
+                    <div className="w-8 h-8 rounded-full bg-positive/10 flex items-center justify-center">
+                      <TrendingUp size={16} className="text-positive" />
                     </div>
                     <div>
-                      <p className="text-[13px] text-black/50">
+                      <p className="text-footnote text-ink-2">
                         This Month
                       </p>
-                      <p className="text-[15px] font-bold text-[#34C759]">
+                      <p className="text-subhead font-bold text-positive">
                         {monthChange >= 0 ? "+" : ""}{monthChange}%
                       </p>
                     </div>
                   </div>
-                  <div className="bg-[#F2F2F7] px-3 py-1 rounded-full text-[12px] font-medium text-black/60">
+                  <div className="bg-canvas px-3 py-1 rounded-full text-caption font-medium text-ink-2">
                     7 Days
                   </div>
                 </div>
@@ -420,12 +420,12 @@ export default function AccountDetailSheet({
                         >
                           <stop
                             offset="5%"
-                            stopColor={isLiability ? "#FF3B30" : "#34C759"}
+                            stopColor={isLiability ? "var(--color-negative)" : "var(--color-positive)"}
                             stopOpacity={0.1}
                           />
                           <stop
                             offset="95%"
-                            stopColor={isLiability ? "#FF3B30" : "#34C759"}
+                            stopColor={isLiability ? "var(--color-negative)" : "var(--color-positive)"}
                             stopOpacity={0}
                           />
                         </linearGradient>
@@ -434,7 +434,7 @@ export default function AccountDetailSheet({
                       <Area
                         type="monotone"
                         dataKey="value"
-                        stroke={isLiability ? "#FF3B30" : "#34C759"}
+                        stroke={isLiability ? "var(--color-negative)" : "var(--color-positive)"}
                         strokeWidth={3}
                         fillOpacity={1}
                         fill={`url(#${chartGradientId})`}
@@ -450,35 +450,35 @@ export default function AccountDetailSheet({
 
           {/* Info Grid */}
           <div className="grid grid-cols-2 gap-3 mx-5 mb-6">
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-black/[0.04]">
+            <div className="bg-surface p-4 rounded-2xl shadow-card">
               <div className="flex items-center gap-2 mb-2">
-                <Wallet size={16} className="text-[#007AFF]" />
-                <p className="text-[12px] font-semibold text-black/50 uppercase">
-                  Total In
+                <Wallet size={16} className="text-accent" />
+                <p className="text-caption font-semibold text-ink-2">
+                  Total in
                 </p>
               </div>
-              <p className="text-[17px] font-bold text-black tabular-nums">
+              <p className="text-body font-bold text-ink tabular-nums">
                 ₱{totalIn.toLocaleString()}
               </p>
             </div>
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-black/[0.04]">
+            <div className="bg-surface p-4 rounded-2xl shadow-card">
               <div className="flex items-center gap-2 mb-2">
-                <Share2 size={16} className="text-[#FF9500]" />
-                <p className="text-[12px] font-semibold text-black/50 uppercase">
-                  Total Out
+                <Share2 size={16} className="text-caution" />
+                <p className="text-caption font-semibold text-ink-2">
+                  Total out
                 </p>
               </div>
-              <p className="text-[17px] font-bold text-black tabular-nums">
+              <p className="text-body font-bold text-ink tabular-nums">
                 ₱{totalOut.toLocaleString()}
               </p>
             </div>
           </div>
 
           <div className="mx-5">
-          <h3 className="text-[13px] font-semibold text-black/40 uppercase tracking-widest mb-3 ml-1">
-            Latest Activity
+          <h3 className="text-footnote font-semibold text-ink-2 mb-3 ml-1">
+            Latest activity
           </h3>
-          <div className="bg-white rounded-2xl shadow-sm border border-black/[0.04] overflow-hidden">
+          <div className="bg-surface rounded-2xl shadow-card overflow-hidden">
             {accountTransactions.length > 0 ? (
               accountTransactions.map((t, i) => (
                 <motion.div
@@ -491,34 +491,34 @@ export default function AccountDetailSheet({
                   className={clsx(
                     "flex items-center p-4 border-b border-black/[0.04] last:border-0 cursor-pointer transition-colors duration-150 active:bg-black/[0.02]",
                     t.id === highlightTransactionId
-                      ? "bg-yellow-100/50"
+                      ? "bg-yellow/15"
                       : "",
                   )}
                 >
                   <div
                     className={clsx(
-                      "w-10 h-10 rounded-full flex items-center justify-center text-lg mr-3 shrink-0",
+                      "w-10 h-10 rounded-full flex items-center justify-center text-body mr-3 shrink-0",
                       t.type === "deposit"
-                        ? "bg-[#34C759]/10"
-                        : "bg-[rgba(120,120,128,0.08)]",
+                        ? "bg-positive/10"
+                        : "bg-fill",
                     )}
                   >
                     {t.type === "deposit" ? "💰" : "💸"}
                   </div>
                   <div className="flex-1">
-                    <p className="text-[15px] font-semibold text-black">
+                    <p className="text-subhead font-semibold text-ink">
                       {t.note || t.location || "Transaction"}
                     </p>
-                    <p className="text-[13px] text-black/40">
+                    <p className="text-footnote text-ink-2">
                       {new Date(t.date).toLocaleDateString()}
                     </p>
                   </div>
                   <p
                     className={clsx(
-                      "text-[15px] font-bold tabular-nums",
+                      "text-subhead font-bold tabular-nums",
                       t.type === "deposit"
-                        ? "text-[#34C759]"
-                        : "text-black",
+                        ? "text-positive"
+                        : "text-ink",
                     )}
                   >
                     {t.type === "deposit" ? "+" : "-"}₱
@@ -528,7 +528,7 @@ export default function AccountDetailSheet({
               ))
             ) : (
               <div className="p-8 text-center">
-                <p className="text-black/30 font-medium">
+                <p className="text-ink-3 font-medium">
                   No transactions yet
                 </p>
               </div>

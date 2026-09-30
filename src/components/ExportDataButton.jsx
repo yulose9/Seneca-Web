@@ -73,9 +73,9 @@ export default function ExportDataButton() {
           haptic.trigger("medium");
           setShowModal(true);
         }}
-        className="fixed bottom-20 right-5 z-40 w-14 h-14 rounded-full bg-[#5856D6] flex items-center justify-center shadow-lg"
+        className="fixed bottom-[calc(var(--tab-height)+env(safe-area-inset-bottom)+20px)] right-5 z-40 w-12 h-12 rounded-full bg-surface text-ink flex items-center justify-center shadow-float"
       >
-        <FileJson size={24} className="text-white" />
+        <FileJson size={20} strokeWidth={2} className="text-ink" />
       </motion.button>
 
       {/* Modal */}
@@ -100,32 +100,32 @@ export default function ExportDataButton() {
             transition={DIALOG_SPRING}
             role="dialog"
             aria-modal="true"
-            className="relative bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"
+            className="relative bg-surface rounded-2xl p-6 max-w-md w-full shadow-float"
           >
-            <h2 className="text-[22px] font-bold text-black mb-2">
+            <h2 className="text-title-2 font-bold text-ink mb-2">
               Export Data for LLM
             </h2>
-            <p className="text-[15px] text-[#86868B] mb-6">
+            <p className="text-subhead text-ink-2 mb-6">
               Download your habit data in a format optimized for AI analysis.
             </p>
 
             {/* Stats Preview */}
-            <div className="bg-[#F2F2F7] rounded-xl p-4 mb-6">
-              <p className="text-[13px] text-[#86868B] mb-2">
+            <div className="bg-fill rounded-xl p-4 mb-6">
+              <p className="text-footnote text-ink-2 mb-2">
                 Last 7 Days Summary
               </p>
               <div className="flex justify-between">
                 <div>
-                  <p className="text-[24px] font-bold text-black tabular-nums">
+                  <p className="text-title-2 font-bold text-ink tabular-nums">
                     {logs.length}
                   </p>
-                  <p className="text-[13px] text-[#86868B]">Days Tracked</p>
+                  <p className="text-footnote text-ink-2">Days Tracked</p>
                 </div>
                 <div>
-                  <p className="text-[24px] font-bold text-[#007AFF] tabular-nums">
+                  <p className="text-title-2 font-bold text-accent tabular-nums">
                     {avgCompletion}%
                   </p>
-                  <p className="text-[13px] text-[#86868B]">Avg Completion</p>
+                  <p className="text-footnote text-ink-2">Avg Completion</p>
                 </div>
               </div>
             </div>
@@ -134,13 +134,13 @@ export default function ExportDataButton() {
             <div className="space-y-4 mb-6">
               {/* Days Selector */}
               <div>
-                <label className="text-[13px] text-[#86868B] uppercase tracking-wide mb-2 block">
-                  Time Range
+                <label className="text-footnote font-semibold text-ink-2 mb-2 block">
+                  Time range
                 </label>
                 <select
                   value={days}
                   onChange={(e) => setDays(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-[#F2F2F7] rounded-xl text-[17px] text-black outline-none"
+                  className="w-full px-4 py-3 bg-fill rounded-xl text-body text-ink outline-none"
                 >
                   <option value={7}>Last 7 days</option>
                   <option value={14}>Last 14 days</option>
@@ -151,17 +151,17 @@ export default function ExportDataButton() {
 
               {/* Format Selector */}
               <div>
-                <label className="text-[13px] text-[#86868B] uppercase tracking-wide mb-2 block">
-                  Export Format
+                <label className="text-footnote font-semibold text-ink-2 mb-2 block">
+                  Export format
                 </label>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setExportType("json")}
                     aria-pressed={exportType === "json"}
-                    className={`flex-1 px-4 py-3 rounded-xl text-[15px] font-medium transition-[background-color,color,scale] duration-150 active:scale-[0.96] ${
+                    className={`flex-1 px-4 py-3 rounded-xl text-subhead font-medium transition-[background-color,color,scale] duration-150 active:scale-[0.96] ${
                       exportType === "json"
-                        ? "bg-[#007AFF] text-white"
-                        : "bg-[#F2F2F7] text-black"
+                        ? "bg-accent text-white"
+                        : "bg-fill text-ink"
                     }`}
                   >
                     JSON
@@ -169,10 +169,10 @@ export default function ExportDataButton() {
                   <button
                     onClick={() => setExportType("prompt")}
                     aria-pressed={exportType === "prompt"}
-                    className={`flex-1 px-4 py-3 rounded-xl text-[15px] font-medium transition-[background-color,color,scale] duration-150 active:scale-[0.96] ${
+                    className={`flex-1 px-4 py-3 rounded-xl text-subhead font-medium transition-[background-color,color,scale] duration-150 active:scale-[0.96] ${
                       exportType === "prompt"
-                        ? "bg-[#007AFF] text-white"
-                        : "bg-[#F2F2F7] text-black"
+                        ? "bg-accent text-white"
+                        : "bg-fill text-ink"
                     }`}
                   >
                     LLM Prompt
@@ -185,13 +185,13 @@ export default function ExportDataButton() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-3 rounded-xl text-[17px] font-semibold text-[#007AFF] bg-[#F2F2F7] active:scale-[0.96] transition-[scale] duration-150"
+                className="flex-1 px-4 py-3 rounded-xl text-body font-semibold text-accent bg-fill active:scale-[0.96] transition-[scale] duration-150"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExport}
-                className="flex-1 px-4 py-3 rounded-xl text-[17px] font-semibold text-white bg-[#007AFF] flex items-center justify-center gap-2 active:scale-[0.96] transition-[scale] duration-150"
+                className="flex-1 px-4 py-3 rounded-xl text-body font-semibold text-white bg-accent flex items-center justify-center gap-2 active:scale-[0.96] transition-[scale] duration-150"
               >
                 <Download size={18} />
                 Export

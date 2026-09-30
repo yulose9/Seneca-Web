@@ -124,8 +124,8 @@ const ToolbarButton = ({ onClick, isActive, disabled, children, title }) => (
     className={clsx(
       "w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-150 shrink-0",
       isActive
-        ? "bg-[#007AFF] text-white"
-        : "bg-transparent text-[rgba(60,60,67,0.6)] hover:bg-[rgba(120,120,128,0.12)]",
+        ? "bg-accent text-white"
+        : "bg-transparent text-ink-2 hover:bg-fill",
       disabled && "opacity-30 cursor-not-allowed",
     )}
   >
@@ -215,7 +215,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
     editorProps: {
       attributes: {
         class: clsx(
-          "prose prose-base max-w-none focus:outline-none min-h-[120px] px-4 py-8 text-[17px] text-black prose-img:rounded-lg prose-img:outline prose-img:outline-1 prose-img:-outline-offset-1 prose-img:outline-[oklch(0_0_0/0.1)]",
+          "prose prose-base max-w-none focus:outline-none min-h-[120px] px-4 py-8 text-body text-ink prose-img:rounded-lg prose-img:outline prose-img:outline-1 prose-img:-outline-offset-1 prose-img:outline-[oklch(0_0_0/0.1)]",
           className,
         ),
       },
@@ -291,9 +291,9 @@ const RichTextEditor = forwardRef(function RichTextEditor(
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl overflow-hidden relative rich-text-editor border border-[rgba(60,60,67,0.12)]">
+    <div className="flex flex-col h-full bg-surface rounded-xl overflow-hidden relative rich-text-editor border border-separator">
       {/* Toolbar */}
-      <div className="flex items-center gap-0.5 p-2 border-b border-gray-100 overflow-x-auto no-scrollbar bg-gray-50/50 sticky top-0 z-10">
+      <div className="flex items-center gap-0.5 p-2 border-b border-separator overflow-x-auto no-scrollbar bg-canvas/60 sticky top-0 z-10">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive("bold")}
@@ -330,7 +330,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
           <Code size={16} />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+        <div className="w-px h-5 bg-separator mx-1 shrink-0" />
 
         <div className="relative">
           <ToolbarButton
@@ -341,7 +341,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
             <Highlighter size={16} />
           </ToolbarButton>
           {showHighlightPicker && (
-            <div className="absolute top-full left-0 mt-2 bg-white shadow-xl rounded-lg p-2 flex gap-1 z-50 border border-gray-200">
+            <div className="absolute top-full left-0 mt-2 bg-surface shadow-float rounded-lg p-2 flex gap-1 z-50 border border-separator">
               {HIGHLIGHT_COLORS.map((c) => (
                 <button
                   key={c}
@@ -351,7 +351,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
                     setShowHighlightPicker(false);
                   }}
                   aria-label={`Highlight ${c}`}
-                  className="w-6 h-6 rounded-full border border-gray-200 active:scale-[0.96] transition-[scale] duration-150"
+                  className="w-6 h-6 rounded-full border border-separator active:scale-[0.96] transition-[scale] duration-150"
                   style={{ backgroundColor: c }}
                 />
               ))}
@@ -359,7 +359,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
           )}
         </div>
 
-        <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+        <div className="w-px h-5 bg-separator mx-1 shrink-0" />
 
         <ToolbarButton
           onClick={() =>
@@ -399,7 +399,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
           <Quote size={16} />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+        <div className="w-px h-5 bg-separator mx-1 shrink-0" />
 
         <ToolbarButton
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
@@ -423,7 +423,7 @@ const RichTextEditor = forwardRef(function RichTextEditor(
           <AlignRight size={16} />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+        <div className="w-px h-5 bg-separator mx-1 shrink-0" />
 
         <ToolbarButton
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
@@ -466,8 +466,10 @@ const RichTextEditor = forwardRef(function RichTextEditor(
       <FloatingMenu
         editor={editor}
         options={{
+          // Left gutter, level with the empty line (a -40 cross-axis offset used
+          // to push it onto the toolbar)
           placement: "left-start",
-          offset: { mainAxis: 0, crossAxis: -40 },
+          offset: { mainAxis: 8, crossAxis: 0 },
         }}
         shouldShow={({ state, view }) => {
           const { selection } = state;
@@ -477,10 +479,12 @@ const RichTextEditor = forwardRef(function RichTextEditor(
             $anchor.parent.isTextblock &&
             !$anchor.parent.type.spec.code &&
             !$anchor.parent.textContent;
-          return empty && isRootDepth && isEmptyTextBlock;
+          // Only while writing — not on an idle, unfocused editor
+          return view.hasFocus() && empty && isRootDepth && isEmptyTextBlock;
         }}
       >
-        <div className="floating-menu-wrapper">
+        {/* Phones have no gutter for it; the toolbar and "/" menu cover the same actions */}
+        <div className="floating-menu-wrapper max-sm:hidden">
           <motion.button
             type="button"
             whileTap={TAP}

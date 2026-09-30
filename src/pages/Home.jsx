@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import ExportDataButton from "../components/ExportDataButton";
 import GsapText from "../components/GsapText";
 import PageTransition from "../components/PageTransition";
+import PageHeader from "../components/PageHeader";
 import ProtocolCarousel from "../components/ProtocolCarousel";
 import SystemCard from "../components/SystemCard";
 import WeatherWidget from "../components/WeatherWidget";
@@ -61,18 +62,11 @@ const ProgressRing = ({
           style={{ stroke: color }}
         />
       </svg>
-      <span className="absolute text-xs font-bold" style={{ color }}>
+      <span className="absolute text-caption font-bold" style={{ color }}>
         {progress}%
       </span>
     </div>
   );
-};
-
-// Format current date iOS style
-const formatDate = () => {
-  const now = new Date();
-  const options = { weekday: "long", month: "short", day: "numeric" };
-  return now.toLocaleDateString("en-US", options).toUpperCase();
 };
 
 // Get dynamic greeting based on time of day + journal/protocol state
@@ -225,31 +219,23 @@ export default function Home() {
 
 
   return (
-    <PageTransition className="min-h-screen bg-[#F2F2F7] pb-32">
-      {/* iOS 18 Large Title Navigation */}
-      <header className="pt-14 pb-4 px-5 bg-[#F2F2F7] sticky top-0 z-10">
-        {/* Top row: Date + Edit button (iOS HIG: trailing text action) */}
-        <div className="flex justify-between items-center mb-1">
-          <p className="ios-nav-date">{formatDate()}</p>
+    <PageTransition className="min-h-screen bg-canvas pb-44">
+      <PageHeader
+        title="Summary"
+        className="sticky top-0 z-10"
+        action={
           <motion.button
             whileTap={TAP}
             transition={TAP_TRANSITION}
             onClick={() => { haptic.trigger("light"); setIsEditMode(!isEditMode); }}
-            className="text-[17px] font-normal text-[#007AFF] active:opacity-60"
+            className="text-body text-accent active:opacity-60"
           >
             {isEditMode ? "Done" : "Edit"}
           </motion.button>
-        </div>
-
-        {/* Bottom row: Large Title + secondary actions */}
-        <div className="flex justify-between items-end">
-          <GsapText delay={0.1}>
-            <h1 className="ios-large-title">Summary</h1>
-          </GsapText>
-
-          <div className="flex items-center gap-3">
+        }
+        trailing={
+          <>
             <WeatherWidget />
-
             {/* Profile Avatar */}
             <label className="relative cursor-pointer shrink-0" aria-label="Change profile photo">
               <input
@@ -261,7 +247,7 @@ export default function Home() {
               <motion.div
                 whileTap={TAP}
                 transition={TAP_TRANSITION}
-                className="w-10 h-10 rounded-full overflow-hidden shadow-sm"
+                className="w-10 h-10 rounded-full overflow-hidden shadow-card"
               >
                 {profileImage ? (
                   <img
@@ -270,15 +256,15 @@ export default function Home() {
                     className="w-full h-full object-cover rounded-full outline outline-1 -outline-offset-1 outline-black/10"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#007AFF] to-[#5856D6] flex items-center justify-center text-white font-bold text-sm">
+                  <div className="w-full h-full bg-gradient-to-br from-accent to-indigo flex items-center justify-center text-white font-bold text-subhead">
                     JN
                   </div>
                 )}
               </motion.div>
             </label>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Protocol Carousel — swipeable goal cards */}
       <motion.div layout transition={LAYOUT_SPRING} className="px-5 mb-3">
@@ -304,35 +290,27 @@ export default function Home() {
                   >
                     <div className="flex justify-between items-center mb-1">
                       <span
-                        className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
-                        style={{
-                          backgroundColor: "rgba(255, 59, 48, 0.12)",
-                          color: "#FF3B30",
-                        }}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-caption-2 font-bold bg-negative/10 text-negative"
                       >
                         Priority Payment
                       </span>
                       {!isEditMode && (
-                        <ChevronRight size={18} className="text-[#C7C7CC]" />
+                        <ChevronRight size={18} className="text-ink-3" />
                       )}
                     </div>
 
                     <div className="mt-3">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-xl bg-[#FF3B30]/10 flex items-center justify-center">
-                          <span className="text-2xl">🤝</span>
+                        <div className="w-12 h-12 rounded-xl bg-fill flex items-center justify-center">
+                          <span className="text-title-2">🤝</span>
                         </div>
                         <div>
-                          <p className="text-[17px] font-semibold text-black">
+                          <p className="text-body font-semibold text-ink">
                             {wealthData.priorityLiability?.name ||
                               "Loan from Kuya"}
                           </p>
                           <span
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold mt-1"
-                            style={{
-                              backgroundColor: "rgba(255, 149, 0, 0.12)",
-                              color: "#FF9500",
-                            }}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-caption-2 font-semibold mt-1 bg-fill text-ink-2"
                           >
                             {wealthData.priorityLiability?.platform ||
                               "Priority"}
@@ -340,13 +318,13 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="flex items-baseline justify-between">
-                        <span className="text-[28px] font-bold text-[#FF3B30] tracking-tight tabular-nums">
+                        <span className="text-title-1 font-bold text-negative tracking-tight tabular-nums">
                           ₱
                           {(
                             wealthData.priorityLiability?.amount || 0
                           ).toLocaleString()}
                         </span>
-                        <span className="text-[13px] font-medium text-[rgba(60,60,67,0.6)]">
+                        <span className="text-footnote font-medium text-ink-2">
                           Outstanding
                         </span>
                       </div>
@@ -360,30 +338,27 @@ export default function Home() {
                     onClick={
                       isEditMode ? undefined : () => { haptic.trigger("light"); navigate("/journal"); }
                     }
-                    className="relative overflow-hidden rounded-2xl p-5 cursor-pointer"
-                    style={{
-                      backgroundColor: "rgba(88, 86, 214, 0.08)",
-                      border: "0.5px solid rgba(88, 86, 214, 0.15)",
-                    }}
+                    className="relative overflow-hidden rounded-2xl p-5 cursor-pointer bg-surface shadow-card"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <h3 className="text-[19px] font-semibold text-[#5856D6]">
+                      <h3 className="text-title-3 font-semibold text-ink">
                         {greeting.title}
                       </h3>
                       {!isEditMode && (
-                        <ChevronRight size={18} className="text-[#5856D6]/40" />
+                        <ChevronRight size={18} className="text-ink-3" />
                       )}
                     </div>
-                    <p className="text-[15px] text-[#5856D6]/70 mb-5 leading-relaxed">
+                    <p className="text-subhead text-ink-2 mb-5">
                       {greeting.message}
                     </p>
                     {!isEditMode && (
                       <motion.button
                         whileTap={TAP}
                         transition={TAP_TRANSITION}
-                        className={`w-full py-3.5 rounded-xl font-semibold text-[15px] shadow-lg transition-colors duration-150 ${hasJournalToday
-                          ? "bg-[#34C759] text-white shadow-[#34C759]/25"
-                          : "bg-[#5856D6] text-white shadow-[#5856D6]/25"
+                        // Writing is the primary action; revisiting a written entry is secondary
+                        className={`w-full py-3.5 rounded-xl font-semibold text-body transition-colors duration-150 ${hasJournalToday
+                          ? "bg-accent/10 text-accent"
+                          : "bg-accent text-white"
                           }`}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -418,10 +393,10 @@ export default function Home() {
                   transition={FADE}
                   className="absolute left-0 top-0 bottom-0 w-12 z-10 flex items-center justify-center"
                 >
-                  <div className="w-10 h-10 rounded-full bg-[rgba(120,120,128,0.2)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-fill-strong flex items-center justify-center">
                     <GripVertical
                       size={20}
-                      className="text-[rgba(60,60,67,0.6)]"
+                      className="text-ink-2"
                     />
                   </div>
                 </motion.div>
@@ -449,7 +424,7 @@ export default function Home() {
               navigate("/login");
             }
           }}
-          className="w-full py-4 rounded-xl flex items-center justify-center gap-2 text-[17px] font-medium text-[#FF3B30] bg-white border border-[rgba(60,60,67,0.12)] active:bg-[rgba(0,0,0,0.05)] transition-colors"
+          className="w-full py-4 rounded-xl flex items-center justify-center gap-2 text-body font-medium text-negative bg-surface shadow-card active:bg-fill transition-colors"
         >
           <LogOut size={18} />
           Log Out

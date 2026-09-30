@@ -305,27 +305,27 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
     <div className="mb-8">
       {/* Header / Stats */}
       <div className="flex items-center justify-between mb-5 px-1">
-        <p className="text-[17px] font-bold text-black tracking-tight">
+        <p className="text-title-3 font-semibold text-ink">
           History
         </p>
         <div className="flex gap-6">
           <div className="text-right">
-            <p className="text-[11px] font-bold text-[rgba(60,60,67,0.4)] uppercase tracking-wide">
+            <p className="text-caption font-medium text-ink-2">
               Streak
             </p>
             <p
-              className="text-[20px] font-bold leading-none tabular-nums"
+              className="text-title-3 font-bold leading-none tabular-nums"
               style={{ color }}
             >
               {stats.currentStreak}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] font-bold text-[rgba(60,60,67,0.4)] uppercase tracking-wide">
+            <p className="text-caption font-medium text-ink-2">
               Total
             </p>
             <p
-              className="text-[20px] font-bold leading-none tabular-nums"
+              className="text-title-3 font-bold leading-none tabular-nums"
               style={{ color }}
             >
               {stats.total}
@@ -335,7 +335,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
       </div>
 
       {/* Scrollable Heatmap Container */}
-      <div className="bg-white rounded-[24px] p-5 border border-[rgba(60,60,67,0.08)] shadow-sm relative overflow-hidden">
+      <div className="bg-surface rounded-2xl p-5 shadow-card relative overflow-hidden">
         {/* Month Labels Sticky Header? No, scrolling. */}
         <div
           ref={scrollContainerRef}
@@ -348,7 +348,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
               {monthLabels.map((lbl, i) => (
                 <span
                   key={i}
-                  className="absolute text-[13px] font-bold text-[rgba(60,60,67,0.5)] uppercase tracking-wide"
+                  className="absolute text-footnote font-semibold text-ink-2"
                   style={{ left: `${lbl.index * COL_WIDTH + 20}px` }} // +20 for left axis offset
                 >
                   {lbl.label}
@@ -358,13 +358,13 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
 
             <div className="flex gap-4">
               {/* Day Labels (Sticky Left Axis) */}
-              <div className="grid grid-rows-7 gap-[6px] h-fit pt-[1px] sticky left-0 bg-white z-10 pr-2">
+              <div className="grid grid-rows-7 gap-[6px] h-fit pt-[1px] sticky left-0 bg-surface z-10 pr-2">
                 {weekDays.map((d, i) => (
                   <div
                     key={i}
                     className="h-[34px] flex items-center justify-center"
                   >
-                    <span className="text-[11px] font-bold text-[rgba(60,60,67,0.3)]">
+                    <span className="text-caption-2 font-semibold text-ink-3">
                       {d}
                     </span>
                   </div>
@@ -393,7 +393,7 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
                       }}
                       whileTap={TAP}
                       className={clsx(
-                        "rounded-[10px] cursor-pointer flex items-center justify-center transition-[background-color,box-shadow] duration-150 relative overflow-hidden",
+                        "rounded-[10px] cursor-pointer flex items-center justify-center transition-[background-color] duration-150 relative overflow-hidden",
                         isFuture ? "opacity-0 pointer-events-none" : "",
                       )}
                       style={{
@@ -401,18 +401,16 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
                         height: BOX_SIZE,
                         backgroundColor: isDone
                           ? color
-                          : "#2C2C2E",
+                          : "var(--color-fill-strong)",
                         border:
                           isToday && !isDone ? `2px solid ${color}` : "none",
-                        boxShadow: isDone ? `0 2px 8px ${color}40` : "none",
                       }}
                     >
                       {/* Date Number */}
                       <span
                         className={clsx(
-                          "text-[13px] font-bold tabular-nums",
-                          isDone ? "text-white" : "text-[rgba(255,255,255,0.4)]",
-                          isToday && !isDone ? "text-[color:var(--color)]" : "",
+                          "text-footnote font-semibold tabular-nums",
+                          isDone ? "text-white" : "text-ink-2",
                         )}
                         style={{
                           color: isToday && !isDone ? color : undefined,
@@ -431,31 +429,28 @@ const StreakCalendar = ({ habit, color, history = {}, onToggle, haptic }) => {
         </div>
 
         {/* Fade effect on right to hint scroll, only visible if content overflows? Always nice. */}
-        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent pointer-events-none" />
-        <div className="absolute left-[30px] top-0 bottom-0 w-4 bg-gradient-to-r from-white to-transparent pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-surface to-transparent pointer-events-none" />
+        <div className="absolute left-[30px] top-0 bottom-0 w-4 bg-gradient-to-r from-surface to-transparent pointer-events-none" />
       </div>
 
       {/* Legend */}
       <div className="flex items-center justify-between mt-4 px-2">
-        <p className="text-[13px] font-medium text-[rgba(60,60,67,0.5)]">
+        <p className="text-footnote font-medium text-ink-2">
           Tap any date to edit history
         </p>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#2C2C2E]" />
-            <span className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
-              Missed
+            <div className="w-3 h-3 rounded-full bg-fill-strong" />
+            <span className="text-caption text-ink-2 font-medium">
+              Not done
             </span>
           </div>
           <div className="flex items-center gap-2">
             <div
               className="w-3 h-3 rounded-full"
-              style={{
-                backgroundColor: color,
-                boxShadow: `0 2px 8px ${color}40`,
-              }}
+              style={{ backgroundColor: color }}
             />
-            <span className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
+            <span className="text-caption text-ink-2 font-medium">
               Done
             </span>
           </div>
@@ -532,27 +527,27 @@ export default function HabitDetailSheet({
           <div className="flex items-start justify-between mb-6">
             <div className="flex-1">
               <div className="flex items-start justify-between">
-                <h2 className="text-[32px] font-bold text-black tracking-tight leading-tight">
+                <h2 className="text-large-title font-bold text-ink">
                   {habit.title}
                 </h2>
                 {isCustomTask && (
                   <motion.button
                     whileTap={TAP}
                     onClick={handleDeleteTask}
-                    className="w-10 h-10 rounded-full bg-[#FF3B30]/10 flex items-center justify-center ml-3"
+                    className="w-10 h-10 rounded-full bg-negative/10 flex items-center justify-center ml-3"
                   >
-                    <Trash2 size={18} className="text-[#FF3B30]" />
+                    <Trash2 size={18} className="text-negative" />
                   </motion.button>
                 )}
               </div>
               {isCustomTask && habitInfo.subtitle && (
-                <p className="text-[16px] font-medium text-[rgba(60,60,67,0.6)] mt-1.5">
+                <p className="text-callout font-medium text-ink-2 mt-1.5">
                   {habitInfo.subtitle}
                 </p>
               )}
               {habitInfo.quote && (
                 <p
-                  className="text-[16px] italic font-medium mt-1.5"
+                  className="text-callout italic font-medium mt-1.5"
                   style={{ color: habitInfo.color }}
                 >
                   "{habitInfo.quote}"
@@ -564,14 +559,14 @@ export default function HabitDetailSheet({
           {/* Custom Task Badge */}
           {isCustomTask && (
             <div className="flex items-center gap-2 mb-4">
-              <span className="px-3 py-1.5 bg-[#007AFF]/10 text-[#007AFF] text-[12px] font-bold rounded-full uppercase tracking-wide">
-                Custom Task
+              <span className="px-3 py-1.5 bg-accent/10 text-accent text-caption font-semibold rounded-full">
+                Custom task
               </span>
             </div>
           )}
 
           {/* Description */}
-          <p className="text-[18px] leading-relaxed text-[rgba(60,60,67,0.85)] mb-8">
+          <p className="text-body leading-relaxed text-ink-2 mb-8">
             {habitInfo.description}
           </p>
 
@@ -581,10 +576,10 @@ export default function HabitDetailSheet({
               {habitInfo.items.map((item, i) => (
                 <div
                   key={i}
-                  className="flex items-center bg-[rgba(120,120,128,0.08)] px-4 py-2.5 rounded-2xl"
+                  className="flex items-center bg-fill px-4 py-2.5 rounded-2xl"
                 >
-                  <span className="mr-2 text-lg">{item.icon}</span>
-                  <span className="text-[15px] font-semibold text-black">
+                  <span className="mr-2 text-body">{item.icon}</span>
+                  <span className="text-subhead font-semibold text-ink">
                     {item.label}
                   </span>
                 </div>
@@ -595,8 +590,8 @@ export default function HabitDetailSheet({
           {/* Routine */}
           {habitInfo.routine && (
             <div className="mb-8">
-              <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
-                Daily Routine
+              <p className="text-footnote font-semibold text-ink-2 mb-3">
+                Daily routine
               </p>
               <div className="flex justify-around">
                 {habitInfo.routine.map((step, i) => (
@@ -605,9 +600,9 @@ export default function HabitDetailSheet({
                       className="w-14 h-14 rounded-full flex items-center justify-center mb-2.5"
                       style={{ backgroundColor: `${habitInfo.color}15` }}
                     >
-                      <span className="text-2xl">{step.icon}</span>
+                      <span className="text-title-2">{step.icon}</span>
                     </div>
-                    <span className="text-[14px] font-medium text-[rgba(60,60,67,0.6)]">
+                    <span className="text-subhead font-medium text-ink-2">
                       {step.label}
                     </span>
                   </div>
@@ -619,17 +614,17 @@ export default function HabitDetailSheet({
           {/* Stack */}
           {habitInfo.stack && (
             <div className="mb-8">
-              <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
-                Essentials Stack
+              <p className="text-footnote font-semibold text-ink-2 mb-3">
+                Essentials stack
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {habitInfo.stack.map((item, i) => (
                   <div
                     key={i}
-                    className="flex items-center bg-[rgba(120,120,128,0.08)] p-3.5 rounded-2xl"
+                    className="flex items-center bg-fill p-3.5 rounded-2xl"
                   >
-                    <span className="text-2xl mr-3.5">{item.icon}</span>
-                    <span className="text-[15px] font-semibold text-black">
+                    <span className="text-title-2 mr-3.5">{item.icon}</span>
+                    <span className="text-subhead font-semibold text-ink">
                       {item.label}
                     </span>
                   </div>
@@ -648,7 +643,7 @@ export default function HabitDetailSheet({
                   style={{ backgroundColor: `${habitInfo.color}15` }}
                 >
                   <span
-                    className="text-[14px] font-semibold"
+                    className="text-subhead font-semibold"
                     style={{ color: habitInfo.color }}
                   >
                     #{tag}
@@ -661,7 +656,7 @@ export default function HabitDetailSheet({
           {/* News Sources */}
           {habitInfo.sources && (
             <div className="mb-8">
-              <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
+              <p className="text-footnote font-semibold text-ink-2 mb-3">
                 Sources
               </p>
               <div className="flex flex-wrap gap-3">
@@ -671,9 +666,9 @@ export default function HabitDetailSheet({
                     className="flex items-center gap-2.5 px-4 py-3 rounded-2xl"
                     style={{ backgroundColor: `${habitInfo.color}10` }}
                   >
-                    <span className="text-xl">{source.icon}</span>
+                    <span className="text-title-3">{source.icon}</span>
                     <span
-                      className="text-[15px] font-semibold"
+                      className="text-subhead font-semibold"
                       style={{ color: habitInfo.color }}
                     >
                       {source.label}
@@ -687,30 +682,30 @@ export default function HabitDetailSheet({
           {/* Certifications */}
           {habitInfo.certifications && (
             <div className="mb-8">
-              <p className="text-[12px] font-bold text-[rgba(60,60,67,0.6)] uppercase tracking-wider mb-4">
-                Certification Roadmap
+              <p className="text-footnote font-semibold text-ink-2 mb-3">
+                Certification roadmap
               </p>
-              <div className="bg-[rgba(120,120,128,0.04)] rounded-2xl overflow-hidden">
+              <div className="bg-fill rounded-2xl overflow-hidden">
                 {habitInfo.certifications.map((cert, i) => (
                   <div
                     key={i}
                     className={clsx(
                       "flex items-center p-4",
                       i !== habitInfo.certifications.length - 1 &&
-                        "border-b border-[rgba(60,60,67,0.08)]",
+                        "border-b border-separator",
                     )}
                   >
                     <div
                       className={clsx(
                         "w-10 h-10 rounded-full flex items-center justify-center mr-4",
                         cert.status === "done"
-                          ? "bg-[#D1FAE5]"
+                          ? "bg-positive/15"
                           : cert.status === "progress"
-                            ? "bg-[#FEF3C7]"
-                            : "bg-[#F3F4F6]",
+                            ? "bg-caution/15"
+                            : "bg-fill",
                       )}
                     >
-                      <span className="text-lg">
+                      <span className="text-body">
                         {cert.status === "done"
                           ? "✅"
                           : cert.status === "progress"
@@ -719,14 +714,14 @@ export default function HabitDetailSheet({
                       </span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-[16px] font-semibold text-black">
+                      <p className="text-callout font-semibold text-ink">
                         {cert.label}
                       </p>
-                      <p className="text-[13px] text-[rgba(60,60,67,0.6)] mt-0.5">
+                      <p className="text-footnote text-ink-2 mt-0.5">
                         {cert.date}
                       </p>
                     </div>
-                    <span className="text-2xl">{cert.icon}</span>
+                    <span className="text-title-2">{cert.icon}</span>
                   </div>
                 ))}
               </div>
@@ -742,7 +737,7 @@ export default function HabitDetailSheet({
                 onClose();
                 navigate("/journal");
               }}
-              className="w-full py-4 rounded-2xl border-2 border-dashed mb-8 font-bold text-[16px] flex items-center justify-center"
+              className="w-full py-4 rounded-2xl border-2 border-dashed mb-8 font-semibold text-callout flex items-center justify-center"
               style={{
                 borderColor: habitInfo.color,
                 color: habitInfo.color,
@@ -753,7 +748,7 @@ export default function HabitDetailSheet({
           )}
 
           {/* Divider */}
-          <div className="h-px bg-[rgba(60,60,67,0.12)] mb-8" />
+          <div className="h-px bg-separator mb-8" />
 
           {/* Streak Calendar */}
           <StreakCalendar
@@ -778,7 +773,7 @@ export default function HabitDetailSheet({
                       haptic.trigger("selection");
                       handleActionButton();
                     }}
-                    className="flex-1 h-[56px] rounded-2xl border-2 flex items-center justify-center text-[18px] font-bold"
+                    className="flex-1 h-[56px] rounded-2xl border-2 flex items-center justify-center text-body font-semibold"
                     style={{
                       backgroundColor: `${choice.color}12`,
                       borderColor: choice.color,
@@ -797,10 +792,8 @@ export default function HabitDetailSheet({
                   handleActionButton();
                 }}
                 className={clsx(
-                  "w-full h-[56px] rounded-2xl flex items-center justify-center text-[18px] font-bold transition-[background-color,color,box-shadow] duration-200",
-                  isTodayDone
-                    ? "text-white shadow-xl bg-opacity-100"
-                    : "bg-[rgba(120,120,128,0.12)] text-black",
+                  "w-full h-[56px] rounded-2xl flex items-center justify-center text-body font-semibold transition-[background-color,color,box-shadow] duration-200",
+                  isTodayDone ? "text-white" : "bg-fill text-ink",
                 )}
                 style={{
                   backgroundColor: isTodayDone

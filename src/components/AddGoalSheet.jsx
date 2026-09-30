@@ -22,11 +22,11 @@ const COLOR_OPTIONS = [
 const FormRow = ({ label, children, isLast = false }) => (
   <div
     className={`flex items-center min-h-[44px] px-4 ${
-      !isLast ? "border-b border-[rgba(60,60,67,0.12)]" : ""
+      !isLast ? "border-b border-separator" : ""
     }`}
   >
     {label && (
-      <span className="text-[17px] text-black w-24 shrink-0">{label}</span>
+      <span className="text-body text-ink w-24 shrink-0">{label}</span>
     )}
     <div className="flex-1">{children}</div>
   </div>
@@ -36,13 +36,13 @@ const FormRow = ({ label, children, isLast = false }) => (
 const FormSection = ({ header, footer, children }) => (
   <div className="mb-6">
     {header && (
-      <p className="text-[13px] font-normal text-[#86868B] uppercase tracking-wide px-5 mb-2">
+      <p className="text-footnote font-semibold text-ink-2 px-5 mb-2">
         {header}
       </p>
     )}
-    <div className="mx-4 bg-white rounded-xl overflow-hidden">{children}</div>
+    <div className="mx-4 bg-surface rounded-2xl overflow-hidden">{children}</div>
     {footer && (
-      <p className="text-[13px] font-normal text-[#86868B] px-5 mt-2">
+      <p className="text-footnote font-normal text-ink-2 px-5 mt-2">
         {footer}
       </p>
     )}
@@ -110,28 +110,28 @@ export default function AddGoalSheet({
       open={visible}
       onClose={handleClose}
       label="New goal"
-      className="fixed bottom-0 left-0 right-0 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden"
+      className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92vh] overflow-hidden"
     >
         {/* Drag Handle */}
         <div
           className="flex justify-center pt-3 pb-2 cursor-pointer"
           onClick={handleClose}
         >
-          <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
+          <div className="w-12 h-1.5 bg-separator rounded-full" />
         </div>
 
         {/* Navigation Bar - iOS Sheet Style */}
-        <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)]">
+        <div className="relative flex items-center justify-center h-11 border-b border-separator">
           {/* Cancel Button */}
           <button
             onClick={handleClose}
-            className="absolute left-4 text-[17px] text-[#007AFF] font-normal active:opacity-50"
+            className="absolute left-4 text-body text-accent font-normal active:opacity-50"
           >
             Cancel
           </button>
 
           {/* Title */}
-          <h2 className="text-[17px] font-semibold text-black">
+          <h2 className="text-body font-semibold text-ink">
             {isEditing ? "Edit Goal" : "New Goal"}
           </h2>
 
@@ -139,10 +139,10 @@ export default function AddGoalSheet({
           <button
             onClick={handleSubmit}
             disabled={!isValid}
-            className={`absolute right-4 text-[17px] font-semibold transition-colors ${
+            className={`absolute right-4 text-body font-semibold transition-colors ${
               isValid
-                ? "text-[#007AFF] active:opacity-50"
-                : "text-[rgba(60,60,67,0.3)]"
+                ? "text-accent active:opacity-50"
+                : "text-ink-3"
             }`}
           >
             {isEditing ? "Save" : "Add"}
@@ -159,18 +159,18 @@ export default function AddGoalSheet({
               className="relative"
             >
               <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-sm"
+                className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-card"
                 style={{
                   backgroundColor: `${selectedColor}20`,
                 }}
               >
-                <span className="text-5xl">{selectedEmoji}</span>
+                <span className="text-display">{selectedEmoji}</span>
               </div>
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#007AFF] rounded-full flex items-center justify-center shadow-md">
-                <span className="text-white text-xs">✏️</span>
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-accent rounded-full flex items-center justify-center shadow-card">
+                <span className="text-white text-caption">✏️</span>
               </div>
             </motion.button>
-            <p className="text-[13px] text-[#007AFF] mt-3 font-medium">
+            <p className="text-footnote text-accent mt-3 font-medium">
               Tap to change icon
             </p>
           </div>
@@ -201,14 +201,14 @@ export default function AddGoalSheet({
           </AnimatePresence>
 
           {/* Goal Details Section */}
-          <FormSection header="Goal Details">
+          <FormSection header="Goal details">
             <FormRow label="Title" isLast>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Meditate, Read, No Sugar"
-                className="w-full text-[17px] text-black placeholder:text-[rgba(60,60,67,0.3)] outline-none bg-transparent py-3"
+                className="w-full text-body text-ink placeholder:text-ink-3 outline-none bg-transparent py-3"
                 autoFocus
               />
             </FormRow>
@@ -225,7 +225,7 @@ export default function AddGoalSheet({
                     onClick={() => setSelectedColor(option.color)}
                     className={`w-12 h-12 rounded-full transition-shadow duration-150 ${
                       selectedColor === option.color
-                        ? "ring-2 ring-offset-2 ring-[#007AFF]"
+                        ? "ring-2 ring-offset-2 ring-accent"
                         : ""
                     }`}
                     style={{ backgroundColor: option.color }}
@@ -241,10 +241,10 @@ export default function AddGoalSheet({
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={handleDelete}
-                className="w-full bg-white rounded-xl py-4 flex items-center justify-center gap-2"
+                className="w-full bg-surface rounded-xl py-4 flex items-center justify-center gap-2"
               >
-                <Trash2 size={18} className="text-[#FF3B30]" />
-                <span className="text-[17px] font-medium text-[#FF3B30]">
+                <Trash2 size={18} className="text-negative" />
+                <span className="text-body font-medium text-negative">
                   Delete Goal
                 </span>
               </motion.button>
@@ -252,7 +252,7 @@ export default function AddGoalSheet({
           )}
 
           {/* Info footer */}
-          <p className="text-[13px] text-[rgba(60,60,67,0.5)] text-center mt-8 mb-6 px-8">
+          <p className="text-footnote text-ink-2 text-center mt-8 mb-6 px-8">
             Track your daily habits with a GitHub-style streak grid. Tap any
             day to mark it complete or missed.
           </p>

@@ -110,7 +110,7 @@ export default function CalendarViewSheet({
       open={visible}
       onClose={onClose}
       label="Certification Roadmap"
-      className="fixed bottom-0 left-0 right-0 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden flex flex-col"
+      className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92vh] overflow-hidden flex flex-col"
     >
         {/* Drag Handle */}
         <div
@@ -119,12 +119,12 @@ export default function CalendarViewSheet({
           aria-hidden="true"
           aria-hidden="true"
         >
-          <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
+          <div className="w-12 h-1.5 bg-ink-3 rounded-full" />
         </div>
 
         {/* Navigation Bar */}
-        <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)] bg-white/50 backdrop-blur-md shrink-0">
-          <h2 className="text-[17px] font-semibold text-black">
+        <div className="relative flex items-center justify-center h-11 border-b border-separator bg-white/50 backdrop-blur-md shrink-0">
+          <h2 className="text-body font-semibold text-ink">
             Certification Roadmap
           </h2>
           <button
@@ -133,7 +133,7 @@ export default function CalendarViewSheet({
               onClose();
             }}
             aria-label="Close"
-            className="absolute right-4 w-7 h-7 bg-[#EEE] rounded-full flex items-center justify-center text-[#8E8E93] after:absolute after:-inset-2 after:content-[''] active:scale-[0.96] transition-transform duration-150"
+            className="absolute right-4 w-7 h-7 bg-[#EEE] rounded-full flex items-center justify-center text-ink-2 after:absolute after:-inset-2 after:content-[''] active:scale-[0.96] transition-transform duration-150"
           >
             <X size={14} strokeWidth={2.5} />
           </button>
@@ -143,14 +143,14 @@ export default function CalendarViewSheet({
         <div className="overflow-y-auto flex-1 p-5 pb-20">
           {sortedQuarters.map((quarter) => (
             <div key={quarter} className="mb-6">
-              <h3 className="text-[13px] font-semibold text-[#8E8E93] uppercase tracking-wide mb-3 sticky top-0 bg-[#F2F2F7] py-2 z-10">
+              <h3 className="text-footnote font-semibold text-ink-2 mb-3 sticky top-0 bg-canvas py-2 z-10">
                 {quarter}
               </h3>
               <div className="grid gap-3">
                 {groupedCerts[quarter].map((cert, idx) => (
                   <div
                     key={cert.id ?? `${cert.category}-${cert.name}-${idx}`}
-                    className="bg-white rounded-xl p-4 border border-black/[0.04] shadow-sm flex items-center gap-3"
+                    className="bg-surface rounded-xl p-4 shadow-card flex items-center gap-3"
                   >
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
@@ -158,25 +158,25 @@ export default function CalendarViewSheet({
                     >
                       {/* Simple Icon placeholder if none provided */}
                       <span
-                        className="text-lg font-bold"
+                        className="text-body font-bold"
                         style={{ color: cert.color }}
                       >
                         {cert.name.charAt(0)}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-semibold text-black leading-tight mb-1 truncate">
+                      <p className="text-subhead font-semibold text-ink leading-tight mb-1 truncate">
                         {cert.name}
                       </p>
-                      <div className="flex items-center gap-2 text-[13px]">
+                      <div className="flex items-center gap-2 text-footnote">
                         <span
                           className={clsx(
                             "font-medium",
                             cert.status === "done"
-                              ? "text-green-500"
+                              ? "text-positive"
                               : cert.status === "progress"
-                                ? "text-orange-500"
-                                : "text-gray-400"
+                                ? "text-caution"
+                                : "text-ink-2"
                           )}
                         >
                           {cert.status === "done"
@@ -185,14 +185,14 @@ export default function CalendarViewSheet({
                               ? "In Progress"
                               : "Planned"}
                         </span>
-                        <span className="text-gray-300">•</span>
-                        <span className="text-gray-500">
+                        <span className="text-ink-3">•</span>
+                        <span className="text-ink-2">
                           {cert.category}
                         </span>
                       </div>
                     </div>
                     {cert.status === "done" && (
-                      <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-positive flex items-center justify-center shrink-0">
                         <svg
                           width="12"
                           height="12"
@@ -218,7 +218,7 @@ export default function CalendarViewSheet({
 
           {/* Empty State */}
           {sortedQuarters.length === 0 && (
-            <div className="text-center py-10 text-gray-400">
+            <div className="text-center py-10 text-ink-2">
               <p>No certifications found.</p>
             </div>
           )}

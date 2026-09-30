@@ -25,9 +25,9 @@ export default function SystemCard({
     };
 
     const variantClasses = {
-        default: 'bg-white',
-        elevated: 'bg-white shadow-lg',
-        grouped: 'bg-white rounded-xl overflow-hidden',
+        default: 'bg-surface',
+        elevated: 'bg-surface shadow-float',
+        grouped: 'bg-surface rounded-xl overflow-hidden',
         tinted: '',
     };
 
@@ -37,11 +37,9 @@ export default function SystemCard({
             className={clsx(
                 // Base styles
                 "relative overflow-hidden rounded-2xl",
-                // Background & Border
+                // Background; depth comes from the shadow alone (no outline)
                 variantClasses[variant],
-                "border border-black/[0.04]",
-                // Shadow
-                "shadow-[0_2px_12px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]",
+                "shadow-card",
                 // Padding
                 paddingClasses[padding],
                 // Interactive states
@@ -71,9 +69,8 @@ export default function SystemCard({
 export function GroupedCard({ children, className }) {
     return (
         <div className={clsx(
-            "bg-white rounded-xl overflow-hidden",
-            "border border-black/[0.04]",
-            "shadow-[0_1px_3px_rgba(0,0,0,0.04)]",
+            "bg-surface rounded-2xl overflow-hidden",
+            "shadow-card",
             className
         )}>
             {children}
@@ -100,9 +97,9 @@ export function CardRow({
             whileTap={onClick ? { backgroundColor: 'rgba(0,0,0,0.04)' } : undefined}
             className={clsx(
                 "flex items-center gap-3 py-3 px-4 min-h-[44px]",
-                "bg-white transition-colors duration-100",
+                "bg-surface transition-colors duration-100",
                 onClick && "cursor-pointer",
-                !isLast && "border-b border-[rgba(60,60,67,0.12)]",
+                !isLast && "border-b border-separator",
                 className
             )}
         >
@@ -115,7 +112,7 @@ export function CardRow({
                 {children}
             </div>
             {rightAccessory && (
-                <div className="flex-shrink-0 text-[#C7C7CC]">
+                <div className="flex-shrink-0 text-ink-3">
                     {rightAccessory}
                 </div>
             )}
@@ -125,7 +122,7 @@ export function CardRow({
                     height="12"
                     viewBox="0 0 7 12"
                     fill="none"
-                    className="text-[#C7C7CC] flex-shrink-0"
+                    className="text-ink-3 flex-shrink-0"
                 >
                     <path
                         d="M1 1L6 6L1 11"

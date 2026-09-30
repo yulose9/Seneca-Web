@@ -172,21 +172,21 @@ export default function ProtocolCarousel() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: EASE_OUT }}
-        className="rounded-2xl p-5 bg-[#34C759]/8 border border-[#34C759]/15"
+        className="rounded-2xl p-5 bg-positive/8 border border-positive/15"
         style={{
           backgroundColor: "rgba(52, 199, 89, 0.08)",
           borderColor: "rgba(52, 199, 89, 0.15)",
         }}
       >
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-[#34C759]/10 flex items-center justify-center">
-            <span className="text-2xl">🏆</span>
+          <div className="w-12 h-12 rounded-2xl bg-positive/10 flex items-center justify-center">
+            <span className="text-title-2">🏆</span>
           </div>
           <div>
-            <h4 className="text-[17px] font-bold text-[#34C759]">
+            <h4 className="text-body font-bold text-positive">
               All Caught Up
             </h4>
-            <p className="text-[14px] text-[rgba(60,60,67,0.6)]">
+            <p className="text-subhead text-ink-2">
               Everything checked in for today
             </p>
           </div>
@@ -241,7 +241,7 @@ export default function ProtocolCarousel() {
   return (
     <div className="relative">
       {/* Card Container */}
-      <LiquidGlass as={motion.div} layout transition={LAYOUT_SPRING} className="overflow-hidden rounded-2xl border border-[rgba(0,0,0,0.04)] shadow-sm">
+      <LiquidGlass as={motion.div} layout transition={LAYOUT_SPRING} className="overflow-hidden rounded-2xl shadow-card">
         {/* Header with dots + arrows */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           {/* Left arrow */}
@@ -256,7 +256,7 @@ export default function ProtocolCarousel() {
                 : "opacity-60 active:opacity-100"
             }`}
           >
-            <ChevronLeft size={18} className="text-[rgba(60,60,67,0.6)]" />
+            <ChevronLeft size={18} className="text-ink-2" />
           </motion.button>
 
           {/* Dot indicators */}
@@ -291,7 +291,7 @@ export default function ProtocolCarousel() {
                 : "opacity-60 active:opacity-100"
             }`}
           >
-            <ChevronRight size={18} className="text-[rgba(60,60,67,0.6)]" />
+            <ChevronRight size={18} className="text-ink-2" />
           </motion.button>
         </div>
 
@@ -323,30 +323,30 @@ export default function ProtocolCarousel() {
                   className="cursor-pointer"
                 >
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[13px] font-semibold text-[#FF9500] uppercase tracking-wide">
+                    <span className="text-footnote font-semibold text-caution">
                       Protocol
                     </span>
-                    <ChevronRight size={16} className="text-[#C7C7CC]" />
+                    <ChevronRight size={16} className="text-ink-3" />
                   </div>
                   <div className="mt-3">
                     <div className="flex justify-between items-end mb-3">
                       <div>
-                        <h4 className="text-[17px] font-semibold text-black">
+                        <h4 className="text-body font-semibold text-ink">
                           {getCurrentStatus().phase}
                         </h4>
-                        <p className="text-[15px] text-[rgba(60,60,67,0.6)] mt-0.5 tabular-nums">
+                        <p className="text-subhead text-ink-2 mt-0.5 tabular-nums">
                           {completedCount} of {totalCount} tasks
                         </p>
                       </div>
-                      <span className="text-[15px] font-bold text-[#FF9500] tabular-nums">
+                      <span className="text-subhead font-bold text-caution tabular-nums">
                         {progress}%
                       </span>
                     </div>
                     {/* Progress Bar */}
-                    <div className="h-2 bg-[rgba(120,120,128,0.12)] rounded-full overflow-hidden">
+                    <div className="h-2 bg-fill rounded-full overflow-hidden">
                       <motion.div
                         className="h-full rounded-full"
-                        style={{ backgroundColor: "#FF9500" }}
+                        style={{ backgroundColor: "var(--color-caution)" }}
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
                         transition={{ duration: 0.5, ease: EASE_OUT }}
@@ -363,39 +363,39 @@ export default function ProtocolCarousel() {
                     className="flex justify-between items-center mb-1 cursor-pointer"
                     onClick={() => navigate("/growth")}
                   >
-                    <span className="text-[13px] font-semibold text-[#007AFF] uppercase tracking-wide">
+                    <span className="text-footnote font-semibold text-accent">
                       Study Goal
                     </span>
-                    <ChevronRight size={16} className="text-[#C7C7CC]" />
+                    <ChevronRight size={16} className="text-ink-3" />
                   </div>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-[#007AFF]/10 flex items-center justify-center">
-                        <span className="text-2xl">📚</span>
+                      <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
+                        <span className="text-title-2">📚</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[17px] font-semibold text-black leading-tight truncate">
+                        <p className="text-body font-semibold text-ink leading-tight truncate">
                           {activeStudyGoal?.name}
                         </p>
-                        <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-0.5">
+                        <p className="text-subhead text-ink-2 mt-0.5">
                           {activeStudyGoal?.target}
                         </p>
                       </div>
                     </div>
                     {getStudyStreak() > 0 && (
                       <div className="text-right ml-3">
-                        <p className="text-[20px] font-bold text-[#007AFF] tabular-nums">
+                        <p className="text-title-3 font-bold text-accent tabular-nums">
                           {getStudyStreak()}
                         </p>
-                        <p className="text-[11px] text-[rgba(60,60,67,0.6)]">
+                        <p className="text-caption-2 text-ink-2">
                           day streak
                         </p>
                       </div>
                     )}
                   </div>
                   {/* Quick action buttons */}
-                  <div className="mt-4 pt-3 border-t border-[rgba(60,60,67,0.08)]">
-                    <p className="text-[14px] font-medium text-center text-[rgba(60,60,67,0.8)] mb-3">
+                  <div className="mt-4 pt-3 border-t border-separator">
+                    <p className="text-subhead font-medium text-center text-ink mb-3">
                       Did you study today? 📖
                     </p>
                     <div className="flex gap-3">
@@ -408,7 +408,7 @@ export default function ProtocolCarousel() {
                           )
                         }
                         disabled={!!feedback}
-                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#34C759]/10 text-[#34C759]"
+                        className="flex-1 py-3 rounded-xl font-semibold text-subhead flex items-center justify-center gap-2 bg-positive/10 text-positive"
                       >
                         <Check size={18} strokeWidth={3} /> Yes
                       </motion.button>
@@ -421,7 +421,7 @@ export default function ProtocolCarousel() {
                           )
                         }
                         disabled={!!feedback}
-                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#FF3B30]/10 text-[#FF3B30]"
+                        className="flex-1 py-3 rounded-xl font-semibold text-subhead flex items-center justify-center gap-2 bg-negative/10 text-negative"
                       >
                         <X size={18} strokeWidth={3} /> No
                       </motion.button>
@@ -437,21 +437,21 @@ export default function ProtocolCarousel() {
                     className="flex justify-between items-center mb-1 cursor-pointer"
                     onClick={() => navigate("/growth")}
                   >
-                    <span className="text-[13px] font-semibold text-[#8B5CF6] uppercase tracking-wide">
+                    <span className="text-footnote font-semibold text-[#8B5CF6]">
                       No Porn
                     </span>
-                    <ChevronRight size={16} className="text-[#C7C7CC]" />
+                    <ChevronRight size={16} className="text-ink-3" />
                   </div>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-2xl bg-[#8B5CF6]/10 flex items-center justify-center">
-                        <span className="text-2xl">🚫</span>
+                        <span className="text-title-2">🚫</span>
                       </div>
                       <div>
-                        <p className="text-[17px] font-semibold text-black leading-tight">
+                        <p className="text-body font-semibold text-ink leading-tight">
                           Stay Clean Today
                         </p>
-                        <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-0.5">
+                        <p className="text-subhead text-ink-2 mt-0.5">
                           {noPornStreak > 0
                             ? `${noPornStreak} day streak 🔥`
                             : "Start your streak today"}
@@ -460,8 +460,8 @@ export default function ProtocolCarousel() {
                     </div>
                   </div>
                   {/* Quick action buttons */}
-                  <div className="mt-4 pt-3 border-t border-[rgba(60,60,67,0.08)]">
-                    <p className="text-[14px] font-medium text-center text-[rgba(60,60,67,0.8)] mb-3">
+                  <div className="mt-4 pt-3 border-t border-separator">
+                    <p className="text-subhead font-medium text-center text-ink mb-3">
                       Did you stay clean today? 💪
                     </p>
                     <div className="flex gap-3">
@@ -474,7 +474,7 @@ export default function ProtocolCarousel() {
                           )
                         }
                         disabled={!!feedback}
-                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#34C759]/10 text-[#34C759]"
+                        className="flex-1 py-3 rounded-xl font-semibold text-subhead flex items-center justify-center gap-2 bg-positive/10 text-positive"
                       >
                         <Check size={18} strokeWidth={3} /> Yes
                       </motion.button>
@@ -487,7 +487,7 @@ export default function ProtocolCarousel() {
                           )
                         }
                         disabled={!!feedback}
-                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#FF3B30]/10 text-[#FF3B30]"
+                        className="flex-1 py-3 rounded-xl font-semibold text-subhead flex items-center justify-center gap-2 bg-negative/10 text-negative"
                       >
                         <X size={18} strokeWidth={3} /> No
                       </motion.button>
@@ -503,21 +503,21 @@ export default function ProtocolCarousel() {
                     className="flex justify-between items-center mb-1 cursor-pointer"
                     onClick={() => navigate("/growth")}
                   >
-                    <span className="text-[13px] font-semibold text-[#007AFF] uppercase tracking-wide">
+                    <span className="text-footnote font-semibold text-accent">
                       Exercise
                     </span>
-                    <ChevronRight size={16} className="text-[#C7C7CC]" />
+                    <ChevronRight size={16} className="text-ink-3" />
                   </div>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-[#007AFF]/10 flex items-center justify-center">
-                        <span className="text-2xl">🏋️</span>
+                      <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
+                        <span className="text-title-2">🏋️</span>
                       </div>
                       <div>
-                        <p className="text-[17px] font-semibold text-black leading-tight">
+                        <p className="text-body font-semibold text-ink leading-tight">
                           Workout
                         </p>
-                        <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-0.5">
+                        <p className="text-subhead text-ink-2 mt-0.5">
                           {exerciseStreak > 0
                             ? `${exerciseStreak} day streak 🔥`
                             : "Get moving today"}
@@ -526,8 +526,8 @@ export default function ProtocolCarousel() {
                     </div>
                   </div>
                   {/* Quick action buttons */}
-                  <div className="mt-4 pt-3 border-t border-[rgba(60,60,67,0.08)]">
-                    <p className="text-[14px] font-medium text-center text-[rgba(60,60,67,0.8)] mb-3">
+                  <div className="mt-4 pt-3 border-t border-separator">
+                    <p className="text-subhead font-medium text-center text-ink mb-3">
                       Did you work out today? 💪
                     </p>
                     <div className="flex gap-3">
@@ -540,7 +540,7 @@ export default function ProtocolCarousel() {
                           )
                         }
                         disabled={!!feedback}
-                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#34C759]/10 text-[#34C759]"
+                        className="flex-1 py-3 rounded-xl font-semibold text-subhead flex items-center justify-center gap-2 bg-positive/10 text-positive"
                       >
                         <Check size={18} strokeWidth={3} /> Yes
                       </motion.button>
@@ -553,7 +553,7 @@ export default function ProtocolCarousel() {
                           )
                         }
                         disabled={!!feedback}
-                        className="flex-1 py-3 rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 bg-[#FF3B30]/10 text-[#FF3B30]"
+                        className="flex-1 py-3 rounded-xl font-semibold text-subhead flex items-center justify-center gap-2 bg-negative/10 text-negative"
                       >
                         <X size={18} strokeWidth={3} /> No
                       </motion.button>
@@ -589,7 +589,7 @@ export default function ProtocolCarousel() {
                           delay: 0.05,
                         }}
                       >
-                        <span className="text-[52px] block">
+                        <span className="text-display block">
                           {feedbackData.icon}
                         </span>
                       </motion.div>
@@ -600,7 +600,7 @@ export default function ProtocolCarousel() {
                         className="text-center"
                       >
                         <p
-                          className="text-[18px] font-bold"
+                          className="text-body font-bold"
                           style={{
                             color:
                               feedback.type === "yes" ? "#34C759" : "#FF3B30",
@@ -608,7 +608,7 @@ export default function ProtocolCarousel() {
                         >
                           {feedbackData.text}
                         </p>
-                        <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
+                        <p className="text-footnote text-ink-2 mt-0.5">
                           {feedbackData.sub}
                         </p>
                       </motion.div>

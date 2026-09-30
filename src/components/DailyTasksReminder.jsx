@@ -175,9 +175,9 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
             aria-label="Today's Remaining"
             className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[10000] max-w-md mx-auto"
           >
-            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl max-h-[80vh] flex flex-col select-none">
+            <div className="bg-surface rounded-sheet overflow-hidden shadow-float max-h-[80vh] flex flex-col select-none">
               {/* Header */}
-              <div className="bg-gradient-to-r from-[#FF9500] to-[#FFAD33] px-6 pt-6 pb-5 relative shrink-0">
+              <div className="bg-gradient-to-r from-caution to-[#FFAD33] px-6 pt-6 pb-5 relative shrink-0">
                 {/* Close button */}
                 <motion.button
                   whileTap={TAP}
@@ -197,10 +197,10 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                     <ListChecks size={20} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="text-[17px] font-bold text-white">
+                    <h3 className="text-body font-bold text-white">
                       Today's Remaining
                     </h3>
-                    <p className="text-[12px] text-white/70 font-medium tabular-nums">
+                    <p className="text-caption text-white/70 font-medium tabular-nums">
                       {totalDone}/{totalTasks} completed • {completionPct}%
                     </p>
                   </div>
@@ -209,7 +209,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                 {/* Progress bar */}
                 <div className="h-2 bg-white/20 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full rounded-full bg-white"
+                    className="h-full rounded-full bg-surface"
                     initial={{ width: 0 }}
                     animate={{ width: `${completionPct}%` }}
                     transition={{ duration: 0.5, ease: EASE_OUT }}
@@ -222,7 +222,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                 {Object.entries(grouped).map(([category, { color, items }]) => (
                   <div key={category}>
                     <p
-                      className="text-[12px] font-semibold uppercase tracking-wide mb-2 tabular-nums"
+                      className="text-caption font-semibold mb-2 tabular-nums"
                       style={{ color }}
                     >
                       {category} — {items.length} remaining
@@ -231,12 +231,12 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                       {items.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-[rgba(120,120,128,0.04)]"
+                          className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-fill/40"
                         >
-                          <span className="text-base shrink-0">
+                          <span className="text-callout shrink-0">
                             {item.emoji}
                           </span>
-                          <p className="text-[14px] text-[#1C1C1E] font-medium truncate">
+                          <p className="text-subhead text-ink font-medium truncate">
                             {item.label}
                           </p>
                         </div>
@@ -247,7 +247,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
 
                 {/* Motivational message */}
                 <div className="pt-1 pb-1">
-                  <p className="text-center text-[14px] text-[rgba(60,60,67,0.5)] leading-relaxed italic">
+                  <p className="text-center text-subhead text-ink-2 leading-relaxed italic">
                     {pendingItems.length <= 3
                       ? "Almost there — just a few more to go. 💪"
                       : "One task at a time. You've got this. 🔥"}
@@ -264,7 +264,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                     haptic.trigger("light");
                     onClose();
                   }}
-                  className="w-full py-3.5 rounded-xl bg-[rgba(120,120,128,0.08)] text-[15px] font-semibold text-[rgba(60,60,67,0.8)] flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-xl bg-fill/70 text-subhead font-semibold text-ink flex items-center justify-center gap-2"
                 >
                   Got it
                 </motion.button>
@@ -280,10 +280,10 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
 function getCategoryColor(type) {
   switch (type) {
     case "protocol":
-      return "#FF9500";
+      return "var(--color-caution)";
     case "growth":
-      return "#34C759";
+      return "var(--color-positive)";
     default:
-      return "#8E8E93";
+      return "var(--color-ink-2)";
   }
 }

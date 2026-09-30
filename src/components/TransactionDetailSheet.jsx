@@ -6,13 +6,6 @@ import { useWebHaptics } from "web-haptics/react";
 import { TAP, TAP_TRANSITION } from "../constants/motion";
 import Sheet from "./Sheet";
 
-const SystemColors = {
-    green: '#34C759',
-    red: '#FF3B30',
-    blue: '#007AFF',
-    gray: '#8E8E93',
-};
-
 export default function TransactionDetailSheet({ visible, onClose, transaction, onAccountClick }) {
     const [cachedTransaction, setCachedTransaction] = useState(transaction);
     const haptic = useWebHaptics();
@@ -33,16 +26,17 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
     if (!activeTransaction) return null;
 
     const isDeposit = activeTransaction.type === 'deposit';
-    const color = isDeposit ? SystemColors.green : SystemColors.red;
+    // Income reads positive, spending negative (HIG semantic tints)
+    const tint = isDeposit ? "bg-positive/10 text-positive" : "bg-negative/10 text-negative";
     const dateObj = new Date(activeTransaction.date);
     const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
     // Mock extra data for visual richness
     const details = [
-        { label: 'Status', value: 'Completed', icon: <div className="w-2 h-2 rounded-full bg-[#34C759]" /> },
-        { label: 'Reference', value: reference, icon: <Copy size={14} className="text-[rgba(60,60,67,0.4)]" /> },
-        { label: 'Category', value: isDeposit ? 'Income' : 'Expense', icon: <Tag size={16} className="text-[rgba(60,60,67,0.6)]" /> },
+        { label: 'Status', value: 'Completed', icon: <div className="w-2 h-2 rounded-full bg-positive" /> },
+        { label: 'Reference', value: reference, icon: <Copy size={14} className="text-ink-3" /> },
+        { label: 'Category', value: isDeposit ? 'Income' : 'Expense', icon: <Tag size={16} className="text-ink-2" /> },
     ];
 
     return (
@@ -65,21 +59,21 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                 <div className="ios-sheet-content px-6 pb-12 pt-4">
                     {/* Icon & Title */}
                     <div className="flex flex-col items-center justify-center mb-6 text-center">
-                        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${color}15` }}>
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${tint}`}>
                             {isDeposit ? (
-                                <ArrowDownLeft size={32} color={color} />
+                                <ArrowDownLeft size={32} />
                             ) : (
-                                <ArrowUpRight size={32} color={color} />
+                                <ArrowUpRight size={32} />
                             )}
                         </div>
-                        <h2 className="text-[32px] font-bold text-black tracking-tight leading-tight mb-1 tabular-nums">
+                        <h2 className="text-large-title font-bold text-ink leading-tight mb-1 tabular-nums">
                             {isDeposit ? '+' : '-'}₱{activeTransaction.amount.toLocaleString()}
                         </h2>
                         <p
                             onClick={() => onAccountClick && onAccountClick(activeTransaction)}
                             className={clsx(
-                                "text-[17px] font-medium text-[rgba(60,60,67,0.6)]",
-                                onAccountClick && "cursor-pointer hover:text-black transition-colors duration-150"
+                                "text-body font-medium text-ink-2",
+                                onAccountClick && "cursor-pointer hover:text-ink transition-colors duration-150"
                             )}
                         >
                             {activeTransaction.bank}
@@ -87,35 +81,35 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                     </div>
 
                     {/* Details List */}
-                    <div className="bg-[rgba(120,120,128,0.06)] rounded-2xl overflow-hidden mb-6">
-                        <div className="flex items-center p-4 border-b border-[rgba(60,60,67,0.08)]">
-                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center mr-3 shrink-0 text-[rgba(60,60,67,0.6)]">
+                    <div className="bg-fill rounded-2xl overflow-hidden mb-6">
+                        <div className="flex items-center p-4 border-b border-separator">
+                            <div className="w-8 h-8 rounded-full bg-surface flex items-center justify-center mr-3 shrink-0 text-ink-2">
                                 <Calendar size={16} />
                             </div>
                             <div className="flex-1">
-                                <p className="text-[13px] text-[rgba(60,60,67,0.6)]">Date & Time</p>
-                                <p className="text-[15px] font-semibold text-black">{dateStr} • {timeStr}</p>
+                                <p className="text-footnote text-ink-2">Date & Time</p>
+                                <p className="text-subhead font-semibold text-ink">{dateStr} • {timeStr}</p>
                             </div>
                         </div>
-                        <div className="flex items-center p-4 border-b border-[rgba(60,60,67,0.08)]">
-                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center mr-3 shrink-0 text-[rgba(60,60,67,0.6)]">
+                        <div className="flex items-center p-4 border-b border-separator">
+                            <div className="w-8 h-8 rounded-full bg-surface flex items-center justify-center mr-3 shrink-0 text-ink-2">
                                 <MapPin size={16} />
                             </div>
                             <div className="flex-1">
-                                <p className="text-[13px] text-[rgba(60,60,67,0.6)]">Location</p>
-                                <p className="text-[15px] font-semibold text-black">{activeTransaction.location}</p>
+                                <p className="text-footnote text-ink-2">Location</p>
+                                <p className="text-subhead font-semibold text-ink">{activeTransaction.location}</p>
                             </div>
                         </div>
                         <div
-                            className={clsx("flex items-center p-4 cursor-pointer active:bg-black/5 transition-colors duration-150")}
+                            className={clsx("flex items-center p-4 cursor-pointer active:bg-fill transition-colors duration-150")}
                             onClick={() => onAccountClick && onAccountClick(activeTransaction)}
                         >
-                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center mr-3 shrink-0 text-[rgba(60,60,67,0.6)]">
+                            <div className="w-8 h-8 rounded-full bg-surface flex items-center justify-center mr-3 shrink-0 text-ink-2">
                                 <CreditCard size={16} />
                             </div>
                             <div className="flex-1">
-                                <p className="text-[13px] text-[rgba(60,60,67,0.6)]">Account</p>
-                                <p className={clsx("text-[15px] font-semibold", onAccountClick ? "text-[#007AFF]" : "text-black")}>
+                                <p className="text-footnote text-ink-2">Account</p>
+                                <p className={clsx("text-subhead font-semibold", onAccountClick ? "text-accent" : "text-ink")}>
                                     {activeTransaction.bank}
                                 </p>
                             </div>
@@ -125,12 +119,12 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                     {/* Meta Grid */}
                     <div className="grid grid-cols-2 gap-3 mb-8">
                         {details.map((detail, i) => (
-                            <div key={i} className="bg-[rgba(120,120,128,0.06)] p-4 rounded-xl">
+                            <div key={i} className="bg-fill p-4 rounded-xl">
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-[13px] text-[rgba(60,60,67,0.6)] font-medium">{detail.label}</span>
+                                    <span className="text-footnote text-ink-2 font-medium">{detail.label}</span>
                                     {detail.icon}
                                 </div>
-                                <p className="text-[15px] font-semibold text-black">{detail.value}</p>
+                                <p className="text-subhead font-semibold text-ink">{detail.value}</p>
                             </div>
                         ))}
                     </div>
@@ -139,7 +133,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                     <motion.button
                         whileTap={TAP}
                         transition={TAP_TRANSITION}
-                        className="w-full h-[52px] bg-black text-white rounded-xl font-bold text-[17px] flex items-center justify-center mb-3 shadow-lg shadow-black/10"
+                        className="w-full h-[52px] bg-black text-white rounded-xl font-bold text-body flex items-center justify-center mb-3 shadow-float"
                     >
                         <Share size={18} className="mr-2" />
                         Share Receipt
@@ -149,7 +143,7 @@ export default function TransactionDetailSheet({ visible, onClose, transaction, 
                         whileTap={TAP}
                         transition={TAP_TRANSITION}
                         onClick={() => { haptic.trigger("medium"); onClose(); }}
-                        className="w-full h-[52px] bg-[rgba(120,120,128,0.08)] text-black rounded-xl font-semibold text-[17px] flex items-center justify-center"
+                        className="w-full h-[52px] bg-fill text-ink rounded-xl font-semibold text-body flex items-center justify-center"
                     >
                         Close
                     </motion.button>

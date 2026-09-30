@@ -188,9 +188,9 @@ export default function ObligationReminder({ isOpen, onClose }) {
             aria-label="Obligation Reminder"
             className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[10000] max-w-md mx-auto"
           >
-            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl select-none">
+            <div className="bg-surface rounded-sheet overflow-hidden shadow-float select-none">
               {/* Header */}
-              <div className="bg-gradient-to-r from-[#FF3B30] to-[#FF6B5E] px-6 pt-6 pb-5 relative">
+              <div className="bg-negative px-6 pt-6 pb-5 relative">
                 {/* Close button */}
                 <motion.button
                   whileTap={TAP}
@@ -207,15 +207,15 @@ export default function ObligationReminder({ isOpen, onClose }) {
                     <Bell size={20} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="text-[17px] font-bold text-white">
+                    <h3 className="text-body font-bold text-white">
                       Obligation Reminder
                     </h3>
-                    <p className="text-[12px] text-white/70 font-medium">
+                    <p className="text-caption text-white/70 font-medium">
                       Total Outstanding
                     </p>
                   </div>
                 </div>
-                <p className="text-[32px] font-bold text-white tracking-tight tabular-nums">
+                <p className="text-large-title font-bold text-white tabular-nums">
                   ₱{totalObligations.toLocaleString()}
                 </p>
               </div>
@@ -226,22 +226,22 @@ export default function ObligationReminder({ isOpen, onClose }) {
                   (() => {
                     const lastPay = findLastPayment(transactions, kuyaLoan);
                     return (
-                      <div className="rounded-2xl bg-[#FF3B30]/5 border border-[#FF3B30]/10 overflow-hidden">
+                      <div className="rounded-2xl bg-negative/5 border border-negative/10 overflow-hidden">
                         <div className="flex items-center justify-between py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <span className="text-2xl">
+                            <span className="text-title-2">
                               {kuyaLoan.icon || "🧑"}
                             </span>
                             <div>
-                              <p className="text-[15px] font-semibold text-black">
+                              <p className="text-subhead font-semibold text-ink">
                                 {kuyaLoan.name || "Loan from Kuya"}
                               </p>
-                              <p className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
+                              <p className="text-caption text-ink-2 font-medium">
                                 {kuyaLoan.platform || "Personal"} • Priority
                               </p>
                             </div>
                           </div>
-                          <p className="text-[17px] font-bold text-[#FF3B30] tabular-nums">
+                          <p className="text-body font-bold text-negative tabular-nums">
                             ₱{(kuyaLoan.amount || 0).toLocaleString()}
                           </p>
                         </div>
@@ -251,15 +251,15 @@ export default function ObligationReminder({ isOpen, onClose }) {
                             {lastPay ? (
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1.5">
-                                  <div className="w-4 h-4 rounded-full bg-[#34C759]/15 flex items-center justify-center">
+                                  <div className="w-4 h-4 rounded-full bg-positive/15 flex items-center justify-center">
                                     <Check
                                       size={10}
-                                      className="text-[#34C759]"
+                                      className="text-positive"
                                     />
                                   </div>
-                                  <p className="text-[11px] text-[rgba(60,60,67,0.6)] font-medium">
+                                  <p className="text-caption-2 text-ink-2 font-medium">
                                     Paid{" "}
-                                    <span className="font-semibold text-[#34C759] tabular-nums">
+                                    <span className="font-semibold text-positive tabular-nums">
                                       ₱{(lastPay.amount || 0).toLocaleString()}
                                     </span>{" "}
                                     · {formatRelativeTime(lastPay.date)}
@@ -267,7 +267,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-[11px] text-[rgba(60,60,67,0.4)] font-medium italic">
+                              <p className="text-caption-2 text-ink-3 font-medium italic">
                                 No payments recorded yet
                               </p>
                             )}
@@ -283,23 +283,23 @@ export default function ObligationReminder({ isOpen, onClose }) {
                     return (
                       <div
                         key={loan.id}
-                        className="rounded-2xl bg-[rgba(120,120,128,0.04)] border border-[rgba(120,120,128,0.08)] overflow-hidden"
+                        className="rounded-2xl bg-fill border border-separator overflow-hidden"
                       >
                         <div className="flex items-center justify-between py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <span className="text-2xl">
+                            <span className="text-title-2">
                               {loan.icon || "🍀"}
                             </span>
                             <div>
-                              <p className="text-[15px] font-semibold text-black">
+                              <p className="text-subhead font-semibold text-ink">
                                 {loan.name}
                               </p>
-                              <p className="text-[12px] text-[rgba(60,60,67,0.5)] font-medium">
+                              <p className="text-caption text-ink-2 font-medium">
                                 {loan.platform || "Bank / Other"}
                               </p>
                             </div>
                           </div>
-                          <p className="text-[17px] font-bold text-[rgba(60,60,67,0.8)] tabular-nums">
+                          <p className="text-body font-bold text-ink tabular-nums">
                             ₱{(loan.amount || 0).toLocaleString()}
                           </p>
                         </div>
@@ -309,15 +309,15 @@ export default function ObligationReminder({ isOpen, onClose }) {
                             {lastPay ? (
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1.5">
-                                  <div className="w-4 h-4 rounded-full bg-[#34C759]/15 flex items-center justify-center">
+                                  <div className="w-4 h-4 rounded-full bg-positive/15 flex items-center justify-center">
                                     <Check
                                       size={10}
-                                      className="text-[#34C759]"
+                                      className="text-positive"
                                     />
                                   </div>
-                                  <p className="text-[11px] text-[rgba(60,60,67,0.6)] font-medium">
+                                  <p className="text-caption-2 text-ink-2 font-medium">
                                     Paid{" "}
-                                    <span className="font-semibold text-[#34C759] tabular-nums">
+                                    <span className="font-semibold text-positive tabular-nums">
                                       ₱{(lastPay.amount || 0).toLocaleString()}
                                     </span>{" "}
                                     · {formatRelativeTime(lastPay.date)}
@@ -325,7 +325,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-[11px] text-[rgba(60,60,67,0.4)] font-medium italic">
+                              <p className="text-caption-2 text-ink-3 font-medium italic">
                                 No payments recorded yet
                               </p>
                             )}
@@ -337,7 +337,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
 
                 {/* Motivational message */}
                 <div className="pt-2 pb-1">
-                  <p className="text-center text-[15px] text-[rgba(60,60,67,0.6)] leading-relaxed italic">
+                  <p className="text-center text-subhead text-ink-2 leading-relaxed italic">
                     "Have you paid or lessened this? Every peso counts."
                   </p>
                 </div>
@@ -349,7 +349,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
                   whileTap={TAP}
                   transition={TAP_TRANSITION}
                   onClick={handleDismiss}
-                  className="w-full py-3.5 rounded-xl bg-[rgba(120,120,128,0.08)] text-[15px] font-semibold text-[rgba(60,60,67,0.8)] flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-xl bg-fill text-subhead font-semibold text-ink flex items-center justify-center gap-2"
                 >
                   <Clock size={16} />
                   Remind Me Later
@@ -386,19 +386,19 @@ export function ReminderSettingsSheet({ visible, onClose }) {
       label="Obligation reminder settings"
       className="fixed inset-x-0 bottom-0 max-w-md mx-auto"
     >
-        <div className="bg-white rounded-t-3xl shadow-2xl pb-10">
+        <div className="bg-surface rounded-t-sheet shadow-float pb-10">
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-9 h-1 rounded-full bg-[rgba(60,60,67,0.15)]" />
+            <div className="w-9 h-1 rounded-full bg-separator" />
           </div>
 
           {/* Header */}
           <div className="px-6 pt-3 pb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-[19px] font-bold text-black">
+              <h3 className="text-body font-bold text-ink">
                 Reminder Settings
               </h3>
-              <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
+              <p className="text-footnote text-ink-2 mt-0.5">
                 {snoozeInfo.label}
               </p>
             </div>
@@ -407,15 +407,15 @@ export function ReminderSettingsSheet({ visible, onClose }) {
               transition={TAP_TRANSITION}
               onClick={onClose}
               aria-label="Close"
-              className="relative w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
+              className="relative w-8 h-8 rounded-full bg-fill flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
             >
-              <X size={16} className="text-[rgba(60,60,67,0.6)]" />
+              <X size={16} className="text-ink-2" />
             </motion.button>
           </div>
 
           {/* Frequency label */}
           <div className="px-6 pb-2">
-            <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.4)] uppercase tracking-wide">
+            <p className="text-footnote font-semibold text-ink-3">
               Reminder Frequency
             </p>
           </div>
@@ -437,8 +437,8 @@ export function ReminderSettingsSheet({ visible, onClose }) {
                   }}
                   className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
                     isActive
-                      ? "bg-[#007AFF]/8 border border-[#007AFF]/15"
-                      : "bg-[rgba(120,120,128,0.04)] border border-transparent active:bg-[rgba(120,120,128,0.08)]"
+                      ? "bg-accent/8 border border-accent/15"
+                      : "bg-fill border border-transparent active:bg-fill"
                   }`}
                   style={
                     isActive
@@ -454,17 +454,17 @@ export function ReminderSettingsSheet({ visible, onClose }) {
                       size={18}
                       className={
                         isActive
-                          ? "text-[#007AFF]"
-                          : "text-[rgba(60,60,67,0.4)]"
+                          ? "text-accent"
+                          : "text-ink-3"
                       }
                     />
                     <div className="text-left">
                       <p
-                        className={`text-[15px] font-semibold ${isActive ? "text-[#007AFF]" : "text-black"}`}
+                        className={`text-subhead font-semibold ${isActive ? "text-accent" : "text-ink"}`}
                       >
                         {opt.label}
                       </p>
-                      <p className="text-[12px] text-[rgba(60,60,67,0.5)]">
+                      <p className="text-caption text-ink-2">
                         {opt.description}
                       </p>
                     </div>
@@ -478,7 +478,7 @@ export function ReminderSettingsSheet({ visible, onClose }) {
                         exit={ICON_ENTER}
                         transition={ICON_SPRING}
                       >
-                        <Check size={18} className="text-[#007AFF]" />
+                        <Check size={18} className="text-accent" />
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -489,7 +489,7 @@ export function ReminderSettingsSheet({ visible, onClose }) {
 
           {/* Info note */}
           <div className="px-6 pt-4">
-            <p className="text-[12px] text-[rgba(60,60,67,0.4)] text-center leading-relaxed">
+            <p className="text-caption text-ink-3 text-center leading-relaxed">
               You can't turn off reminders completely. This ensures you stay
               on top of your obligations.
             </p>
@@ -567,17 +567,17 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
       label="Task reminder settings"
       className="fixed inset-x-0 bottom-0 max-w-md mx-auto"
     >
-        <div className="bg-white rounded-t-3xl shadow-2xl pb-10">
+        <div className="bg-surface rounded-t-sheet shadow-float pb-10">
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-9 h-1 rounded-full bg-[rgba(60,60,67,0.15)]" />
+            <div className="w-9 h-1 rounded-full bg-separator" />
           </div>
 
           <div className="px-6 pt-3 pb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-[19px] font-bold text-black">
+              <h3 className="text-body font-bold text-ink">
                 Tasks Reminder
               </h3>
-              <p className="text-[13px] text-[rgba(60,60,67,0.5)] mt-0.5">
+              <p className="text-footnote text-ink-2 mt-0.5">
                 {snoozeInfo.label}
               </p>
             </div>
@@ -586,14 +586,14 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
               transition={TAP_TRANSITION}
               onClick={onClose}
               aria-label="Close"
-              className="relative w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
+              className="relative w-8 h-8 rounded-full bg-fill flex items-center justify-center after:absolute after:-inset-1.5 after:content-['']"
             >
-              <X size={16} className="text-[rgba(60,60,67,0.6)]" />
+              <X size={16} className="text-ink-2" />
             </motion.button>
           </div>
 
           <div className="px-6 pb-2">
-            <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.4)] uppercase tracking-wide">
+            <p className="text-footnote font-semibold text-ink-3">
               Reminder Frequency
             </p>
           </div>
@@ -614,8 +614,8 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
                   }}
                   className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors ${
                     isActive
-                      ? "bg-[#FF9500]/8 border border-[#FF9500]/15"
-                      : "bg-[rgba(120,120,128,0.04)] border border-transparent active:bg-[rgba(120,120,128,0.08)]"
+                      ? "bg-caution/8 border border-caution/15"
+                      : "bg-fill border border-transparent active:bg-fill"
                   }`}
                   style={
                     isActive
@@ -631,17 +631,17 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
                       size={18}
                       className={
                         isActive
-                          ? "text-[#FF9500]"
-                          : "text-[rgba(60,60,67,0.4)]"
+                          ? "text-caution"
+                          : "text-ink-3"
                       }
                     />
                     <div className="text-left">
                       <p
-                        className={`text-[15px] font-semibold ${isActive ? "text-[#FF9500]" : "text-black"}`}
+                        className={`text-subhead font-semibold ${isActive ? "text-caution" : "text-ink"}`}
                       >
                         {opt.label}
                       </p>
-                      <p className="text-[12px] text-[rgba(60,60,67,0.5)]">
+                      <p className="text-caption text-ink-2">
                         {opt.description}
                       </p>
                     </div>
@@ -655,7 +655,7 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
                         exit={ICON_ENTER}
                         transition={ICON_SPRING}
                       >
-                        <Check size={18} className="text-[#FF9500]" />
+                        <Check size={18} className="text-caution" />
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -665,7 +665,7 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
           </div>
 
           <div className="px-6 pt-4">
-            <p className="text-[12px] text-[rgba(60,60,67,0.4)] text-center leading-relaxed">
+            <p className="text-caption text-ink-3 text-center leading-relaxed">
               Controls when the daily tasks reminder appears on app open.
             </p>
           </div>

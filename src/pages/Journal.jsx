@@ -15,6 +15,7 @@ import {
   TAP_TRANSITION,
 } from "../constants/motion";
 import PageTransition from "../components/PageTransition";
+import PageHeader from "../components/PageHeader";
 import RichTextEditor from "../components/RichTextEditor";
 import { updateGlobalData, updateTodayLog } from "../services/dataLogger";
 import { useJournalEntries } from "../data/syncedData";
@@ -39,7 +40,7 @@ const JournalLoggedOverlay = ({ isOpen, onBack }) => (
           transition={DIALOG_SPRING}
           className="fixed inset-0 flex items-center justify-center z-[401] px-8"
         >
-          <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-[320px] w-full shadow-2xl text-center">
+          <div className="bg-surface/95 backdrop-blur-xl rounded-sheet p-8 max-w-[320px] w-full shadow-float text-center">
             {/* Animated Checkmark */}
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
@@ -50,7 +51,7 @@ const JournalLoggedOverlay = ({ isOpen, onBack }) => (
                 duration: 0.5,
                 bounce: 0.3,
               }}
-              className="mx-auto mb-5 w-[72px] h-[72px] rounded-full bg-[#34C759] flex items-center justify-center shadow-lg shadow-[#34C759]/30"
+              className="mx-auto mb-5 w-[72px] h-[72px] rounded-full bg-positive flex items-center justify-center"
             >
               <svg
                 width="32"
@@ -75,7 +76,7 @@ const JournalLoggedOverlay = ({ isOpen, onBack }) => (
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.3, ease: EASE_OUT }}
-              className="text-[22px] font-bold text-black mb-1"
+              className="text-title-2 font-bold text-ink mb-1"
             >
               Journal Logged
             </motion.h2>
@@ -84,7 +85,7 @@ const JournalLoggedOverlay = ({ isOpen, onBack }) => (
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.3, ease: EASE_OUT }}
-              className="text-[15px] text-[rgba(60,60,67,0.6)] mb-7"
+              className="text-subhead text-ink-2 mb-7"
             >
               Your reflection has been saved.
             </motion.p>
@@ -95,7 +96,7 @@ const JournalLoggedOverlay = ({ isOpen, onBack }) => (
               transition={{ delay: 0.25, duration: 0.3, ease: EASE_OUT }}
               whileTap={TAP}
               onClick={onBack}
-              className="w-full h-[50px] rounded-2xl bg-[#007AFF] text-white font-semibold text-[17px] shadow-lg shadow-[#007AFF]/25"
+              className="w-full h-[50px] rounded-2xl bg-accent text-white font-semibold text-body"
             >
               Back to Protocol
             </motion.button>
@@ -131,26 +132,26 @@ const ConfirmDialog = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.97, transition: FADE }}
           transition={DIALOG_SPRING}
-          className="fixed left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl overflow-hidden z-[301] max-w-sm mx-auto shadow-2xl"
+          className="fixed left-4 right-4 top-1/2 -translate-y-1/2 bg-surface rounded-2xl overflow-hidden z-[301] max-w-sm mx-auto shadow-float"
         >
           <div className="p-6 text-center">
-            <h3 className="text-[17px] font-semibold text-black mb-2">
+            <h3 className="text-body font-semibold text-ink mb-2">
               {title}
             </h3>
-            <p className="text-[15px] text-[rgba(60,60,67,0.6)]">{message}</p>
+            <p className="text-subhead text-ink-2">{message}</p>
           </div>
-          <div className="border-t border-[rgba(60,60,67,0.12)] flex">
+          <div className="border-t border-separator flex">
             <motion.button
               whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
               onClick={onClose}
-              className="flex-1 py-4 text-[17px] font-medium text-[#007AFF] border-r border-[rgba(60,60,67,0.12)]"
+              className="flex-1 py-4 text-body font-medium text-accent border-r border-separator"
             >
               Cancel
             </motion.button>
             <motion.button
               whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
               onClick={onConfirm}
-              className="flex-1 py-4 text-[17px] font-semibold text-[#FF3B30]"
+              className="flex-1 py-4 text-body font-semibold text-negative"
             >
               {confirmText}
             </motion.button>
@@ -248,7 +249,7 @@ const EntryRow = ({
     <div className="relative overflow-hidden">
       <div
         className={clsx(
-          "absolute right-0 top-0 bottom-0 w-20 bg-[#FF3B30] flex items-center justify-center transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "absolute right-0 top-0 bottom-0 w-20 bg-negative flex items-center justify-center transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
           showDelete ? "translate-x-0" : "translate-x-full",
         )}
       >
@@ -272,8 +273,8 @@ const EntryRow = ({
             : undefined
         }
         className={clsx(
-          "flex items-start p-4 cursor-pointer bg-white relative transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] select-none",
-          !isLast && "border-b border-[rgba(60,60,67,0.08)]",
+          "flex items-start p-4 cursor-pointer bg-surface relative transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] select-none",
+          !isLast && "border-b border-separator",
           showDelete && "-translate-x-20",
         )}
       >
@@ -290,8 +291,8 @@ const EntryRow = ({
                 className={clsx(
                   "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
                   isSelected
-                    ? "bg-[#007AFF] border-[#007AFF]"
-                    : "border-[rgba(60,60,67,0.3)]",
+                    ? "bg-accent border-accent"
+                    : "border-ink-3",
                 )}
               >
                 {isSelected && (
@@ -305,7 +306,7 @@ const EntryRow = ({
         {/* Emoji with gradient background */}
         <div
           className={clsx(
-            "w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mr-4 shrink-0 bg-gradient-to-br shadow-sm",
+            "w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mr-4 shrink-0 bg-gradient-to-br shadow-card",
             getEmojiBackground(item.mood),
           )}
         >
@@ -315,16 +316,16 @@ const EntryRow = ({
         <div className="flex-1 min-w-0 py-0.5">
           {/* Title row with time */}
           <div className="flex justify-between items-start gap-3 mb-1">
-            <h3 className="text-[16px] font-semibold text-black leading-tight line-clamp-1">
+            <h3 className="text-callout font-semibold text-ink line-clamp-1">
               {item.title}
             </h3>
-            <span className="text-[12px] text-[rgba(60,60,67,0.5)] whitespace-nowrap mt-0.5 tabular-nums">
+            <span className="text-caption text-ink-2 whitespace-nowrap mt-0.5 tabular-nums">
               {item.time}
             </span>
           </div>
 
           {/* Preview text with better styling */}
-          <p className="text-[14px] text-[rgba(60,60,67,0.6)] leading-relaxed line-clamp-2">
+          <p className="text-subhead text-ink-2 line-clamp-2">
             {item.preview}
           </p>
         </div>
@@ -338,14 +339,14 @@ const EntryRow = ({
               e.stopPropagation();
               onDelete(item.id);
             }}
-            className="ml-2 shrink-0 mt-2 p-1.5 rounded-full hover:bg-red-50 transition-colors duration-150"
+            className="ml-2 shrink-0 mt-2 p-1.5 rounded-full hover:bg-negative/10 transition-colors duration-150"
           >
-            <Trash2 size={18} className="text-[#FF3B30]" />
+            <Trash2 size={18} className="text-negative" />
           </motion.button>
         ) : !showDelete ? (
           <ChevronRight
             size={18}
-            className="text-[#C7C7CC] ml-2 shrink-0 mt-3"
+            className="text-ink-3 ml-2 shrink-0 mt-3"
           />
         ) : null}
       </motion.div>
@@ -569,42 +570,24 @@ export default function Journal() {
   const pastEntries = entries.filter((e) => e.isoDate !== today);
 
   return (
-    <PageTransition className="min-h-screen bg-[#F2F2F7] pb-32">
-      {/* Header */}
-      <header className="pt-14 px-5 pb-4 flex justify-between items-end">
-        <div>
-          <motion.h1
-            className="ios-large-title"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: EASE_OUT }}
-          >
-            The Mirror
-          </motion.h1>
-          <motion.p
-            className="text-[17px] text-[rgba(60,60,67,0.6)] mt-1"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.3, ease: EASE_OUT }}
-          >
-            Reflect on your journey
-          </motion.p>
-        </div>
-        {entries.length > 0 && (
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={FADE}
-            onClick={() => {
-              setIsSelecting(!isSelecting);
-              setSelectedIds(new Set());
-            }}
-            className="text-[17px] font-medium text-[#007AFF] mb-1"
-          >
-            {isSelecting ? "Done" : "Edit"}
-          </motion.button>
-        )}
-      </header>
+    <PageTransition className="min-h-screen bg-canvas pb-32">
+      <PageHeader
+        title="The Mirror"
+        subtitle="Reflect on your journey"
+        action={
+          entries.length > 0 && (
+            <button
+              onClick={() => {
+                setIsSelecting(!isSelecting);
+                setSelectedIds(new Set());
+              }}
+              className="text-body text-accent active:opacity-60"
+            >
+              {isSelecting ? "Done" : "Edit"}
+            </button>
+          )
+        }
+      />
 
       {/* Selection bar - Global */}
       <AnimatePresence>
@@ -616,27 +599,27 @@ export default function Journal() {
             transition={LAYOUT_SPRING}
             className="px-5 mb-4 overflow-hidden"
           >
-            <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-black/[0.04] shadow-sm">
+            <div className="flex items-center justify-between bg-surface rounded-xl p-3 shadow-card">
               <button
                 onClick={handleSelectAll}
-                className="text-[15px] font-medium text-[#007AFF]"
+                className="text-subhead font-medium text-accent"
               >
                 {selectedIds.size === entries.length
                   ? "Deselect All"
                   : "Select All"}
               </button>
               <div className="flex items-center gap-2">
-                <span className="text-[13px] text-[rgba(60,60,67,0.6)] tabular-nums">
+                <span className="text-footnote text-ink-2 tabular-nums">
                   {selectedIds.size} selected
                 </span>
                 <button
                   onClick={handleDeleteSelected}
                   disabled={selectedIds.size === 0}
                   className={clsx(
-                    "px-4 py-2 rounded-lg text-[15px] font-semibold transition-colors",
+                    "px-4 py-2 rounded-lg text-subhead font-semibold transition-colors",
                     selectedIds.size > 0
-                      ? "bg-[#FF3B30] text-white"
-                      : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
+                      ? "bg-negative text-white"
+                      : "bg-fill text-ink-3",
                   )}
                 >
                   Delete
@@ -654,7 +637,7 @@ export default function Journal() {
         transition={{ delay: 0.2, duration: 0.35, ease: EASE_OUT }}
         className="px-5 mb-8"
       >
-        <div className="bg-white rounded-2xl p-5 border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.06)] relative z-10">
+        <div className="bg-surface rounded-2xl p-5 shadow-card relative z-10">
           {/* Title & Mood Row */}
           <div className="flex items-start gap-3 mb-4">
             <div className="relative">
@@ -664,12 +647,12 @@ export default function Journal() {
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 aria-label="Choose mood"
                 aria-expanded={showEmojiPicker}
-                className="w-12 h-12 rounded-full bg-[#f2f2f7] flex items-center justify-center text-2xl hover:bg-[#e5e5ea] transition-colors duration-150"
+                className="w-12 h-12 rounded-full bg-fill flex items-center justify-center text-2xl hover:bg-fill-strong transition-colors duration-150"
               >
                 {mood}
               </motion.button>
               {showEmojiPicker && (
-                <div className="absolute top-14 left-0 z-50 shadow-2xl rounded-2xl">
+                <div className="absolute top-14 left-0 z-50 shadow-float rounded-2xl">
                   <div
                     className="fixed inset-0 z-40"
                     onClick={() => setShowEmojiPicker(false)}
@@ -699,13 +682,13 @@ export default function Journal() {
                 }
               }}
               placeholder="Title your entry..."
-              className="flex-1 bg-transparent text-[22px] font-bold text-black placeholder:text-black/20 resize-none outline-none py-2 leading-tight"
+              className="flex-1 bg-transparent text-title-2 font-bold text-ink placeholder:text-ink-3 resize-none outline-none py-2"
               rows={1}
               style={{ minHeight: "48px" }}
             />
           </div>
 
-          <div className="w-full h-px bg-black/[0.06] mb-4" />
+          <div className="w-full h-px bg-separator mb-4" />
 
           <RichTextEditor
             ref={editorRef}
@@ -727,10 +710,10 @@ export default function Journal() {
                 onClick={() => { haptic.trigger("medium"); handleSave(); }}
                 disabled={isSaving}
                 className={clsx(
-                  "w-full rounded-xl font-semibold text-[17px] overflow-hidden transition-[background-color,color,box-shadow] duration-150",
+                  "w-full rounded-xl font-semibold text-body overflow-hidden transition-[background-color,color,box-shadow] duration-150",
                   !isSaving
-                    ? "bg-[#007AFF] text-white shadow-lg shadow-[#007AFF]/25"
-                    : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
+                    ? "bg-accent text-white shadow-lg shadow-accent/25"
+                    : "bg-fill text-ink-3",
                 )}
               >
                 {isSaving ? "Saving..." : "Save Entry"}
@@ -743,8 +726,8 @@ export default function Journal() {
       {/* Content Lists (Today / Past) */}
       {todayEntries.length > 0 && (
         <section className="px-5 mb-8">
-          <h3 className="ios-list-header uppercase mb-2">Today</h3>
-          <div className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <h3 className="px-4 pb-2 text-footnote font-semibold text-ink-2">Today</h3>
+          <div className="bg-surface rounded-xl overflow-hidden shadow-card">
             {todayEntries.map((item, index) => (
               <EntryRow
                 key={item.id}
@@ -764,12 +747,12 @@ export default function Journal() {
 
       <section className="px-5">
         {pastEntries.length > 0 && (
-          <h3 className="ios-list-header uppercase mb-2">Past Entries</h3>
+          <h3 className="px-4 pb-2 text-footnote font-semibold text-ink-2">Past entries</h3>
         )}
 
         {pastEntries.length > 0 ? (
           <>
-            <motion.div layout transition={LAYOUT_SPRING} className="bg-white rounded-xl overflow-hidden border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <motion.div layout transition={LAYOUT_SPRING} className="bg-surface rounded-xl overflow-hidden shadow-card">
               <AnimatePresence initial={false}>
                 {pastEntries.slice(0, visiblePastCount).map((item, index) => (
                   <motion.div
@@ -803,7 +786,7 @@ export default function Journal() {
                 transition={{ duration: 0.25, ease: EASE_OUT }}
                 whileTap={TAP}
                 onClick={() => { haptic.trigger("light"); setVisiblePastCount((prev) => prev + 10); }}
-                className="w-full mt-3 py-3.5 rounded-xl bg-white border border-black/[0.04] shadow-[0_1px_3px_rgba(0,0,0,0.04)] text-[15px] font-semibold text-[#007AFF] flex items-center justify-center gap-2"
+                className="w-full mt-3 py-3.5 rounded-xl bg-surface shadow-card text-subhead font-semibold text-accent flex items-center justify-center gap-2"
               >
                 View More{" "}
                 <span className="tabular-nums">
@@ -816,10 +799,10 @@ export default function Journal() {
           entries.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 px-8">
               <span className="text-5xl mb-4">✨</span>
-              <p className="text-[17px] font-semibold text-black text-center mb-2">
+              <p className="text-body font-semibold text-ink text-center mb-2">
                 No Entries Yet
               </p>
-              <p className="text-[15px] text-[rgba(60,60,67,0.6)] text-center">
+              <p className="text-subhead text-ink-2 text-center">
                 Start your journal by writing above.
               </p>
             </div>

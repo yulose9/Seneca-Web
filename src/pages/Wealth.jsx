@@ -51,7 +51,7 @@ import { getPhDateKey, toDateKey } from "../utils/timeUtils";
 const DEFAULT_LIABILITIES = [
   {
     id: "kuya",
-    icon: "�",
+    icon: "🤝",
     name: "Loan from Kuya",
     platform: "Personal",
     amount: 0,
@@ -145,26 +145,26 @@ const ConfirmDialog = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95, transition: FADE }}
           transition={DIALOG_SPRING}
-          className="fixed left-4 right-4 top-1/2 -translate-y-1/2 bg-white rounded-2xl overflow-hidden z-[301] max-w-sm mx-auto shadow-2xl"
+          className="fixed left-4 right-4 top-1/2 -translate-y-1/2 bg-surface rounded-2xl overflow-hidden z-[301] max-w-sm mx-auto shadow-float"
         >
           <div className="p-6 text-center">
-            <h3 className="text-[17px] font-semibold text-black mb-2">
+            <h3 className="text-body font-semibold text-ink mb-2">
               {title}
             </h3>
-            <p className="text-[15px] text-[rgba(60,60,67,0.6)]">{message}</p>
+            <p className="text-subhead text-ink-2">{message}</p>
           </div>
-          <div className="border-t border-[rgba(60,60,67,0.12)] flex">
+          <div className="border-t border-separator flex">
             <motion.button
               whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
               onClick={onClose}
-              className="flex-1 py-4 text-[17px] font-medium text-[#007AFF] border-r border-[rgba(60,60,67,0.12)]"
+              className="flex-1 py-4 text-body font-medium text-accent border-r border-separator"
             >
               Cancel
             </motion.button>
             <motion.button
               whileTap={{ backgroundColor: "rgba(0,0,0,0.05)" }}
               onClick={onConfirm}
-              className="flex-1 py-4 text-[17px] font-semibold text-[#FF3B30]"
+              className="flex-1 py-4 text-body font-semibold text-negative"
             >
               {confirmText}
             </motion.button>
@@ -252,7 +252,7 @@ const SwipeableRow = ({
                 setShowDelete(false);
               }}
               aria-label="Delete"
-              className="w-full h-full bg-[#FF3B30] text-white rounded-xl font-semibold flex items-center justify-center shadow-sm active:scale-[0.96] transition-transform duration-150 ease-out"
+              className="w-full h-full bg-negative text-white rounded-xl font-semibold flex items-center justify-center shadow-card active:scale-[0.96] transition-transform duration-150 ease-out"
             >
               <Trash2 size={20} />
             </button>
@@ -264,7 +264,7 @@ const SwipeableRow = ({
         animate={{ x: showDelete ? -80 : 0 }}
         transition={LAYOUT_SPRING}
         className={clsx(
-          "bg-white active:bg-black/[0.02] transition-colors duration-150 relative z-0",
+          "bg-surface active:bg-black/[0.02] transition-colors duration-150 relative z-0",
           isSelecting && "pl-12",
         )}
         onTouchStart={handleTouchStart}
@@ -286,8 +286,8 @@ const SwipeableRow = ({
                 className={clsx(
                   "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
                   isSelected
-                    ? "bg-[#007AFF] border-[#007AFF]"
-                    : "border-[rgba(60,60,67,0.3)] bg-transparent",
+                    ? "bg-accent border-accent"
+                    : "border-ink-3 bg-transparent",
                 )}
               >
                 <AnimatePresence initial={false}>
@@ -317,26 +317,26 @@ const SwipeableRow = ({
 const AssetRow = (props) => (
   <SwipeableRow {...props} item={props} onSwipeDelete={props.onDelete}>
     <div className="flex items-center p-4 cursor-pointer">
-      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-white/20 to-white/5 border border-white/10 flex items-center justify-center text-xl mr-3 shrink-0">
+      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-white/20 to-white/5 border border-white/10 flex items-center justify-center text-title-3 mr-3 shrink-0">
         {props.icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[16px] font-semibold text-black truncate">
+        <p className="text-callout font-semibold text-ink truncate">
           {props.name}
         </p>
-        <p className="text-[13px] text-[rgba(60,60,67,0.6)]">
+        <p className="text-footnote text-ink-2">
           {props.platform}
         </p>
       </div>
       <div className="text-right">
-        <p className="text-[16px] font-bold text-black tabular-nums">
+        <p className="text-callout font-bold text-ink tabular-nums">
           ₱{(props.amount || 0).toLocaleString()}
         </p>
         {props.change !== undefined && (
           <p
             className={clsx(
-              "text-[13px] font-semibold tabular-nums",
-              props.isPositive ? "text-[#34C759]" : "text-[#FF3B30]",
+              "text-footnote font-semibold tabular-nums",
+              props.isPositive ? "text-positive" : "text-negative",
             )}
           >
             {props.isPositive ? "+" : "-"}₱
@@ -352,28 +352,24 @@ const AssetRow = (props) => (
 const LiabilityRow = (props) => (
   <SwipeableRow {...props} item={props} onSwipeDelete={props.onDelete}>
     <div
-      className={`flex items-center p-4 cursor-pointer ${
-        props.isPriority ? "bg-[#FF3B30]/5" : ""
-      }`}
+      className="flex items-center p-4 cursor-pointer"
     >
       <div
-        className={`w-11 h-11 rounded-full flex items-center justify-center text-xl mr-3 shrink-0 ${
-          props.isPriority ? "bg-[#FF3B30]/20" : "bg-[#FF3B30]/10"
-        }`}
+        className="w-11 h-11 rounded-full flex items-center justify-center text-title-3 mr-3 shrink-0 bg-fill"
       >
         {props.icon}
       </div>
       <div className="flex-1">
-        <p className="text-[16px] font-semibold text-black">{props.name}</p>
+        <p className="text-callout font-semibold text-ink">{props.name}</p>
         <div className="flex items-center gap-1.5 mt-1">
           {(props.tags || []).map((tag) => (
             <span
               key={tag}
               className={clsx(
-                "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
+                "text-caption-2 font-bold px-2 py-0.5 rounded-full",
                 tag === "Priority"
-                  ? "bg-[#FF3B30] text-white"
-                  : "bg-black/[0.06] text-black/50",
+                  ? "bg-negative text-white"
+                  : "bg-black/[0.06] text-ink-2",
               )}
             >
               {tag}
@@ -381,7 +377,7 @@ const LiabilityRow = (props) => (
           ))}
         </div>
       </div>
-      <p className="text-[16px] font-bold text-[#FF3B30] tabular-nums">
+      <p className="text-callout font-bold text-negative tabular-nums">
         -₱{(props.amount || 0).toLocaleString()}
       </p>
     </div>
@@ -452,14 +448,15 @@ const TransactionRow = ({
     <div className="relative overflow-hidden">
       <div
         className={clsx(
-          "absolute right-2 top-2 bottom-2 w-[70px] flex items-center justify-center transition-transform duration-200",
-          showDelete ? "translate-x-0" : "translate-x-full",
+          "absolute right-2 top-2 bottom-2 w-[70px] flex items-center justify-center transition-[translate,opacity] duration-200 ease-out",
+          // Hidden fully off the card: it is inset 8px, so it must travel its width + 8px
+          showDelete ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+0.5rem)] opacity-0 pointer-events-none",
         )}
       >
         <button
           onClick={() => onDelete(item.id)}
           aria-label="Delete transaction"
-          className="w-full h-full bg-[#FF3B30] text-white rounded-xl flex items-center justify-center shadow-sm active:scale-[0.96] transition-transform duration-150 ease-out"
+          className="w-full h-full bg-negative text-white rounded-xl flex items-center justify-center shadow-card active:scale-[0.96] transition-transform duration-150 ease-out"
         >
           <Trash2 size={20} />
         </button>
@@ -472,11 +469,9 @@ const TransactionRow = ({
         onTouchEnd={handleTouchEnd}
         whileTap={!isSelecting && !showDelete ? { scale: 0.98 } : undefined}
         className={clsx(
-          "flex items-center p-4 bg-white border border-black/[0.04] relative transition-[translate] duration-200 ease-out select-none",
-          !isLast ? "border-b-0" : "",
+          "flex items-center p-4 mb-2 bg-surface rounded-2xl shadow-card relative transition-[translate] duration-200 ease-out select-none",
           showDelete && "-translate-x-20",
         )}
-        style={{ borderRadius: "12px", marginBottom: "8px" }}
       >
         <AnimatePresence>
           {isSelecting && (
@@ -491,8 +486,8 @@ const TransactionRow = ({
                 className={clsx(
                   "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
                   isSelected
-                    ? "bg-[#007AFF] border-[#007AFF]"
-                    : "border-[rgba(60,60,67,0.3)]",
+                    ? "bg-accent border-accent"
+                    : "border-ink-3",
                 )}
               >
                 <AnimatePresence initial={false}>
@@ -513,15 +508,15 @@ const TransactionRow = ({
           )}
         </AnimatePresence>
 
-        <div className="w-10 h-10 rounded-full border-2 border-[rgba(60,60,67,0.2)] flex items-center justify-center mr-3 shrink-0">
+        <div className="w-10 h-10 rounded-full border-2 border-separator flex items-center justify-center mr-3 shrink-0">
           {item.type === "deposit" || item.type === "payment" ? (
-            <ArrowDownLeft size={18} className="text-[#34C759]" />
+            <ArrowDownLeft size={18} className="text-positive" />
           ) : (
-            <ArrowUpRight size={18} className="text-[#FF3B30]" />
+            <ArrowUpRight size={18} className="text-negative" />
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[16px] font-semibold text-black flex items-center">
+          <p className="text-callout font-semibold text-ink flex items-center">
             <span
               onClick={(e) => {
                 if (props.onAccountClick && !isSelecting) {
@@ -531,24 +526,24 @@ const TransactionRow = ({
               }}
               className={
                 props.onAccountClick && !isSelecting
-                  ? "hover:underline cursor-pointer active:text-[#007AFF] transition-colors duration-150"
+                  ? "hover:underline cursor-pointer active:text-accent transition-colors duration-150"
                   : ""
               }
             >
               {item.bank}
             </span>
           </p>
-          <p className="text-[13px] text-[rgba(60,60,67,0.6)] truncate">
+          <p className="text-footnote text-ink-2 truncate">
             {item.note || item.location}
           </p>
         </div>
         <div className="text-right">
           <p
             className={clsx(
-              "text-[17px] font-bold tabular-nums",
+              "text-body font-bold tabular-nums",
               item.type === "deposit" || item.type === "payment"
-                ? "text-black"
-                : "text-[#FF3B30]",
+                ? "text-ink"
+                : "text-negative",
             )}
           >
             {item.type === "withdrawal" && "-"}₱
@@ -574,7 +569,7 @@ const CategoryDropdown = ({
       transition={TAP_TRANSITION}
       aria-expanded={isOpen}
       onClick={() => setIsOpen(!isOpen)}
-      className="flex items-center gap-2 text-white/90 font-semibold text-[15px]"
+      className="flex items-center gap-2 text-white/90 font-semibold text-subhead"
     >
       {selected}
       <ChevronDown
@@ -590,7 +585,7 @@ const CategoryDropdown = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4, scale: 0.95 }}
           transition={{ duration: 0.15, ease: EASE_OUT }}
-          className="origin-top-left absolute top-full left-0 mt-2 bg-white rounded-xl shadow-xl border border-black/[0.06] overflow-hidden min-w-[140px] z-[100]"
+          className="origin-top-left absolute top-full left-0 mt-2 bg-surface rounded-xl shadow-float overflow-hidden min-w-[140px] z-[100]"
         >
           {options.map((option) => (
             <motion.button
@@ -601,10 +596,10 @@ const CategoryDropdown = ({
                 setIsOpen(false);
               }}
               className={clsx(
-                "w-full px-4 py-3 text-left text-[15px] font-medium",
+                "w-full px-4 py-3 text-left text-subhead font-medium",
                 selected === option
-                  ? "text-[#007AFF] bg-[#007AFF]/5"
-                  : "text-black",
+                  ? "text-accent bg-accent/5"
+                  : "text-ink",
               )}
             >
               {option}
@@ -644,7 +639,7 @@ export default function Wealth() {
     {
       id: "high_value",
       label: "High Value (>₱1k)",
-      icon: <div className="text-[10px] font-bold">₱₱</div>,
+      icon: <div className="text-caption-2 font-bold">₱₱</div>,
     }, // Custom icon
     {
       id: "recent",
@@ -1058,7 +1053,7 @@ export default function Wealth() {
         : filteredAssets.reduce((sum, a) => sum + a.amount, 0);
 
   return (
-    <PageTransition className="min-h-screen bg-[#F2F2F7] pb-32">
+    <PageTransition className="min-h-screen bg-canvas pb-32">
       {/* Phantom-style Dark Header */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -1181,9 +1176,9 @@ export default function Wealth() {
                       transition={{ duration: 0.2, ease: EASE_OUT, delay: index * 0.03 }}
                       onClick={() => setActiveFilter(filter.id)}
                       className={clsx(
-                        "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-[background-color,color,box-shadow,scale] duration-150 ease-out",
+                        "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-footnote font-medium whitespace-nowrap transition-[background-color,color,box-shadow,scale] duration-150 ease-out",
                         activeFilter === filter.id
-                          ? "bg-white text-[#1e3a2f] shadow-md shadow-black/10 scale-105"
+                          ? "bg-surface text-[#1e3a2f] shadow-float scale-105"
                           : "bg-white/10 text-white/80 hover:bg-white/15",
                       )}
                     >
@@ -1206,7 +1201,7 @@ export default function Wealth() {
             >
               <div
                 className={clsx(
-                  "text-[48px] font-bold tracking-tight",
+                  "text-display font-bold",
                   displayedBalance >= 0
                     ? "bg-gradient-to-br from-[#86EFAC] to-[#22C55E] bg-clip-text text-transparent"
                     : "text-[#FF6B6B]",
@@ -1223,7 +1218,7 @@ export default function Wealth() {
                     {monthlyDeposits > 0 && (
                       <div className="flex items-center gap-1">
                         <ArrowDownLeft size={14} className="text-[#4ADE80]" />
-                        <span className="text-[#4ADE80] text-[14px] font-semibold">
+                        <span className="text-[#4ADE80] text-subhead font-semibold">
                           <RollingNumber value={monthlyDeposits} prefix="₱" />
                         </span>
                       </div>
@@ -1231,7 +1226,7 @@ export default function Wealth() {
                     {monthlyWithdrawals > 0 && (
                       <div className="flex items-center gap-1">
                         <ArrowUpRight size={14} className="text-[#FF6B6B]" />
-                        <span className="text-[#FF6B6B] text-[14px] font-semibold">
+                        <span className="text-[#FF6B6B] text-subhead font-semibold">
                           <RollingNumber
                             value={monthlyWithdrawals}
                             prefix="₱"
@@ -1239,7 +1234,7 @@ export default function Wealth() {
                         </span>
                       </div>
                     )}
-                    <span className="text-white/50 text-[12px]">
+                    <span className="text-white/50 text-caption">
                       this month
                     </span>
                   </div>
@@ -1262,27 +1257,27 @@ export default function Wealth() {
                 transition={{ duration: 0.2, ease: EASE_OUT }}
                 className="px-5 mt-4 overflow-hidden"
               >
-                <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-black/[0.04] shadow-sm">
+                <div className="flex items-center justify-between bg-surface rounded-xl p-3 shadow-card">
                   <button
                     onClick={handleSelectAll}
-                    className="text-[15px] font-medium text-[#007AFF]"
+                    className="text-subhead font-medium text-accent"
                   >
                     {selectedIds.size === transactions.length
                       ? "Deselect All"
                       : "Select All"}
                   </button>
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] text-[rgba(60,60,67,0.6)]">
+                    <span className="text-footnote text-ink-2">
                       {selectedIds.size} selected
                     </span>
                     <button
                       onClick={handleDeleteSelected}
                       disabled={selectedIds.size === 0}
                       className={clsx(
-                        "px-4 py-2 rounded-lg text-[15px] font-semibold transition-colors duration-150",
+                        "px-4 py-2 rounded-lg text-subhead font-semibold transition-colors duration-150",
                         selectedIds.size > 0
-                          ? "bg-[#FF3B30] text-white"
-                          : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
+                          ? "bg-negative text-white"
+                          : "bg-fill text-ink-3",
                       )}
                     >
                       Delete
@@ -1311,28 +1306,28 @@ export default function Wealth() {
                   <motion.div
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setSelectedCategory("Liabilities")}
-                    className="cursor-pointer bg-gradient-to-r from-[#FF3B30] to-[#FF6B6B] rounded-2xl p-4 shadow-lg shadow-[#FF3B30]/20"
+                    className="cursor-pointer bg-negative rounded-2xl p-4 shadow-card"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-2xl">
+                      <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-title-2">
                         ⚠️
                       </div>
                       <div className="flex-1">
-                        <p className="text-[13px] font-bold text-white/80 uppercase tracking-wide">
-                          Priority Payment
+                        <p className="text-footnote font-semibold text-white/80">
+                          Priority payment
                         </p>
-                        <p className="text-[20px] font-bold text-white">
+                        <p className="text-title-3 font-bold text-white">
                           {liabilities.find((l) => l.isPriority)?.name}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[24px] font-bold text-white tabular-nums">
+                        <p className="text-title-2 font-bold text-white tabular-nums">
                           ₱
                           {(
                             liabilities.find((l) => l.isPriority)?.amount || 0
                           ).toLocaleString()}
                         </p>
-                        <p className="text-[12px] text-white/70">Outstanding</p>
+                        <p className="text-caption text-white/70">Outstanding</p>
                       </div>
                     </div>
                   </motion.div>
@@ -1352,12 +1347,12 @@ export default function Wealth() {
                 transition={LAYOUT_SPRING}
                 className="mx-5 mt-6"
               >
-                <h3 className="text-[13px] font-semibold text-[#FF3B30] uppercase tracking-wide mb-2 px-1">
-                  🚨 Obligations
+                <h3 className="text-footnote font-semibold text-ink-2 mb-2 px-1">
+                  Obligations
                 </h3>
                 <motion.div
                   layout
-                  className="bg-white rounded-2xl overflow-hidden border border-[#FF3B30]/20 shadow-[0_2px_12px_rgba(255,59,48,0.1)]"
+                  className="bg-surface rounded-2xl overflow-hidden shadow-card"
                 >
                   <AnimatePresence mode="popLayout" initial={false}>
                     {filteredLiabilities.map((liability, index) => (
@@ -1378,7 +1373,7 @@ export default function Wealth() {
                           isSelected={false} // Todo: Implement selection for accounts if needed
                         />
                         {index < filteredLiabilities.length - 1 && (
-                          <div className="h-px bg-[rgba(60,60,67,0.12)] ml-[68px]" />
+                          <div className="h-px bg-separator ml-[68px]" />
                         )}
                       </motion.div>
                     ))}
@@ -1400,12 +1395,12 @@ export default function Wealth() {
                 transition={LAYOUT_SPRING}
                 className="mx-5 mt-6"
               >
-                <h3 className="text-[13px] font-semibold text-[#34C759] uppercase tracking-wide mb-2 px-1">
-                  💰 Assets
+                <h3 className="text-footnote font-semibold text-ink-2 mb-2 px-1">
+                  Assets
                 </h3>
                 <motion.div
                   layout
-                  className="bg-white rounded-2xl overflow-hidden border border-black/[0.04] shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+                  className="bg-surface rounded-2xl overflow-hidden shadow-card"
                 >
                   <AnimatePresence mode="popLayout" initial={false}>
                     {filteredAssets.map((asset, index) => (
@@ -1426,7 +1421,7 @@ export default function Wealth() {
                           isSelected={false}
                         />
                         {index < filteredAssets.length - 1 && (
-                          <div className="h-px bg-[rgba(60,60,67,0.12)] ml-[68px]" />
+                          <div className="h-px bg-separator ml-[68px]" />
                         )}
                       </motion.div>
                     ))}
@@ -1444,13 +1439,13 @@ export default function Wealth() {
             className="mx-5 mt-8"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[20px] font-bold text-black">Transactions</h3>
+              <h3 className="text-title-3 font-bold text-ink">Transactions</h3>
               <button
                 onClick={() => {
                   setIsSelecting(!isSelecting);
                   setSelectedIds(new Set());
                 }}
-                className="text-[15px] font-medium text-[#007AFF]"
+                className="text-subhead font-medium text-accent"
               >
                 {isSelecting ? "Done" : "Edit"}
               </button>
@@ -1458,7 +1453,7 @@ export default function Wealth() {
 
             {Object.entries(groupedTransactions).map(([dateLabel, items]) => (
               <div key={dateLabel} className="mb-6">
-                <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.6)] mb-2 uppercase tracking-wide">
+                <p className="text-footnote font-semibold text-ink-2 mb-2">
                   {dateLabel}
                 </p>
                 <div className="space-y-2">
@@ -1482,7 +1477,7 @@ export default function Wealth() {
             <motion.button
               whileTap={TAP}
               transition={TAP_TRANSITION}
-              className="w-full py-4 text-center text-[15px] font-semibold text-[rgba(60,60,67,0.6)]"
+              className="w-full py-4 text-center text-subhead font-semibold text-ink-2"
             >
               Manage accounts list
             </motion.button>
@@ -1498,8 +1493,8 @@ export default function Wealth() {
           {/* Recent Searches History */}
           {!searchQuery && searchHistory.length > 0 && (
             <div className="mb-6">
-              <p className="text-[11px] font-bold text-[rgba(60,60,67,0.4)] uppercase tracking-wider mb-3 px-1">
-                Recent Searches
+              <p className="text-footnote font-semibold text-ink-2 mb-3 px-1">
+                Recent searches
               </p>
               <div className="flex flex-wrap gap-2">
                 {searchHistory.map((term) => (
@@ -1508,7 +1503,7 @@ export default function Wealth() {
                     whileTap={TAP}
                     transition={TAP_TRANSITION}
                     onClick={() => setSearchQuery(term)}
-                    className="px-3 py-1.5 bg-white border border-black/[0.06] rounded-full text-[14px] text-black/80 font-medium shadow-sm"
+                    className="px-3 py-1.5 bg-surface rounded-full text-subhead text-ink font-medium shadow-card"
                   >
                     {term}
                   </motion.button>
@@ -1517,11 +1512,11 @@ export default function Wealth() {
             </div>
           )}
 
-          <p className="text-[13px] font-semibold text-[rgba(60,60,67,0.6)] mb-4 uppercase tracking-wide">
+          <p className="text-footnote font-semibold text-ink-2 mb-4">
             {searchResults.length > 0
-              ? `${searchResults.length} Results`
+              ? `${searchResults.length} ${searchResults.length === 1 ? "result" : "results"}`
               : searchQuery || activeFilter !== "All"
-                ? "No Matches"
+                ? "No matches"
                 : "Search Transactions"}
           </p>
 

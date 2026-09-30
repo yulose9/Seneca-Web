@@ -34,11 +34,11 @@ const PHASE_OPTIONS = [
 // iOS-style Form Row Component
 const FormRow = ({ label, children, isLast = false }) => (
   <div
-    className={`flex items-center min-h-[44px] px-4 ${!isLast ? "border-b border-[rgba(60,60,67,0.12)]" : ""
+    className={`flex items-center min-h-[44px] px-4 ${!isLast ? "border-b border-separator" : ""
       }`}
   >
     {label && (
-      <span className="text-[17px] text-black w-24 shrink-0">{label}</span>
+      <span className="text-body text-ink w-24 shrink-0">{label}</span>
     )}
     <div className="flex-1">{children}</div>
   </div>
@@ -48,13 +48,13 @@ const FormRow = ({ label, children, isLast = false }) => (
 const FormSection = ({ header, footer, children }) => (
   <div className="mb-6">
     {header && (
-      <p className="text-[13px] font-normal text-[#86868B] uppercase tracking-wide px-5 mb-2">
+      <p className="text-footnote font-normal text-ink-2 px-5 mb-2">
         {header}
       </p>
     )}
-    <div className="mx-4 bg-white rounded-xl overflow-hidden">{children}</div>
+    <div className="mx-4 bg-surface rounded-xl overflow-hidden">{children}</div>
     {footer && (
-      <p className="text-[13px] font-normal text-[#86868B] px-5 mt-2">
+      <p className="text-footnote font-normal text-ink-2 px-5 mt-2">
         {footer}
       </p>
     )}
@@ -121,7 +121,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
       open={visible}
       onClose={() => { haptic.trigger("medium"); onClose(); }}
       label={categoryTitle}
-      className="fixed bottom-0 left-0 right-0 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh] overflow-hidden"
+      className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet max-h-[92vh] overflow-hidden"
     >
         {/* Drag Handle */}
         <div
@@ -129,21 +129,21 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
           onClick={() => { haptic.trigger("medium"); onClose(); }}
           aria-hidden="true"
         >
-          <div className="w-12 h-1.5 bg-[rgba(60,60,67,0.3)] rounded-full" />
+          <div className="w-12 h-1.5 bg-ink-3 rounded-full" />
         </div>
 
         {/* Navigation Bar - iOS Sheet Style */}
-        <div className="relative flex items-center justify-center h-11 border-b border-[rgba(60,60,67,0.12)]">
+        <div className="relative flex items-center justify-center h-11 border-b border-separator">
           {/* Cancel Button */}
           <button
             onClick={() => { haptic.trigger("medium"); onClose(); }}
-            className="absolute left-4 text-[17px] text-[#007AFF] font-normal active:opacity-50"
+            className="absolute left-4 text-body text-accent font-normal active:opacity-50"
           >
             Cancel
           </button>
 
           {/* Title */}
-          <h2 className="text-[17px] font-semibold text-black">
+          <h2 className="text-body font-semibold text-ink">
             {categoryTitle}
           </h2>
 
@@ -151,9 +151,9 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
           <button
             onClick={handleSubmit}
             disabled={!isValid}
-            className={`absolute right-4 text-[17px] font-semibold transition-colors ${isValid
-                ? "text-[#007AFF] active:opacity-50"
-                : "text-[rgba(60,60,67,0.3)]"
+            className={`absolute right-4 text-body font-semibold transition-colors ${isValid
+                ? "text-accent active:opacity-50"
+                : "text-ink-3"
               }`}
           >
             Add
@@ -173,20 +173,20 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
               className="relative"
             >
               <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-sm"
+                className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-card"
                 style={{
                   backgroundColor: phaseEnabled
                     ? `${selectedPhaseData?.color}20`
                     : "rgba(120,120,128,0.12)",
                 }}
               >
-                <span className="text-5xl">{selectedEmoji}</span>
+                <span className="text-display">{selectedEmoji}</span>
               </div>
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#007AFF] rounded-full flex items-center justify-center shadow-md">
-                <span className="text-white text-xs">✏️</span>
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-accent rounded-full flex items-center justify-center shadow-float">
+                <span className="text-white text-caption">✏️</span>
               </div>
             </motion.button>
-            <p className="text-[13px] text-[#007AFF] mt-3 font-medium">
+            <p className="text-footnote text-accent mt-3 font-medium">
               Tap to change icon
             </p>
           </div>
@@ -224,7 +224,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter task name"
-                className="w-full text-[17px] text-black bg-transparent outline-none placeholder:text-[#C7C7CC]"
+                className="w-full text-body text-ink bg-transparent outline-none placeholder:text-ink-3"
                 autoFocus
               />
             </FormRow>
@@ -234,7 +234,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                 value={subtitle}
                 onChange={(e) => setSubtitle(e.target.value)}
                 placeholder="Optional"
-                className="w-full text-[17px] text-black bg-transparent outline-none placeholder:text-[#C7C7CC]"
+                className="w-full text-body text-ink bg-transparent outline-none placeholder:text-ink-3"
               />
             </FormRow>
           </FormSection>
@@ -252,8 +252,8 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
           >
             {/* Toggle for non-personal categories */}
             {!isPersonal && (
-              <div className="flex items-center justify-between min-h-[44px] px-4 border-b border-[rgba(60,60,67,0.12)]">
-                <span className="text-[17px] text-black">Assign to Phase</span>
+              <div className="flex items-center justify-between min-h-[44px] px-4 border-b border-separator">
+                <span className="text-body text-ink">Assign to Phase</span>
                 <motion.button
                   whileTap={TAP}
                   role="switch"
@@ -262,11 +262,11 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                   onClick={() => { haptic.trigger("selection"); setPhaseEnabled(!phaseEnabled); }}
                   className="relative w-[51px] h-[31px] rounded-full transition-colors duration-200"
                   style={{
-                    backgroundColor: phaseEnabled ? "#34C759" : "rgba(120,120,128,0.16)",
+                    backgroundColor: phaseEnabled ? "var(--color-positive)" : "var(--color-fill-strong)",
                   }}
                 >
                   <motion.div
-                    className="absolute top-[2px] left-[2px] w-[27px] h-[27px] rounded-full bg-white shadow-sm"
+                    className="absolute top-[2px] left-[2px] w-[27px] h-[27px] rounded-full bg-surface shadow-card"
                     initial={false}
                     animate={{ x: phaseEnabled ? 20 : 0 }}
                     transition={ICON_SPRING}
@@ -293,7 +293,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                       aria-pressed={selectedPhase === phase.id}
                       onClick={() => { haptic.trigger("selection"); setSelectedPhase(phase.id); }}
                       className={`w-full flex items-center justify-between min-h-[44px] px-4 ${index !== PHASE_OPTIONS.length - 1
-                          ? "border-b border-[rgba(60,60,67,0.12)]"
+                          ? "border-b border-separator"
                           : ""
                         }`}
                     >
@@ -302,9 +302,9 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                           className="w-8 h-8 rounded-lg flex items-center justify-center"
                           style={{ backgroundColor: `${phase.color}15` }}
                         >
-                          <span className="text-lg">{phase.emoji}</span>
+                          <span className="text-body">{phase.emoji}</span>
                         </div>
-                        <span className="text-[17px] text-black">
+                        <span className="text-body text-ink">
                           {phase.label}
                         </span>
                       </div>
@@ -317,7 +317,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                             exit={ICON_ENTER}
                             transition={ICON_SPRING}
                           >
-                            <Check size={20} className="text-[#007AFF]" />
+                            <Check size={20} className="text-accent" />
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -339,22 +339,22 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add a note..."
                 rows={4}
-                className="w-full text-[17px] text-black bg-transparent outline-none resize-none placeholder:text-[#C7C7CC] leading-relaxed"
+                className="w-full text-body text-ink bg-transparent outline-none resize-none placeholder:text-ink-3 leading-relaxed"
               />
             </div>
           </FormSection>
 
           {/* Streak Info Card */}
           <div className="mx-4 mb-12">
-            <div className="bg-gradient-to-r from-[#007AFF]/10 to-[#5856D6]/10 rounded-xl p-4 flex items-start gap-3">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
-                <span className="text-2xl">🔥</span>
+            <div className="bg-gradient-to-r from-accent/10 to-indigo/10 rounded-xl p-4 flex items-start gap-3">
+              <div className="w-10 h-10 bg-surface rounded-xl flex items-center justify-center shadow-card shrink-0">
+                <span className="text-title-2">🔥</span>
               </div>
               <div>
-                <p className="text-[15px] font-semibold text-black mb-0.5">
+                <p className="text-subhead font-semibold text-ink mb-0.5">
                   Streak Tracking
                 </p>
-                <p className="text-[13px] text-[#86868B] leading-snug">
+                <p className="text-footnote text-ink-2 leading-snug">
                   Custom tasks include streak tracking to help you build
                   consistent habits over time.
                 </p>

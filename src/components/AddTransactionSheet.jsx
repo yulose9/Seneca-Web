@@ -33,29 +33,29 @@ const SelectionRow = ({
   sublabel,
   isSelected,
   onClick,
-  color = "text-black",
+  color = "text-ink",
 }) => (
   <motion.button
     type="button"
     onClick={onClick}
     whileTap={{ backgroundColor: "rgba(0,0,0,0.04)" }}
-    className="w-full flex items-center p-4 border-b border-[rgba(60,60,67,0.12)] last:border-b-0"
+    className="w-full flex items-center p-4 border-b border-separator last:border-b-0"
   >
     <div
       className={clsx(
-        "w-10 h-10 rounded-full flex items-center justify-center text-lg mr-3 shrink-0",
-        isSelected ? "bg-[#007AFF]/10" : "bg-[rgba(120,120,128,0.08)]",
+        "w-10 h-10 rounded-full flex items-center justify-center text-body mr-3 shrink-0",
+        isSelected ? "bg-accent/10" : "bg-fill",
       )}
     >
       {icon}
     </div>
     <div className="flex-1 text-left">
-      <p className={clsx("text-[16px] font-semibold", color)}>{label}</p>
+      <p className={clsx("text-callout font-semibold", color)}>{label}</p>
       {sublabel && (
-        <p className="text-[13px] text-[rgba(60,60,67,0.6)]">{sublabel}</p>
+        <p className="text-footnote text-ink-2">{sublabel}</p>
       )}
     </div>
-    {isSelected && <Check size={20} className="text-[#007AFF]" />}
+    {isSelected && <Check size={20} className="text-accent" />}
   </motion.button>
 );
 
@@ -157,7 +157,7 @@ const NumberPad = ({ value, onChange, onClear, maxLength = 10 }) => {
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="h-12 rounded-xl bg-[rgba(120,120,128,0.08)] text-[22px] font-semibold text-black flex items-center justify-center select-none"
+          className="h-12 rounded-xl bg-fill text-title-2 font-semibold text-ink flex items-center justify-center select-none"
           style={{ touchAction: "manipulation" }}
         >
           {key}
@@ -439,18 +439,18 @@ export default function AddTransactionSheet({
       onClose={() => { haptic.trigger("medium"); onClose(); }}
       zIndex={400}
       label="New transaction"
-      className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl overflow-hidden max-h-[90vh]"
+      className="fixed inset-x-0 bottom-0 bg-surface rounded-t-sheet overflow-hidden max-h-[90vh]"
     >
         {/* Handle */}
         <div
           className="flex justify-center pt-3 pb-2 cursor-pointer"
           onClick={() => { haptic.trigger("medium"); onClose(); }}
         >
-          <div className="w-12 h-1.5 rounded-full bg-[rgba(60,60,67,0.3)]" />
+          <div className="w-12 h-1.5 rounded-full bg-ink-3" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pb-4 border-b border-[rgba(60,60,67,0.12)]">
+        <div className="flex items-center justify-between px-5 pb-4 border-b border-separator">
           <div className="w-12">
             {canGoBack() && (
               <motion.button
@@ -459,7 +459,7 @@ export default function AddTransactionSheet({
                 transition={{ duration: 0.2, ease: EASE_OUT }}
                 whileTap={TAP}
                 onClick={handleBack}
-                className="text-[17px] text-[#007AFF] font-medium"
+                className="text-body text-accent font-medium"
               >
                 Back
               </motion.button>
@@ -470,7 +470,7 @@ export default function AddTransactionSheet({
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, ease: EASE_OUT }}
-            className="text-[17px] font-semibold text-black"
+            className="text-body font-semibold text-ink"
           >
             {getTitle()}
           </motion.h2>
@@ -479,9 +479,9 @@ export default function AddTransactionSheet({
             transition={TAP_TRANSITION}
             aria-label="Close"
             onClick={() => { haptic.trigger("medium"); onClose(); }}
-            className="w-8 h-8 rounded-full bg-[rgba(120,120,128,0.12)] flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-fill flex items-center justify-center"
           >
-            <X size={18} className="text-[rgba(60,60,67,0.6)]" />
+            <X size={18} className="text-ink-2" />
           </motion.button>
         </div>
 
@@ -495,11 +495,11 @@ export default function AddTransactionSheet({
                 {...STEP_MOTION}
                 className="p-5"
               >
-                <p className="text-[15px] text-[rgba(60,60,67,0.6)] mb-4">
+                <p className="text-subhead text-ink-2 mb-4">
                   What type of transaction would you like to add?
                 </p>
 
-                <div className="bg-white rounded-xl border border-[rgba(60,60,67,0.12)] overflow-hidden">
+                <div className="bg-surface rounded-xl border border-separator overflow-hidden">
                   <SelectionRow
                     icon="💰"
                     label="Add to Savings"
@@ -516,7 +516,7 @@ export default function AddTransactionSheet({
                     icon="💸"
                     label="Pay Liability"
                     sublabel="Make a payment towards a debt"
-                    color="text-[#FF3B30]"
+                    color="text-negative"
                     onClick={() => handleTypeSelect("liability")}
                   />
                 </div>
@@ -530,13 +530,13 @@ export default function AddTransactionSheet({
                 {...STEP_MOTION}
                 className="p-5"
               >
-                <p className="text-[15px] text-[rgba(60,60,67,0.6)] mb-4">
+                <p className="text-subhead text-ink-2 mb-4">
                   {transactionType === "liability"
                     ? "Select which liability to pay:"
                     : "Select account to add funds:"}
                 </p>
 
-                <div className="bg-white rounded-xl border border-[rgba(60,60,67,0.12)] overflow-hidden">
+                <div className="bg-surface rounded-xl border border-separator overflow-hidden">
                   {getAccountsForType().map((account) => (
                     <SelectionRow
                       key={account.id}
@@ -551,8 +551,8 @@ export default function AddTransactionSheet({
                       onClick={() => handleAccountSelect(account)}
                       color={
                         transactionType === "liability"
-                          ? "text-[#FF3B30]"
-                          : "text-black"
+                          ? "text-negative"
+                          : "text-ink"
                       }
                     />
                   ))}
@@ -569,10 +569,10 @@ export default function AddTransactionSheet({
               >
                 {/* Amount Display */}
                 <div className="text-center py-5 px-5">
-                  <p className="text-[13px] text-[rgba(60,60,67,0.6)] mb-1 uppercase tracking-wide">
+                  <p className="text-footnote text-ink-2 mb-1">
                     {transactionType === "liability"
-                      ? "Payment Amount"
-                      : "Deposit Amount"}
+                      ? "Payment amount"
+                      : "Deposit amount"}
                   </p>
                   <div className="flex items-center justify-center">
                     <RollingNumber
@@ -580,15 +580,15 @@ export default function AddTransactionSheet({
                       displayValue={amount || "0"}
                       prefix={transactionType === "liability" ? "-" : "+"}
                       className={clsx(
-                        "text-[42px] font-bold tabular-nums select-none",
+                        "text-display font-bold tabular-nums select-none",
                         transactionType === "liability"
-                          ? "text-[#FF3B30]"
-                          : "text-[#34C759]",
+                          ? "text-negative"
+                          : "text-positive",
                       )}
                     />
                   </div>
                   {transactionType === "liability" && selectedAccount && (
-                    <p className="text-[14px] text-[rgba(60,60,67,0.6)] mt-1 tabular-nums">
+                    <p className="text-subhead text-ink-2 mt-1 tabular-nums">
                       Remaining: ₱
                       {Math.max(
                         0,
@@ -603,17 +603,17 @@ export default function AddTransactionSheet({
                   <button
                     type="button"
                     onClick={getLocation}
-                    className="w-full text-left flex items-center gap-2 px-4 py-2.5 bg-[rgba(120,120,128,0.08)] rounded-xl cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
+                    className="w-full text-left flex items-center gap-2 px-4 py-2.5 bg-fill rounded-xl cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
                   >
                     {isGettingLocation ? (
                       <Loader2
                         size={14}
-                        className="text-[#007AFF] animate-spin"
+                        className="text-accent animate-spin"
                       />
                     ) : (
-                      <MapPin size={14} className="text-[#007AFF]" />
+                      <MapPin size={14} className="text-accent" />
                     )}
-                    <span className="text-[14px] text-[rgba(60,60,67,0.6)]">
+                    <span className="text-subhead text-ink-2">
                       {isGettingLocation
                         ? "Getting location..."
                         : locationName || "Tap to add location (Optional)"}
@@ -625,7 +625,7 @@ export default function AddTransactionSheet({
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Add a note (optional)"
-                    className="w-full px-4 py-2.5 bg-[rgba(120,120,128,0.08)] rounded-xl text-[14px] text-black placeholder:text-[rgba(60,60,67,0.3)] outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+                    className="w-full px-4 py-2.5 bg-fill rounded-xl text-subhead text-ink placeholder:text-ink-3 outline-none focus:ring-2 focus:ring-accent/30"
                   />
                 </div>
 
@@ -635,7 +635,7 @@ export default function AddTransactionSheet({
                       whileTap={TAP}
                       transition={TAP_TRANSITION}
                       onClick={handlePaste}
-                      className="shrink-0 h-9 px-4 rounded-full bg-[rgba(118,118,128,0.12)] text-[14px] font-semibold text-black/80 flex items-center justify-center border border-[rgba(0,0,0,0.02)]"
+                      className="shrink-0 h-9 px-4 rounded-full bg-fill text-subhead font-semibold text-ink flex items-center justify-center border border-separator"
                     >
                       Paste
                     </motion.button>
@@ -645,7 +645,7 @@ export default function AddTransactionSheet({
                         whileTap={TAP}
                         transition={TAP_TRANSITION}
                         onClick={() => handleQuickAdd(val)}
-                        className="shrink-0 h-9 px-4 rounded-full bg-[rgba(120,120,128,0.08)] text-[14px] font-semibold text-black/80 flex items-center justify-center border border-[rgba(0,0,0,0.02)]"
+                        className="shrink-0 h-9 px-4 rounded-full bg-fill text-subhead font-semibold text-ink flex items-center justify-center border border-separator"
                       >
                         +{val.toLocaleString()}
                       </motion.button>
@@ -668,12 +668,12 @@ export default function AddTransactionSheet({
                     onClick={handleSubmit}
                     disabled={!amount || parseFloat(amount) <= 0}
                     className={clsx(
-                      "w-full py-3.5 rounded-xl font-semibold text-[16px] transition-[background-color,color,box-shadow] duration-200 ease-out",
+                      "w-full py-3.5 rounded-xl font-semibold text-callout transition-[background-color,color,box-shadow] duration-200 ease-out",
                       amount && parseFloat(amount) > 0
                         ? transactionType === "liability"
-                          ? "bg-[#FF3B30] text-white shadow-lg shadow-[#FF3B30]/25"
-                          : "bg-[#34C759] text-white shadow-lg shadow-[#34C759]/25"
-                        : "bg-[rgba(120,120,128,0.12)] text-[rgba(60,60,67,0.3)]",
+                          ? "bg-negative text-white shadow-float"
+                          : "bg-positive text-white shadow-float"
+                        : "bg-fill text-ink-3",
                     )}
                   >
                     {transactionType === "liability"
@@ -693,7 +693,7 @@ export default function AddTransactionSheet({
                 transition={{ duration: 0.3, ease: EASE_OUT }}
                 className="p-10 flex flex-col items-center justify-center text-center min-h-[300px]"
               >
-                <div className="w-24 h-24 bg-[#34C759] rounded-full flex items-center justify-center mb-6 shadow-xl shadow-[#34C759]/40">
+                <div className="w-24 h-24 bg-positive rounded-full flex items-center justify-center mb-6 shadow-float">
                   <motion.svg
                     width="40"
                     height="40"
@@ -718,7 +718,7 @@ export default function AddTransactionSheet({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.15 }}
-                  className="text-[24px] font-bold text-black mb-2 tracking-tight"
+                  className="text-title-2 font-bold text-ink mb-2"
                 >
                   {transactionType === "liability"
                     ? "Payment Verified"
@@ -728,7 +728,7 @@ export default function AddTransactionSheet({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, ease: EASE_OUT, delay: 0.2 }}
-                  className="text-[17px] text-[rgba(60,60,67,0.6)] font-medium"
+                  className="text-body text-ink-2 font-medium"
                 >
                   {transactionType === "liability"
                     ? `Successfully paid ₱${parseFloat(
@@ -764,11 +764,11 @@ export default function AddTransactionSheet({
             animate={{ scale: 1 }}
             exit={{ scale: 0.95 }}
             transition={DIALOG_SPRING}
-            className="relative bg-white w-full max-w-xs rounded-2xl p-5 shadow-2xl space-y-4"
+            className="relative bg-surface w-full max-w-xs rounded-2xl p-5 shadow-float space-y-4"
           >
             <div className="text-center">
-              <h3 className="text-[17px] font-semibold mb-1">Paste Amount</h3>
-              <p className="text-[13px] text-gray-500">
+              <h3 className="text-body font-semibold mb-1">Paste Amount</h3>
+              <p className="text-footnote text-ink-2">
                 Enter or paste the amount below
               </p>
             </div>
@@ -779,19 +779,19 @@ export default function AddTransactionSheet({
               pattern="[0-9]*"
               value={pasteValue}
               onChange={(e) => setPasteValue(e.target.value)}
-              className="w-full bg-gray-100 rounded-xl px-4 py-3 text-center text-lg font-semibold outline-none focus:ring-2 focus:ring-[#007AFF] transition-shadow duration-150"
+              className="w-full bg-fill rounded-xl px-4 py-3 text-center text-body font-semibold outline-none focus:ring-2 focus:ring-accent transition-shadow duration-150"
               placeholder="0.00"
             />
             <div className="flex gap-2">
               <button
                 onClick={() => setShowPasteModal(false)}
-                className="flex-1 py-2.5 rounded-xl font-medium bg-gray-100 text-gray-600 active:scale-[0.96] transition-transform duration-150 ease-out"
+                className="flex-1 py-2.5 rounded-xl font-medium bg-fill text-ink-2 active:scale-[0.96] transition-transform duration-150 ease-out"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmPaste}
-                className="flex-1 py-2.5 rounded-xl font-semibold bg-[#007AFF] text-white active:scale-[0.96] transition-transform duration-150 ease-out"
+                className="flex-1 py-2.5 rounded-xl font-semibold bg-accent text-white active:scale-[0.96] transition-transform duration-150 ease-out"
               >
                 Confirm
               </button>

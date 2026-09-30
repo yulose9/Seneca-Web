@@ -69,7 +69,7 @@ function ClockStylePicker({ items, value, onChange, label }) {
               className="h-[50px] flex items-center justify-center snap-center"
             >
               <span
-                className={`inline-block text-[28px] font-light tabular-nums transition-[scale,color] duration-150 ease-out ${isSelected ? "text-black scale-105" : "text-black/25 scale-90"
+                className={`inline-block text-title-1 font-light tabular-nums transition-[scale,color] duration-150 ease-out ${isSelected ? "text-ink scale-105" : "text-ink-3 scale-90"
                   }`}
               >
                 {String(item).padStart(2, "0")}
@@ -81,7 +81,7 @@ function ClockStylePicker({ items, value, onChange, label }) {
 
       {/* Label (kg) */}
       {label && (
-        <span className="text-[17px] font-medium text-black/50 ml-1">
+        <span className="text-body font-medium text-ink-2 ml-1">
           {label}
         </span>
       )}
@@ -127,27 +127,27 @@ export default function WeightInputDialog({
       onClose={onClose}
       zIndex={9999}
       label="Update weight"
-      className="fixed bottom-0 left-0 right-0 bg-[#F2F2F7] rounded-t-[20px] overflow-hidden"
+      className="fixed bottom-0 left-0 right-0 bg-canvas rounded-t-sheet overflow-hidden"
     >
         {/* Drag Handle */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-9 h-[5px] bg-[rgba(60,60,67,0.3)] rounded-full" />
+          <div className="w-9 h-[5px] bg-separator rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pb-4 border-b border-black/[0.08]">
+        <div className="flex items-center justify-between px-5 pb-4 border-b border-separator">
           <button
             onClick={onClose}
-            className="text-[17px] text-[#007AFF] font-normal active:opacity-50"
+            className="text-body text-accent font-normal active:opacity-50"
           >
             Cancel
           </button>
-          <h2 className="text-[17px] font-semibold text-black">
+          <h2 className="text-body font-semibold text-ink">
             Log Weight
           </h2>
           <button
             onClick={handleSave}
-            className="text-[17px] text-[#007AFF] font-semibold active:opacity-50"
+            className="text-body text-accent font-semibold active:opacity-50"
           >
             Save
           </button>
@@ -159,11 +159,11 @@ export default function WeightInputDialog({
           style={{ paddingBottom: "calc(120px + env(safe-area-inset-bottom, 0px))" }}
         >
           {/* Selection Highlight Bar */}
-          <div className="absolute left-4 right-4 top-[calc(50%-60px)] -translate-y-1/2 h-[50px] bg-black/[0.06] rounded-xl pointer-events-none z-0" />
+          <div className="absolute left-4 right-4 top-[calc(50%-60px)] -translate-y-1/2 h-[50px] bg-fill rounded-xl pointer-events-none z-0" />
 
           {/* Gradient Masks */}
-          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#F2F2F7] via-[#F2F2F7]/90 to-transparent pointer-events-none z-10" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#F2F2F7] via-[#F2F2F7]/90 to-transparent pointer-events-none z-10" />
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-canvas via-canvas/90 to-transparent pointer-events-none z-10" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-canvas via-canvas/90 to-transparent pointer-events-none z-10" />
 
           {/* Wheel Pickers */}
           <div className="flex justify-center items-center gap-0 relative z-5">
@@ -175,7 +175,7 @@ export default function WeightInputDialog({
                 setIntegerPart(val);
               }}
             />
-            <span className="text-[28px] font-light text-black mx-1">
+            <span className="text-title-1 font-light text-ink mx-1">
               .
             </span>
             <ClockStylePicker
@@ -191,12 +191,12 @@ export default function WeightInputDialog({
 
           {/* Current Weight Display */}
           <div className="text-center mt-8 pb-12">
-            <p className="text-[13px] text-black/40 uppercase tracking-wide mb-1">
-              Current Weight
+            <p className="text-footnote font-medium text-ink-2 mb-1">
+              Current weight
             </p>
-            <p className="text-[48px] font-thin text-[#007AFF] tabular-nums">
+            <p className="text-display font-thin text-accent tabular-nums">
               {integerPart}.{decimalPart}
-              <span className="text-[24px] font-normal text-black/30 ml-1">
+              <span className="text-title-2 font-normal text-ink-3 ml-1">
                 kg
               </span>
             </p>

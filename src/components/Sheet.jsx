@@ -10,7 +10,7 @@ import { FADE, SHEET_EXIT, SHEET_SPRING } from "../constants/motion";
  * caller's: pass it through `className` and `children`.
  *
  *   <Sheet open={isOpen} onClose={close} zIndex={50} label="Add task"
- *          className="fixed bottom-0 inset-x-0 bg-[#F2F2F7] rounded-t-[14px] max-h-[92vh]">
+ *          className="fixed bottom-0 inset-x-0 bg-canvas rounded-t-sheet max-h-[92vh]">
  *     …
  *   </Sheet>
  *
