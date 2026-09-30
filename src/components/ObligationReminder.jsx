@@ -4,12 +4,13 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
 import {
   DIALOG_SPRING,
-  EASE_OUT,
   FADE,
+  FADE_EXIT,
   ICON_ENTER,
   ICON_SPRING,
   ICON_VISIBLE,
   TAP,
+  TAP_CARD,
   TAP_TRANSITION,
 } from "../constants/motion";
 import { useWealthLiabilities, useWealthTransactions } from "../data/syncedData";
@@ -181,7 +182,7 @@ export default function ObligationReminder({ isOpen, onClose }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15, ease: EASE_OUT } }}
+            exit={{ opacity: 0, scale: 0.98, transition: FADE_EXIT }}
             transition={DIALOG_SPRING}
             role="dialog"
             aria-modal="true"
@@ -428,7 +429,7 @@ export function ReminderSettingsSheet({ visible, onClose }) {
               return (
                 <motion.button
                   key={opt.label}
-                  whileTap={{ scale: 0.98 }}
+                  whileTap={TAP_CARD}
                   transition={TAP_TRANSITION}
                   aria-pressed={isActive}
                   onClick={() => {
@@ -605,7 +606,7 @@ export function TasksReminderSettingsSheet({ visible, onClose }) {
               return (
                 <motion.button
                   key={opt.label}
-                  whileTap={{ scale: 0.98 }}
+                  whileTap={TAP_CARD}
                   transition={TAP_TRANSITION}
                   aria-pressed={isActive}
                   onClick={() => {

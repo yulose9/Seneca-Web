@@ -1,7 +1,7 @@
 import { BubbleMenu } from "@tiptap/react/menus";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
-import { EASE_OUT } from "../../constants/motion";
+import { EASE_OUT, FADE_EXIT } from "../../constants/motion";
 import {
   Bold,
   CheckSquare,
@@ -27,7 +27,7 @@ import React, { useEffect, useRef, useState } from "react";
 const DROPDOWN_MOTION = {
   initial: { opacity: 0, scale: 0.97, y: -4 },
   animate: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.97, transition: { duration: 0.1, ease: EASE_OUT } },
+  exit: { opacity: 0, scale: 0.97, transition: FADE_EXIT },
   transition: { duration: 0.12, ease: EASE_OUT },
   style: { transformOrigin: "top left" },
 };
@@ -177,10 +177,7 @@ export default function EditorBubbleMenu({ editor }) {
           <AnimatePresence>
             {activeDropdown === "turnInto" && (
               <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
+                {...DROPDOWN_MOTION}
                 className="bubble-menu-dropdown"
               >
                 <div className="bubble-menu-dropdown-header">Turn into</div>
@@ -281,10 +278,7 @@ export default function EditorBubbleMenu({ editor }) {
           <AnimatePresence>
             {activeDropdown === "textColor" && (
               <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
+                {...DROPDOWN_MOTION}
                 className="bubble-menu-dropdown bubble-menu-color-dropdown"
               >
                 <div className="bubble-menu-dropdown-header">Color</div>

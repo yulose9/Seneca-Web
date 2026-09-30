@@ -17,19 +17,22 @@ import PageHeader from "../components/PageHeader";
 import {
   ICON_ENTER,
   ICON_SPRING,
+  FADE,
+  FADE_EXIT,
   ICON_VISIBLE,
   LAYOUT_SPRING,
   TAP,
+  TAP_CARD,
   TAP_TRANSITION,
 } from "../constants/motion";
 import { useProtocol } from "../context/ProtocolContext";
+import { getPhDateKey } from "../utils/timeUtils";
 
 // iOS 18 Style Checkbox
 const Checkbox = ({ done, onClick }) => {
   return (
     <motion.button
       whileTap={TAP}
-      transition={TAP_TRANSITION}
       aria-pressed={done}
       aria-label={done ? "Mark as not done" : "Mark as done"}
       onClick={(e) => {
@@ -187,7 +190,7 @@ const TaskRow = ({ task, onToggle, onClick, isLast }) => {
     <div
       onClick={onClick}
       className={clsx(
-        "flex items-center min-h-[52px] py-3 px-4 cursor-pointer bg-surface transition-colors",
+        "flex items-center min-h-[52px] py-3 px-4 cursor-pointer bg-surface transition-colors active:bg-fill",
         !isLast && "border-b border-separator",
       )}
     >
@@ -268,15 +271,10 @@ const CategoryPillSelector = ({ categories, activeCategory, onCategoryChange }) 
                   {isActive && (
                     <motion.span
                       key={`label-${cat.id}`}
-                      className="protocol-pill-label"
-                      initial={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
-                      animate={{ maxWidth: 120, opacity: 1, marginLeft: 4 }}
-                      exit={{ maxWidth: 0, opacity: 0, marginLeft: 0 }}
-                      transition={{
-                        maxWidth: LAYOUT_SPRING,
-                        opacity: { duration: 0.15, delay: 0.05 },
-                        marginLeft: LAYOUT_SPRING,
-                      }}
+                      className="protocol-pill-label ml-1"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1, transition: FADE }}
+                      exit={{ opacity: 0, transition: FADE_EXIT }}
                       style={{ overflow: "hidden", whiteSpace: "nowrap", display: "inline-block" }}
                     >
                       {cat.label}
@@ -340,13 +338,21 @@ const PhaseSection = ({
             onToggleExpand(phaseId);
           }
         }}
-        className="flex items-center justify-between px-4 mb-2 cursor-pointer"
+        className="flex items-center justify-between px-4 mb-2 cursor-pointer active:opacity-60"
       >
         <h3 className="ios-list-header px-0 pb-0">{phase.title}</h3>
         <div className="flex items-center gap-2">
-          {!isUnlocked && (
-            <span className="ios-pill ios-pill-gray text-caption-2">Locked</span>
-          )}
+          <AnimatePresence initial={false}>
+            {!isUnlocked && (
+              <motion.span
+                key="locked"
+                exit={{ opacity: 0, scale: 0.9, transition: FADE_EXIT }}
+                className="ios-pill ios-pill-gray text-caption-2"
+              >
+                Locked
+              </motion.span>
+            )}
+          </AnimatePresence>
           {isPhaseComplete && (
             <motion.span
               initial={{ opacity: 0, scale: 0.95 }}
@@ -367,21 +373,21 @@ const PhaseSection = ({
       </div>
 
       {/* iOS Inset Grouped List */}
-      <div
+      <motion.div
+        layout
+        transition={LAYOUT_SPRING}
         className={clsx(
-          "ios-inset-grouped mx-4",
+          "ios-inset-grouped relative mx-4 transition-[opacity,filter] duration-300 ease-out",
           !isUnlocked && "opacity-50 grayscale",
         )}
       >
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           {isExpanded ? (
             <motion.div
               key="expanded"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ ...LAYOUT_SPRING, opacity: { duration: 0.2 } }}
-              className="overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: FADE }}
+              exit={{ opacity: 0, transition: FADE_EXIT }}
             >
               <Reorder.Group
                 axis="y"
@@ -409,12 +415,11 @@ const PhaseSection = ({
             // Collapsed Summary View
             <motion.div
               key="collapsed"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={LAYOUT_SPRING}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: FADE }}
+              exit={{ opacity: 0, transition: FADE_EXIT }}
               onClick={() => onToggleExpand(phaseId)}
-              whileTap={{ scale: 0.98 }}
+              whileTap={TAP_CARD}
               className={clsx(
                 "p-4 flex items-center justify-between cursor-pointer rounded-xl shadow-card",
                 isPhaseComplete ? "bg-positive" : "bg-surface",
@@ -443,7 +448,7 @@ const PhaseSection = ({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     </section>
   );
 };
@@ -518,16 +523,34 @@ export default function Protocol() {
     });
   }, [phaseTasks, phaseOrder]);
 
+  // Celebrate the moment of completion (false -> true), never the state:
+  // mounting, reloading or switching to an already-finished category stays quiet,
+  // and each category celebrates at most once per day.
+  const allDone = allPhasesComplete && hasTasks;
+  const prevAllDoneRef = useRef(allDone);
+  const prevCategoryRef = useRef(protocolCategory);
   useEffect(() => {
-    if (allPhasesComplete && hasTasks) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ["#007AFF", "#34C759", "#FF9500", "#5856D6"],
-      });
+    const wasDone = prevAllDoneRef.current;
+    const categoryChanged = prevCategoryRef.current !== protocolCategory;
+    prevAllDoneRef.current = allDone;
+    prevCategoryRef.current = protocolCategory;
+    if (!allDone || wasDone || categoryChanged) return;
+
+    const key = `seneca_celebrated_${getPhDateKey()}_${protocolCategory}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, "1");
+    } catch {
+      // Storage unavailable: still celebrate the transition
     }
-  }, [allPhasesComplete, hasTasks]);
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ["#007AFF", "#34C759", "#FF9500", "#5856D6"],
+      disableForReducedMotion: true,
+    });
+  }, [allDone, protocolCategory]);
 
   const handleTaskPress = (phaseId, task) => {
     setSelectedHabit({ ...task, phaseId });
@@ -571,7 +594,6 @@ export default function Protocol() {
             </AnimatePresence>
             <motion.button
               whileTap={TAP}
-              transition={TAP_TRANSITION}
               onClick={() => { haptic.trigger("light"); setTasksReminderSettings(true); }}
               className="w-10 h-10 rounded-full bg-surface flex items-center justify-center shadow-card"
               aria-label="Reminder Settings"
@@ -580,7 +602,6 @@ export default function Protocol() {
             </motion.button>
             <motion.button
               whileTap={TAP}
-              transition={TAP_TRANSITION}
               onClick={() => { haptic.trigger("medium"); setAddTaskSheetVisible(true); }}
               className="w-10 h-10 rounded-full bg-accent flex items-center justify-center shadow-float"
               aria-label="Add Task"
@@ -599,14 +620,22 @@ export default function Protocol() {
       />
 
       {/* Phase Sections */}
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence initial={false}>
         <motion.div
           key={protocolCategory}
-          initial={{ opacity: 0, x: 12 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -12, transition: { duration: 0.12 } }}
-          transition={LAYOUT_SPRING}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: 0 } }}
+          transition={FADE}
         >
+         <AnimatePresence initial={false}>
+          <motion.div
+            key={hasTasks ? "tasks" : "empty"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0 } }}
+            transition={FADE}
+          >
           {hasTasks ? (
             phaseOrder
               .filter((phaseId) => {
@@ -635,6 +664,8 @@ export default function Protocol() {
           ) : (
             <EmptyCategoryState categoryLabel={activeCategoryLabel} />
           )}
+          </motion.div>
+         </AnimatePresence>
         </motion.div>
       </AnimatePresence>
 

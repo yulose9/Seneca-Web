@@ -1,6 +1,4 @@
 import clsx from "clsx";
-import { motion } from "framer-motion";
-import { EASE_OUT } from "../../constants/motion";
 import React, {
   forwardRef,
   useEffect,
@@ -158,12 +156,8 @@ const CommandsList = forwardRef((props, ref) => {
   const groups = groupedItems();
 
   return (
-    <motion.div
-      // Opens on every "/" keystroke: opacity only, near-instant.
-      // (Floating UI may flip it above the caret, so no directional motion.)
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.1, ease: EASE_OUT }}
+    <div
+      // Keyboard-driven ("/" + arrow keys): rendered statically, no animation.
       className="slash-command-menu"
       ref={listRef}
     >
@@ -219,7 +213,7 @@ const CommandsList = forwardRef((props, ref) => {
           </span>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 });
 

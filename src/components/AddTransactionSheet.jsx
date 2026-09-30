@@ -1,10 +1,5 @@
 import clsx from "clsx";
-import {
-  animate,
-  AnimatePresence,
-  motion,
-  useMotionValue,
-} from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Check, Loader2, MapPin, X } from "lucide-react";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
@@ -23,7 +18,7 @@ const STEP_MOTION = {
   initial: { opacity: 0, x: 16 },
   animate: { opacity: 1, x: 0 },
   exit: { opacity: 0, x: -16 },
-  transition: { duration: 0.2, ease: EASE_OUT },
+  transition: FADE,
 };
 
 // iOS-style Selection Row
@@ -59,48 +54,12 @@ const SelectionRow = ({
   </motion.button>
 );
 
-// Rolling Number Component
-const RollingNumber = ({ value, displayValue, prefix = "", className }) => {
-  const ref = useRef(null);
-  const motionValue = useMotionValue(value);
-
-  // Initial render text
-  const initialText = `${prefix}${displayValue}`;
-
-  useEffect(() => {
-    const controls = animate(motionValue, value, {
-      duration: 0.15,
-      ease: EASE_OUT,
-      onUpdate: (latest) => {
-        if (ref.current) {
-          if (Math.abs(latest - value) < 0.5) {
-            ref.current.textContent = `${prefix}${displayValue}`;
-          } else {
-            ref.current.textContent = `${prefix}${Math.round(
-              latest,
-            ).toLocaleString()}`;
-          }
-        }
-      },
-      onComplete: () => {
-        if (ref.current) ref.current.textContent = `${prefix}${displayValue}`;
-      },
-    });
-    return () => controls.stop();
-  }, [value, displayValue, prefix, motionValue]); // Re-run if value changes
-
-  return (
-    <span ref={ref} className={className}>
-      {initialText}
-    </span>
-  );
-};
-
 // Number Pad Component
 const NumberPad = ({ value, onChange, onClear, maxLength = 10 }) => {
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "⌫"];
   const longPressTimer = useRef(null);
   const isLongPress = useRef(false);
+  const [holding, setHolding] = useState(false);
 
   const handlePress = (key) => {
     if (isLongPress.current) {
@@ -128,8 +87,10 @@ const NumberPad = ({ value, onChange, onClear, maxLength = 10 }) => {
   const handlePointerDown = (key) => {
     if (key === "⌫") {
       isLongPress.current = false;
+      setHolding(true);
       longPressTimer.current = setTimeout(() => {
         isLongPress.current = true;
+        setHolding(false);
         onClear && onClear();
         if (navigator.vibrate) navigator.vibrate(50);
       }, 500);
@@ -137,6 +98,7 @@ const NumberPad = ({ value, onChange, onClear, maxLength = 10 }) => {
   };
 
   const handlePointerUp = () => {
+    setHolding(false);
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
@@ -150,17 +112,29 @@ const NumberPad = ({ value, onChange, onClear, maxLength = 10 }) => {
           key={key}
           type="button"
           aria-label={key === "⌫" ? "Delete (hold to clear)" : key === "." ? "Decimal point" : key}
-          whileTap={{ scale: 0.96, backgroundColor: "rgba(0,0,0,0.1)" }}
+          whileTap={{ ...TAP, backgroundColor: "rgba(0,0,0,0.1)" }}
           transition={TAP_TRANSITION}
           onClick={() => handlePress(key)}
           onPointerDown={() => handlePointerDown(key)}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          className="h-12 rounded-xl bg-fill text-title-2 font-semibold text-ink flex items-center justify-center select-none"
+          className="relative overflow-hidden h-12 rounded-xl bg-fill text-title-2 font-semibold text-ink flex items-center justify-center select-none"
           style={{ touchAction: "manipulation" }}
         >
-          {key}
+          {key === "⌫" && (
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 bg-negative/20 rounded-[inherit] pointer-events-none"
+              style={{
+                clipPath: holding ? "inset(0 0 0 0)" : "inset(0 100% 0 0)",
+                transition: holding
+                  ? "clip-path 500ms linear"
+                  : "clip-path 200ms var(--ease-out)",
+              }}
+            />
+          )}
+          <span className="relative">{key}</span>
         </motion.button>
       ))}
     </div>
@@ -456,7 +430,7 @@ export default function AddTransactionSheet({
               <motion.button
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, ease: EASE_OUT }}
+                transition={FADE}
                 whileTap={TAP}
                 onClick={handleBack}
                 className="text-body text-accent font-medium"
@@ -469,7 +443,7 @@ export default function AddTransactionSheet({
             key={step + transactionType}
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: EASE_OUT }}
+            transition={FADE}
             className="text-body font-semibold text-ink"
           >
             {getTitle()}
@@ -575,17 +549,16 @@ export default function AddTransactionSheet({
                       : "Deposit amount"}
                   </p>
                   <div className="flex items-center justify-center">
-                    <RollingNumber
-                      value={parseFloat(amount) || 0}
-                      displayValue={amount || "0"}
-                      prefix={transactionType === "liability" ? "-" : "+"}
+                    <span
                       className={clsx(
                         "text-display font-bold tabular-nums select-none",
                         transactionType === "liability"
                           ? "text-negative"
                           : "text-positive",
                       )}
-                    />
+                    >
+                      {`${transactionType === "liability" ? "-" : "+"}${amount || "0"}`}
+                    </span>
                   </div>
                   {transactionType === "liability" && selectedAccount && (
                     <p className="text-subhead text-ink-2 mt-1 tabular-nums">

@@ -12,10 +12,13 @@ import { useNavigate } from "react-router-dom";
 import { usePersonalGoals } from "../context/PersonalGoalsContext";
 import { useProtocol } from "../context/ProtocolContext";
 import {
-  EASE_DRAWER,
   EASE_OUT,
+  FADE,
+  FADE_EXIT,
   LAYOUT_SPRING,
+  PROGRESS_TRANSITION,
   TAP,
+  TAP_CARD,
   TAP_TRANSITION,
 } from "../constants/motion";
 import { useStudyGoal } from "../context/StudyGoalContext";
@@ -241,7 +244,7 @@ export default function ProtocolCarousel() {
   return (
     <div className="relative">
       {/* Card Container */}
-      <LiquidGlass as={motion.div} layout transition={LAYOUT_SPRING} className="overflow-hidden rounded-2xl shadow-card">
+      <LiquidGlass as={motion.div} className="overflow-hidden rounded-2xl shadow-card">
         {/* Header with dots + arrows */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           {/* Left arrow */}
@@ -274,7 +277,7 @@ export default function ProtocolCarousel() {
                     i === safeIndex ? "#007AFF" : "rgba(120,120,128,0.2)",
                   scale: i === safeIndex ? 1.3 : 1,
                 }}
-                transition={{ duration: 0.2, ease: EASE_OUT }}
+                transition={FADE}
               />
             ))}
           </div>
@@ -305,7 +308,7 @@ export default function ProtocolCarousel() {
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.3, ease: EASE_DRAWER }}
+              transition={LAYOUT_SPRING}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.15}
@@ -318,8 +321,9 @@ export default function ProtocolCarousel() {
             >
               {/* Protocol Card */}
               {currentCard.id === "protocol" && (
-                <div
+                <motion.div
                   onClick={() => navigate("/protocol")}
+                  whileTap={TAP_CARD}
                   className="cursor-pointer"
                 >
                   <div className="flex justify-between items-center mb-1">
@@ -345,22 +349,22 @@ export default function ProtocolCarousel() {
                     {/* Progress Bar */}
                     <div className="h-2 bg-fill rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: "var(--color-caution)" }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.5, ease: EASE_OUT }}
+                        className="h-full w-full rounded-full"
+                        style={{ backgroundColor: "var(--color-caution)", transformOrigin: "left" }}
+                        initial={false}
+                        animate={{ scaleX: progress / 100 }}
+                        transition={PROGRESS_TRANSITION}
                       />
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Study Goal Card */}
               {currentCard.id === "study" && (
                 <div>
                   <div
-                    className="flex justify-between items-center mb-1 cursor-pointer"
+                    className="flex justify-between items-center mb-1 cursor-pointer active:bg-fill"
                     onClick={() => navigate("/growth")}
                   >
                     <span className="text-footnote font-semibold text-accent">
@@ -434,7 +438,7 @@ export default function ProtocolCarousel() {
               {currentCard.id === "noporn" && (
                 <div>
                   <div
-                    className="flex justify-between items-center mb-1 cursor-pointer"
+                    className="flex justify-between items-center mb-1 cursor-pointer active:bg-fill"
                     onClick={() => navigate("/growth")}
                   >
                     <span className="text-footnote font-semibold text-[#8B5CF6]">
@@ -500,7 +504,7 @@ export default function ProtocolCarousel() {
               {currentCard.id === "exercise" && (
                 <div>
                   <div
-                    className="flex justify-between items-center mb-1 cursor-pointer"
+                    className="flex justify-between items-center mb-1 cursor-pointer active:bg-fill"
                     onClick={() => navigate("/growth")}
                   >
                     <span className="text-footnote font-semibold text-accent">
@@ -568,8 +572,8 @@ export default function ProtocolCarousel() {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2, ease: EASE_OUT }}
+                    exit={{ opacity: 0, transition: FADE_EXIT }}
+                    transition={FADE}
                     className="absolute inset-0 flex items-center justify-center z-20 rounded-2xl"
                     style={{
                       backgroundColor:
@@ -580,12 +584,12 @@ export default function ProtocolCarousel() {
                   >
                     <div className="flex flex-col items-center gap-2">
                       <motion.div
-                        initial={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
+                        initial={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
                         animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                         transition={{
                           type: "spring",
                           duration: 0.4,
-                          bounce: 0.2,
+                          bounce: 0,
                           delay: 0.05,
                         }}
                       >

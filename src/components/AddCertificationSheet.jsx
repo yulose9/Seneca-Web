@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { TAP_CARD } from "../constants/motion";
 import { ChevronRight } from "lucide-react";
 import React, { useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
@@ -116,7 +117,7 @@ const SelectorSheet = ({
           {options.map((option, index) => (
             <motion.button
               key={option.id}
-              whileTap={{ scale: 0.98 }}
+              whileTap={TAP_CARD}
               onClick={() => {
                 onSelect(option);
                 onClose();

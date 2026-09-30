@@ -5,6 +5,7 @@ import {
   animate,
   motion,
   useMotionValue,
+  useReducedMotion,
 } from "framer-motion";
 import Fuse from "fuse.js";
 import {
@@ -17,7 +18,6 @@ import {
   MapPin,
   Plus,
   Search,
-  Trash2,
   X,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -26,6 +26,7 @@ import AccountDetailSheet from "../components/AccountDetailSheet";
 import AddTransactionSheet from "../components/AddTransactionSheet";
 import { ReminderSettingsSheet } from "../components/ObligationReminder";
 import PageTransition from "../components/PageTransition";
+import SwipeRow from "../components/SwipeRow";
 import TransactionDetailSheet from "../components/TransactionDetailSheet";
 import {
   DIALOG_SPRING,
@@ -35,7 +36,9 @@ import {
   ICON_SPRING,
   ICON_VISIBLE,
   LAYOUT_SPRING,
+  FADE_EXIT,
   TAP,
+  TAP_CARD,
   TAP_TRANSITION,
 } from "../constants/motion";
 import { updateGlobalData, updateTodayLog } from "../services/dataLogger";
@@ -91,23 +94,28 @@ const hydrateLiability = (cloudLiability) => {
 // Rolling Number Component
 const RollingNumber = ({ value, prefix = "", className }) => {
   const ref = useRef(null);
+  const reduceMotion = useReducedMotion();
   const motionValue = useMotionValue(value);
 
   useEffect(() => {
     if (value === undefined || value === null) return;
+    const write = (latest) => {
+      if (ref.current) {
+        ref.current.textContent = `${prefix}${Math.round(latest).toLocaleString()}`;
+      }
+    };
+    if (reduceMotion) {
+      motionValue.set(value);
+      write(value);
+      return;
+    }
     const controls = animate(motionValue, value, {
-      duration: 0.6,
+      duration: 0.3,
       ease: EASE_OUT,
-      onUpdate: (latest) => {
-        if (ref.current) {
-          ref.current.textContent = `${prefix}${Math.round(
-            latest,
-          ).toLocaleString()}`;
-        }
-      },
+      onUpdate: write,
     });
     return () => controls.stop();
-  }, [value, motionValue, prefix]);
+  }, [value, motionValue, prefix, reduceMotion]);
 
   if (value === undefined || value === null)
     return <span className="tabular-nums">{prefix}0</span>;
@@ -175,7 +183,7 @@ const ConfirmDialog = ({
   </AnimatePresence>
 );
 
-// Swipeable Row Logic (HOC or enhanced component)
+// Swipeable + selectable list row (swipe/long-press handled by SwipeRow)
 const SwipeableRow = ({
   children,
   onSwipeDelete,
@@ -185,133 +193,52 @@ const SwipeableRow = ({
   isSelected,
   item,
   onLongPress,
-}) => {
-  const [showDelete, setShowDelete] = useState(false);
-  const longPressTimer = useRef(null);
-  const isLongPress = useRef(false);
-
-  const handleTouchStart = (e) => {
-    isLongPress.current = false;
-    if (!isSelecting) {
-      e.currentTarget.dataset.startX = e.touches[0].clientX;
-      longPressTimer.current = setTimeout(() => {
-        isLongPress.current = true;
-        onLongPress?.(item.id);
-        if (navigator.vibrate) navigator.vibrate(50);
-      }, 500);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    if (!isSelecting && e.currentTarget.dataset.startX) {
-      const diff =
-        e.touches[0].clientX - parseFloat(e.currentTarget.dataset.startX);
-      if (diff < -50) setShowDelete(true);
-      if (diff > 50) setShowDelete(false);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
-
-  const handleClick = () => {
-    if (isLongPress.current) {
-      isLongPress.current = false;
-      return;
-    }
-    if (isSelecting) {
-      onSelect(item.id);
-    } else if (!showDelete) {
-      onClick?.(item);
-    }
-  };
-
-  return (
-    <div className="relative overflow-hidden">
-      <AnimatePresence>
-        {showDelete && !isSelecting && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, x: 20 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.95, x: 20 }}
-            transition={LAYOUT_SPRING}
-            className="absolute right-2 top-2 bottom-2 z-10 flex w-[70px]"
+}) => (
+  <SwipeRow
+    onDelete={() => onSwipeDelete(item)}
+    disabled={isSelecting}
+    onLongPress={() => onLongPress?.(item.id)}
+    onClick={() => (isSelecting ? onSelect(item.id) : onClick?.(item))}
+    inset
+    whileTap={{ backgroundColor: "rgba(0,0,0,0.04)" }}
+    className={clsx("bg-surface", isSelecting && "pl-12")}
+  >
+    {/* Selection Checkbox */}
+    <AnimatePresence>
+      {isSelecting && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, x: -20 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          exit={{ opacity: 0, scale: 0.9, x: -20 }}
+          transition={LAYOUT_SPRING}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20"
+        >
+          <div
+            className={clsx(
+              "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
+              isSelected ? "bg-accent border-accent" : "border-ink-3 bg-transparent",
+            )}
           >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSwipeDelete(item);
-                setShowDelete(false);
-              }}
-              aria-label="Delete"
-              className="w-full h-full bg-negative text-white rounded-xl font-semibold flex items-center justify-center shadow-card active:scale-[0.96] transition-transform duration-150 ease-out"
-            >
-              <Trash2 size={20} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.div
-        animate={{ x: showDelete ? -80 : 0 }}
-        transition={LAYOUT_SPRING}
-        className={clsx(
-          "bg-surface active:bg-black/[0.02] transition-colors duration-150 relative z-0",
-          isSelecting && "pl-12",
-        )}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={handleClick}
-      >
-        {/* Selection Checkbox */}
-        <AnimatePresence>
-          {isSelecting && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: -20 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.9, x: -20 }}
-              transition={LAYOUT_SPRING}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-20"
-            >
-              <div
-                className={clsx(
-                  "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-150",
-                  isSelected
-                    ? "bg-accent border-accent"
-                    : "border-ink-3 bg-transparent",
-                )}
-              >
-                <AnimatePresence initial={false}>
-                  {isSelected && (
-                    <motion.span
-                      key="check"
-                      initial={ICON_ENTER}
-                      animate={ICON_VISIBLE}
-                      exit={ICON_ENTER}
-                      transition={ICON_SPRING}
-                    >
-                      <Check size={14} className="text-white" strokeWidth={3} />
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        {children}
-      </motion.div>
-    </div>
-  );
-};
+            <AnimatePresence initial={false}>
+              {isSelected && (
+                <motion.span
+                  key="check"
+                  initial={ICON_ENTER}
+                  animate={ICON_VISIBLE}
+                  exit={ICON_ENTER}
+                  transition={ICON_SPRING}
+                >
+                  <Check size={14} className="text-white" strokeWidth={3} />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    {children}
+  </SwipeRow>
+);
 
 // AssetRow (Phantom-style)
 const AssetRow = (props) => (
@@ -396,90 +323,24 @@ const TransactionRow = ({
   onClick,
   ...props
 }) => {
-  const [showDelete, setShowDelete] = useState(false);
-  const longPressTimer = useRef(null);
-  const isLongPress = useRef(false);
-
-  const handleTouchStart = (e) => {
-    isLongPress.current = false;
-    if (!isSelecting) {
-      e.currentTarget.dataset.startX = e.touches[0].clientX;
-      longPressTimer.current = setTimeout(() => {
-        isLongPress.current = true;
-        onLongPress?.(item.id);
-        if (navigator.vibrate) navigator.vibrate(50);
-      }, 500);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    if (!isSelecting && e.currentTarget.dataset.startX) {
-      const diff =
-        e.touches[0].clientX - parseFloat(e.currentTarget.dataset.startX);
-      if (diff < -50) setShowDelete(true);
-      if (diff > 50) setShowDelete(false);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
-
-  const handleClick = () => {
-    if (isLongPress.current) {
-      isLongPress.current = false;
-      return;
-    }
-    if (isSelecting) {
-      onSelect(item.id);
-    } else if (!showDelete) {
-      onClick?.(item);
-    }
-  };
-
   return (
-    <div className="relative overflow-hidden">
-      <div
-        className={clsx(
-          "absolute right-2 top-2 bottom-2 w-[70px] flex items-center justify-center transition-[translate,opacity] duration-200 ease-out",
-          // Hidden fully off the card: it is inset 8px, so it must travel its width + 8px
-          showDelete ? "translate-x-0 opacity-100" : "translate-x-[calc(100%+0.5rem)] opacity-0 pointer-events-none",
-        )}
-      >
-        <button
-          onClick={() => onDelete(item.id)}
-          aria-label="Delete transaction"
-          className="w-full h-full bg-negative text-white rounded-xl flex items-center justify-center shadow-card active:scale-[0.96] transition-transform duration-150 ease-out"
-        >
-          <Trash2 size={20} />
-        </button>
-      </div>
-
-      <motion.div
-        onClick={handleClick}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        whileTap={!isSelecting && !showDelete ? { scale: 0.98 } : undefined}
-        className={clsx(
-          "flex items-center p-4 mb-2 bg-surface rounded-2xl shadow-card relative transition-[translate] duration-200 ease-out select-none",
-          showDelete && "-translate-x-20",
-        )}
-      >
+    <SwipeRow
+      onDelete={() => onDelete(item.id)}
+      deleteLabel="Delete transaction"
+      disabled={isSelecting}
+      onLongPress={() => onLongPress?.(item.id)}
+      onClick={() => (isSelecting ? onSelect(item.id) : onClick?.(item))}
+      inset
+      whileTap={TAP_CARD}
+      className="flex items-center p-4 mb-2 bg-surface rounded-2xl shadow-card select-none"
+    >
         <AnimatePresence>
           {isSelecting && (
             <motion.div
               initial={{ width: 0, opacity: 0, marginRight: 0 }}
               animate={{ width: 28, opacity: 1, marginRight: 12 }}
               exit={{ width: 0, opacity: 0, marginRight: 0 }}
-              transition={{ duration: 0.2, ease: EASE_OUT }}
+              transition={FADE}
               className="shrink-0 overflow-hidden"
             >
               <div
@@ -550,8 +411,7 @@ const TransactionRow = ({
             {(item.amount || 0).toLocaleString()}
           </p>
         </div>
-      </motion.div>
-    </div>
+    </SwipeRow>
   );
 };
 
@@ -1114,7 +974,7 @@ export default function Wealth() {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, ease: EASE_OUT }}
+                transition={FADE}
                 className="flex-1 flex items-center gap-3"
               >
                 <div className="flex-1 relative">
@@ -1164,7 +1024,7 @@ export default function Wealth() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2, ease: EASE_OUT }}
+                transition={FADE}
                 className="overflow-x-auto no-scrollbar -mx-5 px-5 pb-2"
               >
                 <div className="flex items-center gap-2">
@@ -1173,7 +1033,8 @@ export default function Wealth() {
                       key={filter.id}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, ease: EASE_OUT, delay: index * 0.03 }}
+                      whileTap={TAP}
+                      transition={{ ...FADE, delay: index * 0.03 }}
                       onClick={() => setActiveFilter(filter.id)}
                       className={clsx(
                         "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-footnote font-medium whitespace-nowrap transition-[background-color,color,box-shadow,scale] duration-150 ease-out",
@@ -1254,13 +1115,13 @@ export default function Wealth() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2, ease: EASE_OUT }}
+                transition={FADE}
                 className="px-5 mt-4 overflow-hidden"
               >
                 <div className="flex items-center justify-between bg-surface rounded-xl p-3 shadow-card">
                   <button
                     onClick={handleSelectAll}
-                    className="text-subhead font-medium text-accent"
+                    className="text-subhead font-medium text-accent active:opacity-60"
                   >
                     {selectedIds.size === transactions.length
                       ? "Deselect All"
@@ -1274,7 +1135,7 @@ export default function Wealth() {
                       onClick={handleDeleteSelected}
                       disabled={selectedIds.size === 0}
                       className={clsx(
-                        "px-4 py-2 rounded-lg text-subhead font-semibold transition-colors duration-150",
+                        "px-4 py-2 rounded-lg text-subhead font-semibold transition-colors duration-150 active:opacity-60",
                         selectedIds.size > 0
                           ? "bg-negative text-white"
                           : "bg-fill text-ink-3",
@@ -1304,7 +1165,7 @@ export default function Wealth() {
                   className="mx-5 mt-6 overflow-hidden"
                 >
                   <motion.div
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={TAP_CARD}
                     onClick={() => setSelectedCategory("Liabilities")}
                     className="cursor-pointer bg-negative rounded-2xl p-4 shadow-card"
                   >
@@ -1362,7 +1223,7 @@ export default function Wealth() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                        transition={{ duration: 0.2, ease: EASE_OUT }}
+                        transition={FADE}
                       >
                         <LiabilityRow
                           {...liability}
@@ -1410,7 +1271,7 @@ export default function Wealth() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-                        transition={{ duration: 0.2, ease: EASE_OUT }}
+                        transition={FADE}
                       >
                         <AssetRow
                           {...asset}
@@ -1445,7 +1306,7 @@ export default function Wealth() {
                   setIsSelecting(!isSelecting);
                   setSelectedIds(new Set());
                 }}
-                className="text-subhead font-medium text-accent"
+                className="text-subhead font-medium text-accent active:opacity-60"
               >
                 {isSelecting ? "Done" : "Edit"}
               </button>
@@ -1457,19 +1318,29 @@ export default function Wealth() {
                   {dateLabel}
                 </p>
                 <div className="space-y-2">
-                  {items.map((transaction) => (
-                    <TransactionRow
-                      key={transaction.id}
-                      item={transaction}
-                      isSelecting={isSelecting}
-                      isSelected={selectedIds.has(transaction.id)}
-                      onSelect={handleSelect}
-                      onDelete={handleDeleteSingle}
-                      onLongPress={handleLongPress}
-                      onClick={() => { haptic.trigger("light"); setViewTransaction(transaction); }}
-                      onAccountClick={handleTransactionAccountClick}
-                    />
-                  ))}
+                  <AnimatePresence initial={false}>
+                    {items.map((transaction) => (
+                      <motion.div
+                        key={transaction.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0, height: 0, transition: FADE_EXIT }}
+                        transition={FADE}
+                        className="overflow-hidden"
+                      >
+                        <TransactionRow
+                          item={transaction}
+                          isSelecting={isSelecting}
+                          isSelected={selectedIds.has(transaction.id)}
+                          onSelect={handleSelect}
+                          onDelete={handleDeleteSingle}
+                          onLongPress={handleLongPress}
+                          onClick={() => { haptic.trigger("light"); setViewTransaction(transaction); }}
+                          onAccountClick={handleTransactionAccountClick}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               </div>
             ))}
@@ -1486,8 +1357,9 @@ export default function Wealth() {
       ) : (
         /* Search Results View */
         <motion.div
-          initial={{ opacity: 1 }}
+          initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
+          transition={FADE}
           className="px-5 pt-4 pb-32"
         >
           {/* Recent Searches History */}
@@ -1520,29 +1392,19 @@ export default function Wealth() {
                 : "Search Transactions"}
           </p>
 
-          <motion.div layout className="space-y-2">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {searchResults.map((transaction) => (
-                <motion.div
-                  key={transaction.id}
-                  layout
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                  transition={{ duration: 0.15, ease: EASE_OUT }}
-                >
-                  <TransactionRow
-                    item={transaction}
-                    isSelecting={false}
-                    isSelected={false}
-                    onSelect={() => {}}
-                    onDelete={handleDeleteSingle}
-                    onClick={() => setViewTransaction(transaction)}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+          <div className="space-y-2">
+            {searchResults.map((transaction) => (
+              <TransactionRow
+                key={transaction.id}
+                item={transaction}
+                isSelecting={false}
+                isSelected={false}
+                onSelect={() => {}}
+                onDelete={handleDeleteSingle}
+                onClick={() => setViewTransaction(transaction)}
+              />
+            ))}
+          </div>
         </motion.div>
       )}
 

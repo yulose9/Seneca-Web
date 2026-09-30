@@ -16,6 +16,7 @@ import {
 } from "../constants/motion";
 import PageTransition from "../components/PageTransition";
 import PageHeader from "../components/PageHeader";
+import SwipeRow from "../components/SwipeRow";
 import RichTextEditor from "../components/RichTextEditor";
 import { updateGlobalData, updateTodayLog } from "../services/dataLogger";
 import { useJournalEntries } from "../data/syncedData";
@@ -173,51 +174,9 @@ const EntryRow = ({
   onClick,
   onLongPress,
 }) => {
-  const [showDelete, setShowDelete] = useState(false);
-  const longPressTimer = useRef(null);
-  const isLongPress = useRef(false);
-
-  const handleTouchStart = (e) => {
-    isLongPress.current = false;
-    if (!isSelecting) {
-      e.currentTarget.dataset.startX = e.touches[0].clientX;
-      longPressTimer.current = setTimeout(() => {
-        isLongPress.current = true;
-        onLongPress?.(item.id);
-        if (navigator.vibrate) navigator.vibrate(50);
-      }, 500);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    if (!isSelecting && e.currentTarget.dataset.startX) {
-      const diff =
-        e.touches[0].clientX - parseFloat(e.currentTarget.dataset.startX);
-      if (diff < -50) setShowDelete(true);
-      if (diff > 50) setShowDelete(false);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
-
   const handleClick = () => {
-    if (isLongPress.current) {
-      isLongPress.current = false;
-      return;
-    }
     if (isSelecting) {
       onSelect(item.id);
-    } else if (showDelete) {
-      setShowDelete(false);
     } else {
       onClick?.(item);
     }
@@ -246,38 +205,20 @@ const EntryRow = ({
   };
 
   return (
-    <div className="relative overflow-hidden">
-      <div
-        className={clsx(
-          "absolute right-0 top-0 bottom-0 w-20 bg-negative flex items-center justify-center transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
-          showDelete ? "translate-x-0" : "translate-x-full",
-        )}
-      >
-        <button
-          onClick={() => onDelete(item.id)}
-          aria-label="Delete entry"
-          className="w-full h-full flex items-center justify-center"
-        >
-          <Trash2 size={20} className="text-white" />
-        </button>
-      </div>
-
-      <motion.div
-        onClick={handleClick}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        whileTap={
-          !isSelecting && !showDelete
-            ? { backgroundColor: "rgba(0,0,0,0.04)" }
-            : undefined
-        }
-        className={clsx(
-          "flex items-start p-4 cursor-pointer bg-surface relative transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] select-none",
-          !isLast && "border-b border-separator",
-          showDelete && "-translate-x-20",
-        )}
-      >
+    <SwipeRow
+      onDelete={() => onDelete(item.id)}
+      deleteLabel="Delete entry"
+      disabled={isSelecting}
+      onLongPress={() => onLongPress?.(item.id)}
+      onClick={handleClick}
+      whileTap={{ backgroundColor: "rgba(0,0,0,0.04)" }}
+      className={clsx(
+        "flex items-start p-4 cursor-pointer bg-surface select-none",
+        !isLast && "border-b border-separator",
+      )}
+    >
+      {({ open }) => (
+        <>
         <AnimatePresence>
           {isSelecting && (
             <motion.div
@@ -343,14 +284,15 @@ const EntryRow = ({
           >
             <Trash2 size={18} className="text-negative" />
           </motion.button>
-        ) : !showDelete ? (
+        ) : !open ? (
           <ChevronRight
             size={18}
             className="text-ink-3 ml-2 shrink-0 mt-3"
           />
         ) : null}
-      </motion.div>
-    </div>
+        </>
+      )}
+    </SwipeRow>
   );
 };
 
@@ -602,7 +544,7 @@ export default function Journal() {
             <div className="flex items-center justify-between bg-surface rounded-xl p-3 shadow-card">
               <button
                 onClick={handleSelectAll}
-                className="text-subhead font-medium text-accent"
+                className="text-subhead font-medium text-accent active:opacity-60"
               >
                 {selectedIds.size === entries.length
                   ? "Deselect All"
@@ -616,7 +558,7 @@ export default function Journal() {
                   onClick={handleDeleteSelected}
                   disabled={selectedIds.size === 0}
                   className={clsx(
-                    "px-4 py-2 rounded-lg text-subhead font-semibold transition-colors",
+                    "px-4 py-2 rounded-lg text-subhead font-semibold transition-colors active:opacity-60",
                     selectedIds.size > 0
                       ? "bg-negative text-white"
                       : "bg-fill text-ink-3",
@@ -631,12 +573,7 @@ export default function Journal() {
       </AnimatePresence>
 
       {/* Editor Area */}
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.35, ease: EASE_OUT }}
-        className="px-5 mb-8"
-      >
+      <section className="px-5 mb-8">
         <div className="bg-surface rounded-2xl p-5 shadow-card relative z-10">
           {/* Title & Mood Row */}
           <div className="flex items-start gap-3 mb-4">
@@ -721,7 +658,7 @@ export default function Journal() {
             )}
           </AnimatePresence>
         </div>
-      </motion.section>
+      </section>
 
       {/* Content Lists (Today / Past) */}
       {todayEntries.length > 0 && (

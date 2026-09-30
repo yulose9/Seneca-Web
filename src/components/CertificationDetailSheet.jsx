@@ -18,6 +18,7 @@ import {
   ICON_SPRING,
   ICON_VISIBLE,
   LAYOUT_SPRING,
+  TAP_CARD,
 } from "../constants/motion";
 import Sheet from "./Sheet";
 
@@ -525,7 +526,7 @@ export default function CertificationDetailSheet({
                             return (
                               <motion.button
                                 key={status.id}
-                                whileTap={{ scale: 0.98 }}
+                                whileTap={TAP_CARD}
                                 onClick={() =>
                                   handleStatusChange(status.id)
                                 }
@@ -609,7 +610,7 @@ export default function CertificationDetailSheet({
                       {certification.status !== "locked" && (
                         <div className="mx-4 mb-4">
                           <motion.button
-                            whileTap={{ scale: 0.98 }}
+                            whileTap={TAP_CARD}
                             onClick={handleSetStudyGoal}
                             className="w-full bg-accent rounded-xl py-4 flex items-center justify-center gap-2 shadow-card"
                           >
@@ -625,7 +626,7 @@ export default function CertificationDetailSheet({
                       {isCustom && (
                         <div className="mx-4 mb-4">
                           <motion.button
-                            whileTap={{ scale: 0.98 }}
+                            whileTap={TAP_CARD}
                             onClick={() => { haptic.trigger("warning"); setShowDeleteConfirm(true); }}
                             className="w-full bg-surface rounded-xl py-4 flex items-center justify-center gap-2 border border-negative/20"
                           >

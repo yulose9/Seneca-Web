@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -11,6 +12,7 @@ const VISIBLE_ITEMS = 5;
 function ClockStylePicker({ items, value, onChange, label }) {
   const containerRef = useRef(null);
   const scrollTimeout = useRef(null);
+  const reduceMotion = useReducedMotion();
 
   // Keep scroll position in sync with value. The parent seeds the value from
   // currentWeight after this mounts, so a mount-only scroll would sit on the
@@ -39,7 +41,7 @@ function ClockStylePicker({ items, value, onChange, label }) {
       if (containerRef.current) {
         containerRef.current.scrollTo({
           top: clampedIndex * ITEM_HEIGHT,
-          behavior: "smooth",
+          behavior: reduceMotion ? "auto" : "smooth",
         });
       }
     }, 100);

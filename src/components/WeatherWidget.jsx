@@ -175,7 +175,7 @@ export default function WeatherWidget() {
                                                 handleLocationClick(loc);
                                             }
                                         }}
-                                        className={`rounded-2xl p-2 transition-colors duration-150 cursor-pointer border ${isExpanded ? 'bg-fill border-separator' : 'bg-transparent border-transparent hover:bg-black/[0.02]'
+                                        className={`rounded-2xl p-2 transition-colors duration-150 cursor-pointer border ${isExpanded ? 'bg-fill border-separator' : 'bg-transparent border-transparent hover:bg-black/[0.02] active:bg-fill'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between">
@@ -201,7 +201,7 @@ export default function WeatherWidget() {
                                                     initial={{ opacity: 0, height: 0 }}
                                                     animate={{ opacity: 1, height: 'auto' }}
                                                     exit={{ opacity: 0, height: 0 }}
-                                                    transition={{ ...LAYOUT_SPRING, opacity: { duration: 0.2 } }}
+                                                    transition={{ ...LAYOUT_SPRING, opacity: { duration: 0.2, ease: EASE_OUT } }}
                                                     className="overflow-hidden"
                                                 >
                                                     <div className="pt-3 pb-1 text-footnote text-ink-2 leading-relaxed font-medium">

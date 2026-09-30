@@ -4,7 +4,7 @@ import { Check, Trash2, X } from "lucide-react";
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useWebHaptics } from "web-haptics/react";
-import { TAP } from "../constants/motion";
+import { TAP, TAP_CARD } from "../constants/motion";
 import { calendarDateKey, getPhDateKey, parseDateKey } from "../utils/timeUtils";
 import Sheet from "./Sheet";
 
@@ -731,7 +731,7 @@ export default function HabitDetailSheet({
           {/* Journal Action */}
           {habitInfo.action === "journal" && (
             <motion.button
-              whileTap={{ scale: 0.98 }}
+              whileTap={TAP_CARD}
               onClick={() => {
                 haptic.trigger("selection");
                 onClose();
@@ -768,7 +768,7 @@ export default function HabitDetailSheet({
                 {habitInfo.choices.map((choice, index) => (
                   <motion.button
                     key={index}
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={TAP_CARD}
                     onClick={() => {
                       haptic.trigger("selection");
                       handleActionButton();
@@ -786,7 +786,7 @@ export default function HabitDetailSheet({
               </div>
             ) : (
               <motion.button
-                whileTap={{ scale: 0.98 }}
+                whileTap={TAP_CARD}
                 onClick={() => {
                   haptic.trigger("medium");
                   handleActionButton();

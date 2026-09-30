@@ -111,9 +111,6 @@
   --tab-padding: 6px;
 
   /* Animation Timings */
-  --spring-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  --spring-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
   /* Motion system (mirrors src/constants/motion.js) */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -161,7 +158,7 @@ body {
   --liquid-reflex-light: 1;
   --liquid-saturation: 180%;
   --liquid-blur: 40px;
-  --liquid-pill-blur: 24px;
+  --liquid-pill-blur: 20px;
 }
 
 .liquid-nav {
@@ -223,7 +220,6 @@ body {
     inset -2px 4px 8px -4px rgba(255, 255, 255, 0.40);
 
   transition:
-    transform 0.3s var(--ease-out),
     background 0.3s var(--ease-out),
     box-shadow 0.3s var(--ease-out);
 
@@ -274,8 +270,7 @@ body {
 
   color: var(--color-ink-2);
   transition:
-    color 0.15s ease,
-    transform 0.16s var(--ease-out);
+    color 0.15s ease;
 
   -webkit-tap-highlight-color: transparent;
   user-select: none;
@@ -339,32 +334,6 @@ body {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   isolation: isolate;
-}
-
-/* Shimmer sweep on the active pill */
-.liquid-active-tab::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(
-    120deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.45) 50%,
-    transparent 80%
-  );
-  background-size: 200% 100%;
-  background-position: -100% 0;
-  animation: liquidShimmer 3.5s ease-in-out infinite;
-}
-
-@keyframes liquidShimmer {
-  0%   { background-position: -100% 0; opacity: 0; }
-  20%  { opacity: 1; }
-  50%  { background-position: 200% 0; }
-  51%  { opacity: 0; }
-  100% { background-position: 200% 0; opacity: 0; }
 }
 
 .liquid-icon {
@@ -451,8 +420,7 @@ body {
   cursor: pointer;
   transition:
     background-color 0.2s var(--ease-out),
-    border-color 0.2s var(--ease-out),
-    transform 0.16s var(--ease-out);
+    border-color 0.2s var(--ease-out);
   flex-shrink: 0;
   /* Ensure the ::before hit-slop expands outside this element */
   overflow: visible;
@@ -476,10 +444,6 @@ body {
   border-color: var(--color-accent);
 }
 
-.ios-checkbox:active {
-  transform: scale(0.96);
-}
-
 .ios-checkbox-icon {
   width: 14px;
   height: 14px;
@@ -489,7 +453,6 @@ body {
   filter: blur(4px);
   transition:
     opacity 0.3s cubic-bezier(0.2, 0, 0, 1),
-    transform 0.3s cubic-bezier(0.2, 0, 0, 1),
     filter 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
 
@@ -514,7 +477,7 @@ body {
 .ios-progress-ring-fill {
   fill: none;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.6s var(--ease-out-expo);
+  transition: stroke-dashoffset 0.3s var(--ease-out);
 }
 
 /* ============================================
@@ -576,42 +539,6 @@ body {
 .ios-pill-gray {
   background: var(--color-fill);
   color: var(--color-ink-2);
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 /* Focus Styles */
@@ -986,7 +913,6 @@ body {
   border-radius: 8px;
   width: 100%;
   cursor: pointer;
-  transition: background-color 0.15s ease;
   text-align: left;
 }
 
@@ -1399,8 +1325,7 @@ body {
   outline: none;
   transition:
     box-shadow 0.2s ease,
-    background-color 0.15s ease,
-    transform 0.16s var(--ease-out);
+    background-color 0.15s ease;
   /* iOS HIG: ensure 44pt minimum touch target with padding */
   min-width: 36px;
   min-height: 36px;
@@ -1415,10 +1340,6 @@ body {
   background: #808080;
   padding: 8px;
   /* No shadow — only active pills get glow via inline style */
-}
-
-.protocol-pill:active {
-  transform: scale(0.96);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1496,22 +1417,6 @@ body {
   *::before,
   *::after {
     scroll-behavior: auto !important;
-  }
-
-  .liquid-active-tab::after {
-    animation: none;
-  }
-
-  .ios-card:hover,
-  .ios-card.interactive:active,
-  .ios-button:active,
-  .ios-checkbox:active,
-  .protocol-pill:active {
-    transform: none;
-  }
-
-  .ios-checkbox-icon {
-    transform: none;
   }
 }
 

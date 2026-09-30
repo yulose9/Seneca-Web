@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
-import { LAYOUT_SPRING, TAP } from "../constants/motion";
+import { LAYOUT_SPRING, TAP, TAP_CARD } from "../constants/motion";
 import Sheet from "./Sheet";
 
 // Preset colors for goals
@@ -239,7 +239,7 @@ export default function AddGoalSheet({
           {isEditing && !isDefaultGoal && (
             <div className="mx-4 mt-4">
               <motion.button
-                whileTap={{ scale: 0.98 }}
+                whileTap={TAP_CARD}
                 onClick={handleDelete}
                 className="w-full bg-surface rounded-xl py-4 flex items-center justify-center gap-2"
               >

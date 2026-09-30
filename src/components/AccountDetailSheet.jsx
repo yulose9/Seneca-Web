@@ -3,6 +3,7 @@ import {
   animate,
   motion,
   useMotionValue,
+  useReducedMotion,
 } from "framer-motion";
 import {
   ArrowDownLeft,
@@ -22,6 +23,7 @@ import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
 import {
   EASE_OUT,
+  PROGRESS_TRANSITION,
   TAP,
   TAP_TRANSITION,
 } from "../constants/motion";
@@ -50,29 +52,41 @@ const generateChartData = (baseValue, type) => {
   return data.reverse();
 };
 
+const formatAmount = (n) =>
+  n.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+// Starts at the current value (no count-up on open); tweens only when it changes.
 const RollingNumber = ({ value, prefix = "" }) => {
   const ref = useRef(null);
-  const motionValue = useMotionValue(0); // Start from 0 or current? Let's animate from 0 for "sheet open" effect
+  const reduceMotion = useReducedMotion();
+  const motionValue = useMotionValue(value);
 
   useEffect(() => {
+    const write = (latest) => {
+      if (ref.current) {
+        ref.current.textContent = `${prefix}${formatAmount(latest)}`;
+      }
+    };
+    if (reduceMotion) {
+      motionValue.set(value);
+      write(value);
+      return;
+    }
     const controls = animate(motionValue, value, {
-      duration: 0.6,
+      duration: 0.3,
       ease: EASE_OUT,
-      onUpdate: (latest) => {
-        if (ref.current) {
-          ref.current.textContent = `${prefix}${latest.toLocaleString(
-            undefined,
-            { minimumFractionDigits: 2, maximumFractionDigits: 2 },
-          )}`;
-        }
-      },
+      onUpdate: write,
     });
     return () => controls.stop();
-  }, [value, prefix, motionValue]);
+  }, [value, prefix, motionValue, reduceMotion]);
 
   return (
     <span ref={ref} className="tabular-nums">
-      {prefix}0.00
+      {prefix}
+      {formatAmount(value)}
     </span>
   );
 };
@@ -84,9 +98,9 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.3,
+      duration: 0.2,
       ease: EASE_OUT,
-      delay: 0.1 + Math.min(i, 8) * 0.04,
+      delay: Math.min(i, 6) * 0.03,
     },
   }),
 };
@@ -104,6 +118,7 @@ export default function AccountDetailSheet({
   const [editValue, setEditValue] = useState("");
   const haptic = useWebHaptics();
   const chartGradientId = useId();
+  const reduceMotion = useReducedMotion();
 
   // Keep the last account so the sheet can finish its exit after the parent clears it
   const [cachedAccount, setCachedAccount] = useState(accountProp);
@@ -141,12 +156,12 @@ export default function AccountDetailSheet({
       const timer = setTimeout(() => {
         const el = document.getElementById(`tx-${highlightTransactionId}`);
         if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
         }
       }, 400); // Wait for sheet animation
       return () => clearTimeout(timer);
     }
-  }, [isOpen, highlightTransactionId]);
+  }, [isOpen, highlightTransactionId, reduceMotion]);
 
   const chartData = useMemo(() => {
     if (!account) return [];
@@ -373,7 +388,7 @@ export default function AccountDetailSheet({
                   <motion.div
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: Math.min(liabilityProgress, 100) / 100 }}
-                    transition={{ duration: 0.6, ease: EASE_OUT }}
+                    transition={PROGRESS_TRANSITION}
                     style={{ originX: 0 }}
                     className="h-full w-full rounded-full bg-positive"
                   />

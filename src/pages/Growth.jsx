@@ -3,12 +3,10 @@ import { useWebHaptics } from "web-haptics/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronRight, Clock, Lock, Minus, Plus } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
-import { EASE_OUT, TAP } from "../constants/motion";
+import { EASE_OUT, PROGRESS_TRANSITION, TAP, TAP_CARD } from "../constants/motion";
 import AddCertificationSheet from "../components/AddCertificationSheet";
 import AddGoalSheet from "../components/AddGoalSheet";
 import CertificationDetailSheet from "../components/CertificationDetailSheet";
-import GsapStagger from "../components/GsapStagger";
-import GsapText from "../components/GsapText";
 import PageTransition from "../components/PageTransition";
 import PageHeader from "../components/PageHeader";
 import CalendarViewSheet from "../components/CalendarViewSheet";
@@ -356,7 +354,7 @@ const CourseRow = ({
   return (
     <motion.div
       onClick={() => onClick?.(item)}
-      whileTap={{ scale: 0.98, backgroundColor: "rgba(0,0,0,0.02)" }}
+      whileTap={TAP_CARD}
       className={clsx(
         "flex items-center py-4 px-4 cursor-pointer transition-colors duration-150",
         !isLast && "border-b border-separator",
@@ -513,13 +511,12 @@ const ClickableStreakGrid = ({
                 "ring-2 ring-offset-2 ring-offset-surface ring-accent"
               )}
               style={bgStyle}
-              // Mount-only stagger: animate targets never change, so toggling a
-              // cell doesn't inherit its entrance delay.
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              // Opacity-only entrance: press/release uses TAP's own transition,
+              // so later cells never wait on their stagger delay.
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{
-                opacity: { delay: index * 0.012, duration: 0.2, ease: EASE_OUT },
-                scale: { delay: index * 0.012, type: "spring", duration: 0.3, bounce: 0 },
+                opacity: { delay: Math.min(index * 0.008, 0.16), duration: 0.2, ease: EASE_OUT },
               }}
             />
           );
@@ -668,11 +665,11 @@ const WeightGoalCard = ({
         {/* Progress Bar */}
         <div className="h-3 bg-fill rounded-full overflow-hidden">
           <motion.div
-            className="h-full rounded-full"
-            style={{ backgroundColor: color }}
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.5, ease: EASE_OUT }}
+            className="h-full w-full rounded-full"
+            style={{ backgroundColor: color, transformOrigin: "left" }}
+            initial={false}
+            animate={{ scaleX: progress / 100 }}
+            transition={PROGRESS_TRANSITION}
           />
         </div>
 
@@ -855,9 +852,8 @@ export default function Growth() {
       {/* Hero Progress Card */}
       <div className="px-5 mt-6 mb-4">
         <motion.div
-          layoutId="growth-hero-card"
           onClick={() => setShowCalendarSheet(true)}
-          whileTap={{ scale: 0.98 }}
+          whileTap={TAP_CARD}
           className="cursor-pointer relative overflow-hidden rounded-2xl p-5 bg-surface shadow-card"
         >
           <div className="flex justify-between items-center">
@@ -920,7 +916,7 @@ export default function Growth() {
         </motion.div>
       </div>
 
-      <GsapStagger className="px-5" delay={0.2}>
+      <div className="px-5">
         {/* Personal Goals Section with Add Button */}
         <div className="flex items-center justify-between mb-3 mt-8 px-1">
           <div className="flex items-center">
@@ -1105,7 +1101,7 @@ export default function Growth() {
             )}
           </div>
         ))}
-      </GsapStagger>
+      </div>
 
       {/* Footer */}
       <p className="text-center text-ink-3 text-caption-2 font-medium mt-10 mb-20">

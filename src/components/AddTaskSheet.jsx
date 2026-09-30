@@ -9,6 +9,7 @@ import {
   ICON_VISIBLE,
   LAYOUT_SPRING,
   TAP,
+  TAP_CARD,
   TAP_TRANSITION,
 } from "../constants/motion";
 import Sheet from "./Sheet";
@@ -288,8 +289,7 @@ export default function AddTaskSheet({ visible, onClose, onAddTask, protocolCate
                   {PHASE_OPTIONS.map((phase, index) => (
                     <motion.button
                       key={phase.id}
-                      whileTap={{ scale: 0.98 }}
-                      transition={TAP_TRANSITION}
+                      whileTap={TAP_CARD}
                       aria-pressed={selectedPhase === phase.id}
                       onClick={() => { haptic.trigger("selection"); setSelectedPhase(phase.id); }}
                       className={`w-full flex items-center justify-between min-h-[44px] px-4 ${index !== PHASE_OPTIONS.length - 1

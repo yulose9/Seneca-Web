@@ -5,13 +5,12 @@ import { ChevronRight, GripVertical, LogOut } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ExportDataButton from "../components/ExportDataButton";
-import GsapText from "../components/GsapText";
 import PageTransition from "../components/PageTransition";
 import PageHeader from "../components/PageHeader";
 import ProtocolCarousel from "../components/ProtocolCarousel";
 import SystemCard from "../components/SystemCard";
 import WeatherWidget from "../components/WeatherWidget";
-import { FADE, LAYOUT_SPRING, TAP, TAP_TRANSITION } from "../constants/motion";
+import { FADE, TAP, TAP_CARD, TAP_TRANSITION } from "../constants/motion";
 import { useProtocol } from "../context/ProtocolContext";
 import { useJournalEntries, useWealthAssets, useWealthLiabilities } from "../data/syncedData";
 import { getPhDateKey } from "../utils/timeUtils";
@@ -267,12 +266,12 @@ export default function Home() {
       />
 
       {/* Protocol Carousel — swipeable goal cards */}
-      <motion.div layout transition={LAYOUT_SPRING} className="px-5 mb-3">
+      <motion.div className="px-5 mb-3">
         <ProtocolCarousel />
       </motion.div>
 
       {/* Reorderable Cards */}
-      <motion.div layout transition={LAYOUT_SPRING}>
+      <motion.div>
         <Reorder.Group
           axis="y"
           values={cardOrder}
@@ -334,10 +333,11 @@ export default function Home() {
 
               case "journal":
                 return (
-                  <div
+                  <motion.div
                     onClick={
                       isEditMode ? undefined : () => { haptic.trigger("light"); navigate("/journal"); }
                     }
+                    whileTap={isEditMode ? undefined : TAP_CARD}
                     className="relative overflow-hidden rounded-2xl p-5 cursor-pointer bg-surface shadow-card"
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -369,7 +369,7 @@ export default function Home() {
                         {greeting.buttonText || "Write Entry"}
                       </motion.button>
                     )}
-                  </div>
+                  </motion.div>
                 );
 
               default:
@@ -413,10 +413,9 @@ export default function Home() {
       </motion.div>
 
       {/* Logout Button */}
-      <motion.div layout transition={LAYOUT_SPRING} className="px-5 mt-6 mb-8">
+      <motion.div className="px-5 mt-6 mb-8">
         <motion.button
-          whileTap={{ scale: 0.98 }}
-          transition={TAP_TRANSITION}
+          whileTap={TAP_CARD}
           onClick={async () => {
             haptic.trigger("medium");
             if (confirm("Are you sure you want to log out?")) {

@@ -12,7 +12,7 @@ import { PersonalGoalsProvider } from "./context/PersonalGoalsContext";
 import { PreferencesProvider } from "./context/PreferencesContext";
 import { ProtocolProvider } from "./context/ProtocolContext";
 import { StudyGoalProvider } from "./context/StudyGoalContext";
-import { EASE_OUT } from "./constants/motion";
+import { EASE_OUT, FADE_EXIT } from "./constants/motion";
 
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./services/firebase";
@@ -96,7 +96,7 @@ function AppShell() {
               role="status"
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0, transition: { duration: 0.25, ease: EASE_OUT } }}
-              exit={{ opacity: 0, y: -4, transition: { duration: 0.15, ease: EASE_OUT } }}
+              exit={{ opacity: 0, y: -4, transition: FADE_EXIT }}
               className="absolute top-0 inset-x-0 z-[999] bg-orange-500/90 text-white text-footnote font-medium py-1.5 flex items-center justify-center gap-2 backdrop-blur-md"
             >
               <span>You are offline. Changes will save automatically when reconnected.</span>

@@ -3,7 +3,7 @@ import { useWebHaptics } from 'web-haptics/react';
 import { authService } from '../services/authService';
 import { AlertCircle, Lock, Smartphone } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { EASE_OUT } from '../constants/motion';
+import { FADE } from '../constants/motion';
 
 export default function LoginScreen({ onLoginSuccess }) {
     const [error, setError] = useState(null);
@@ -60,7 +60,7 @@ export default function LoginScreen({ onLoginSuccess }) {
                         role="alert"
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2, ease: EASE_OUT }}
+                        transition={FADE}
                         className="mb-8 p-4 bg-negative/10 border border-negative/20 rounded-2xl text-negative text-subhead font-medium text-left flex items-start gap-3"
                     >
                         <AlertCircle size={18} strokeWidth={2} className="shrink-0 mt-px" aria-hidden="true" />

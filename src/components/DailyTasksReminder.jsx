@@ -6,6 +6,8 @@ import {
   DIALOG_SPRING,
   EASE_OUT,
   FADE,
+  FADE_EXIT,
+  PROGRESS_TRANSITION,
   TAP,
   TAP_TRANSITION,
 } from "../constants/motion";
@@ -168,7 +170,7 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.15, ease: EASE_OUT } }}
+            exit={{ opacity: 0, scale: 0.98, transition: FADE_EXIT }}
             transition={DIALOG_SPRING}
             role="dialog"
             aria-modal="true"
@@ -209,10 +211,11 @@ export default function DailyTasksReminder({ isOpen, onClose }) {
                 {/* Progress bar */}
                 <div className="h-2 bg-white/20 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full rounded-full bg-surface"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${completionPct}%` }}
-                    transition={{ duration: 0.5, ease: EASE_OUT }}
+                    className="h-full w-full rounded-full bg-surface"
+                    style={{ transformOrigin: "left" }}
+                    initial={false}
+                    animate={{ scaleX: completionPct / 100 }}
+                    transition={PROGRESS_TRANSITION}
                   />
                 </div>
               </div>

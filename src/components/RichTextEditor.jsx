@@ -53,7 +53,7 @@ import React, {
 
 // Slash Command
 import Commands from "./editor/Commands";
-import { EASE_OUT, TAP, TAP_TRANSITION } from "../constants/motion";
+import { EASE_OUT, FADE, FADE_EXIT, TAP, TAP_TRANSITION } from "../constants/motion";
 import EditorBubbleMenu from "./editor/EditorBubbleMenu";
 import suggestion from "./editor/suggestion";
 
@@ -340,8 +340,15 @@ const RichTextEditor = forwardRef(function RichTextEditor(
           >
             <Highlighter size={16} />
           </ToolbarButton>
+          <AnimatePresence>
           {showHighlightPicker && (
-            <div className="absolute top-full left-0 mt-2 bg-surface shadow-float rounded-lg p-2 flex gap-1 z-50 border border-separator">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97, transition: FADE_EXIT }}
+              transition={FADE}
+              style={{ transformOrigin: "top left" }}
+              className="absolute top-full left-0 mt-2 bg-surface shadow-float rounded-lg p-2 flex gap-1 z-50 border border-separator">
               {HIGHLIGHT_COLORS.map((c) => (
                 <button
                   key={c}
@@ -355,8 +362,9 @@ const RichTextEditor = forwardRef(function RichTextEditor(
                   style={{ backgroundColor: c }}
                 />
               ))}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
 
         <div className="w-px h-5 bg-separator mx-1 shrink-0" />

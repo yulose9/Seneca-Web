@@ -27,6 +27,7 @@ import {
   DIALOG_SPRING,
   EASE_OUT,
   FADE,
+  FADE_EXIT,
   SHEET_EXIT,
   SHEET_SPRING,
 } from "../constants/motion";
@@ -575,8 +576,15 @@ export default function JournalDetailSheet({
                         >
                           {mood}
                         </button>
+                        <AnimatePresence>
                         {showEmojiPicker && (
-                          <div className="absolute top-full left-0 mt-2 z-50 shadow-float rounded-2xl">
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.97 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.97, transition: FADE_EXIT }}
+                            transition={FADE}
+                            style={{ transformOrigin: "top left" }}
+                            className="absolute top-full left-0 mt-2 z-50 shadow-float rounded-2xl">
                             <div
                               className="fixed inset-0 z-40"
                               onClick={() => setShowEmojiPicker(false)}
@@ -591,8 +599,9 @@ export default function JournalDetailSheet({
                                 height={400}
                               />
                             </div>
-                          </div>
+                          </motion.div>
                         )}
+                        </AnimatePresence>
                       </div>
 
                       <div className="flex-1 pt-1">
